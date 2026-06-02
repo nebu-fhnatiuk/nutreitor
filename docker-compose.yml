@@ -1,0 +1,124 @@
+# docker compose up → db + api + web con hot-reload y healthchecks.
+#
+# Notas de diseño:
+#  - El bind-mount ./:/app da hot-reload; los node_modules viven en volúmenes
+#    anónimos por servicio para no chocar con el host (que no tiene node_modules)
+#    ni entre contenedores (cada uno instala su propio árbol).
+#  - `api` instala primero y genera el lockfile; `web` arranca recién cuando `api`
+#    está healthy, evitando una carrera de instalación sobre el mismo lockfile.
+#  - `api` corre migrate + seed en el arranque para que la demo de RLS funcione
+#    out-of-the-box. En prod, migraciones = job separado (no el runtime de la API).
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      # El usuario bootstrap es el OWNER (superusuario): corre migraciones y crea
+      # el rol de runtime. El rol app (nutreitor_app) lo crea la migración 0001.
+      POSTGRES_USER: nutreitor_owner
+      POSTGRES_PASSWORD: owner_dev_pwd
+      POSTGRES_DB: nutreitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutreitor_owner -d nutreitor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@db:5432/nutreitor
+      DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@db:5432/nutreitor
+      API_PORT: "3001"
+      # Auth (dev). En prod: secretos por Secrets Manager, COOKIE_SECURE=true.
+      JWT_ACCESS_SECRET: dev-access-secret-change-me
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-me
+      ACCESS_TTL: 900s
+      REFRESH_TTL_DAYS: "30"
+      COOKIE_SECURE: "false"
+      ROOT_DOMAIN: localhost
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./:/app
+      - api_root_node_modules:/app/node_modules
+      - api_api_node_modules:/app/apps/api/node_modules
+      - api_web_node_modules:/app/apps/web/node_modules
+      - api_config_node_modules:/app/packages/config/node_modules
+      - api_shared_node_modules:/app/packages/shared/node_modules
+      - api_db_node_modules:/app/packages/db/node_modules
+    command: >
+      sh -c "corepack enable &&
+             pnpm install &&
+             pnpm --filter @nutreitor/config --filter @nutreitor/shared --filter @nutreitor/db build &&
+             pnpm --filter @nutreitor/db migrate &&
+             pnpm --filter @nutreitor/db seed &&
+             pnpm --filter @nutreitor/api dev"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      # Server-side (route handlers / proxy): red interna de compose. El browser
+      # nunca pega directo a la API; todo pasa por el proxy de Next (cookies
+      # first-party por subdominio).
+      API_INTERNAL_URL: http://api:3001
+      # Dominio raíz para distinguir landing (raíz) de workspace ({slug}.localhost).
+      ROOT_DOMAIN: localhost
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - web_root_node_modules:/app/node_modules
+      - web_api_node_modules:/app/apps/api/node_modules
+      - web_web_node_modules:/app/apps/web/node_modules
+      - web_config_node_modules:/app/packages/config/node_modules
+      - web_shared_node_modules:/app/packages/shared/node_modules
+      - web_db_node_modules:/app/packages/db/node_modules
+    command: >
+      sh -c "corepack enable &&
+             pnpm install &&
+             pnpm --filter @nutreitor/shared build &&
+             pnpm --filter @nutreitor/web dev"
+
+volumes:
+  pgdata:
+  api_root_node_modules:
+  api_api_node_modules:
+  api_web_node_modules:
+  api_config_node_modules:
+  api_shared_node_modules:
+  api_db_node_modules:
+  web_root_node_modules:
+  web_api_node_modules:
+  web_web_node_modules:
+  web_config_node_modules:
+  web_shared_node_modules:
+  web_db_node_modules:

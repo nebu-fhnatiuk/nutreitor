@@ -1,0 +1,66 @@
+import { z } from "zod";
+
+/**
+ * Esquemas de validación de entorno compartidos.
+ *
+ * Cada app compone el subconjunto que necesita y llama a `parseEnv`. Falla
+ * temprano y ruidoso si falta una variable o tiene formato inválido — preferimos
+ * un crash al boot antes que un comportamiento silenciosamente roto en runtime.
+ */
+
+export const nodeEnvSchema = z
+  .enum(["development", "test", "production"])
+  .default("development");
+
+/** Variables del backend (apps/api) y de tooling de DB (packages/db). */
+export const databaseEnvSchema = z.object({
+  // Conexión de runtime de la API: rol `nutreitor_app`, sujeto a RLS.
+  DATABASE_URL: z.string().url(),
+  // Conexión de migraciones/seed: rol `nutreitor_owner`, bypassa RLS.
+  // Opcional porque el runtime de la API no la necesita.
+  DATABASE_OWNER_URL: z.string().url().optional(),
+});
+
+export const authEnvSchema = z.object({
+  // Secretos de firma. Access = JWT corto; refresh = token opaco (hash en DB).
+  JWT_ACCESS_SECRET: z.string().min(8),
+  JWT_REFRESH_SECRET: z.string().min(8),
+  ACCESS_TTL: z.string().default("900s"),
+  REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  // Cookies: Secure=false en dev (http), true detrás de TLS.
+  // OJO: z.coerce.boolean() haría Boolean("false") = true. Parseo explícito.
+  COOKIE_SECURE: z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .default(false)
+    .transform((v) => v === true || v === "true"),
+  // Dominio raíz para distinguir host de marketing vs subdominio de tenant.
+  ROOT_DOMAIN: z.string().default("localhost"),
+});
+
+export const apiEnvSchema = z
+  .object({
+    NODE_ENV: nodeEnvSchema,
+    API_PORT: z.coerce.number().int().positive().default(3001),
+  })
+  .merge(databaseEnvSchema)
+  .merge(authEnvSchema);
+
+export type ApiEnv = z.infer<typeof apiEnvSchema>;
+
+/**
+ * Valida `source` (por defecto `process.env`) contra `schema`. Tira un error
+ * legible enumerando las variables inválidas si la validación falla.
+ */
+export function parseEnv<T extends z.ZodTypeAny>(
+  schema: T,
+  source: Record<string, unknown> = process.env,
+): z.infer<T> {
+  const result = schema.safeParse(source);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `  - ${i.path.join(".") || "(raíz)"}: ${i.message}`)
+      .join("\n");
+    throw new Error(`Variables de entorno inválidas:\n${issues}`);
+  }
+  return result.data;
+}
