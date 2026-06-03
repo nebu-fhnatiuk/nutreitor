@@ -23,6 +23,8 @@ export const capabilities = [
   "metric:record",
   "plan:read",
   "plan:write",
+  "portal:read",
+  "portal:self_report",
   "org:read",
   "org:update_branding",
   "org:update_public_profile",
@@ -53,9 +55,9 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     // read/update/add_note queda acotado a pacientes ASIGNADOS en la capa de
     // servicio (la capability es condición necesaria, no suficiente).
   ],
-  // El paciente, por ahora, no opera el panel de gestión. Acceso a SUS datos
-  // se modelará scoped a futuro; mínimo por ahora.
-  patient: ["org:read"],
+  // El paciente opera SÓLO su portal (su propia entidad), nunca el panel de
+  // gestión. El portal resuelve "mi paciente" por userId (además de RLS de tenant).
+  patient: ["org:read", "portal:read", "portal:self_report"],
 };
 
 /** Capacidades de un rol (defensivo ante un rol desconocido). */

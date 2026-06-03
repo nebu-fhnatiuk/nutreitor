@@ -26,7 +26,7 @@ import { assertCanAccessPatient, resolvePatientAccess } from "./patient-access.j
 type MetricRow = typeof patientMetrics.$inferSelect;
 
 /** numeric() en drizzle se inserta/lee como string. */
-const numStr = (v: number | null | undefined): string | null | undefined =>
+export const numStr = (v: number | null | undefined): string | null | undefined =>
   v == null ? (v as null | undefined) : String(v);
 
 /**
@@ -175,6 +175,7 @@ export class MetricsService {
       .select({
         metric: patientMetrics,
         recordedByName: users.fullName,
+        recordedByRole: memberships.role,
       })
       .from(patientMetrics)
       .innerJoin(
@@ -184,7 +185,7 @@ export class MetricsService {
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(where)
       .orderBy(asc(patientMetrics.measuredAt), asc(patientMetrics.createdAt));
-    return rows.map((r) => toMetricDto(r.metric, r.recordedByName));
+    return rows.map((r) => toMetricDto(r.metric, r.recordedByName, r.recordedByRole));
   }
 }
 
@@ -205,7 +206,11 @@ function metricValues(
 
 const num = (v: string | null): number | null => (v === null ? null : Number(v));
 
-function toMetricDto(row: MetricRow, recordedByName: string): PatientMetricDto {
+export function toMetricDto(
+  row: MetricRow,
+  recordedByName: string,
+  recordedByRole: PatientMetricDto["recordedByRole"],
+): PatientMetricDto {
   return {
     id: row.id,
     measuredAt: row.measuredAt,
@@ -218,6 +223,7 @@ function toMetricDto(row: MetricRow, recordedByName: string): PatientMetricDto {
     note: row.note,
     recordedByMembershipId: row.recordedByMembershipId,
     recordedByName,
+    recordedByRole,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

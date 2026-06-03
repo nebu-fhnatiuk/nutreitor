@@ -182,6 +182,9 @@ export async function runSeed(connectionString: string): Promise<void> {
     await db
       .update(patients)
       .set({
+        // Vincula la cuenta patient@demo (f3) a esta entidad → su portal muestra
+        // este plan/serie. (En prod el vínculo lo hace aceptar la invitación.)
+        userId: "00000000-0000-0000-0000-0000000000f3",
         documentId: "30.111.222",
         birthDate: "1990-05-12",
         sex: "female",

@@ -170,7 +170,7 @@ export class MealPlansService {
   }
 }
 
-function toPlanDto(row: MealPlanRow, authorName: string): MealPlanDto {
+export function toPlanDto(row: MealPlanRow, authorName: string): MealPlanDto {
   return {
     id: row.id,
     version: row.version,
