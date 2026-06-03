@@ -58,13 +58,13 @@ export function AcceptInvite({ token }: { token: string }) {
   }
 
   if (state === "loading") {
-    return <p className="text-sm text-zinc-500">Verificando invitación…</p>;
+    return <p className="text-sm text-stone-500">Verificando invitación…</p>;
   }
   if (state === "invalid" || !preview) {
     return (
       <div className="w-full max-w-sm text-center">
-        <h1 className="text-xl font-bold">Invitación inválida</h1>
-        <p className="mt-2 text-sm text-zinc-500">
+        <h1 className="font-serif text-xl font-semibold">Invitación inválida</h1>
+        <p className="mt-2 text-sm text-stone-500">
           El link expiró o ya fue usado. Pedí una invitación nueva.
         </p>
       </div>
@@ -77,9 +77,9 @@ export function AcceptInvite({ token }: { token: string }) {
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
         <span className="text-lg font-semibold tracking-tight">{preview.orgName}</span>
       </div>
-      <h1 className="text-2xl font-bold tracking-tight">Te invitaron a {preview.orgName}</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Como <span className="text-zinc-300">{ROLE_LABEL[preview.role] ?? preview.role}</span> ·{" "}
+      <h1 className="font-serif text-2xl font-semibold tracking-tight">Te invitaron a {preview.orgName}</h1>
+      <p className="mt-1 text-sm text-stone-500">
+        Como <span className="text-stone-700">{ROLE_LABEL[preview.role] ?? preview.role}</span> ·{" "}
         {preview.email}
       </p>
 
@@ -87,16 +87,16 @@ export function AcceptInvite({ token }: { token: string }) {
         {preview.needsAccount && (
           <>
             <div>
-              <label className="mb-1 block text-sm text-zinc-400">Tu nombre</label>
+              <label className="mb-1 block text-sm text-stone-500">Tu nombre</label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none focus:border-brand/60"
+                className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-zinc-400">Contraseña</label>
+              <label className="mb-1 block text-sm text-stone-500">Contraseña</label>
               <input
                 type="password"
                 value={password}
@@ -104,13 +104,13 @@ export function AcceptInvite({ token }: { token: string }) {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none focus:border-brand/60"
+                className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
           </>
         )}
 
-        {err && <p className="text-sm text-red-300">{err}</p>}
+        {err && <p className="text-sm text-red-700">{err}</p>}
 
         <button
           type="submit"

@@ -11,7 +11,7 @@ import type { RosterAdminEntry } from "@nutreitor/shared";
 export function RosterEditor({ initial }: { initial: RosterAdminEntry[] }) {
   if (initial.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-stone-500">
         Todavía no hay profesionales con perfil en la organización.
       </p>
     );
@@ -62,16 +62,16 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
   }
 
   return (
-    <li className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <li className="rounded-xl border border-stone-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-zinc-100">{entry.fullName}</div>
-          <div className="truncate font-mono text-xs text-zinc-500">
+          <div className="truncate font-medium text-stone-900">{entry.fullName}</div>
+          <div className="truncate font-mono text-xs text-stone-500">
             /{entry.profileSlug}
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-zinc-300">
+        <label className="flex items-center gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
             checked={listed}
@@ -81,14 +81,14 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
           Listado
         </label>
 
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
+        <label className="flex items-center gap-2 text-sm text-stone-500">
           Orden
           <input
             type="number"
             min={0}
             value={order}
             onChange={(e) => setOrder(e.target.value)}
-            className="w-16 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5 text-sm outline-none focus:border-brand/60"
+            className="w-16 rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </label>
 
@@ -97,7 +97,7 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
           onChange={(e) => setSpecialty(e.target.value)}
           placeholder="Especialidad"
           maxLength={120}
-          className="w-44 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-sm outline-none placeholder:text-zinc-600 focus:border-brand/60"
+          className="w-44 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
 
         <button
@@ -115,7 +115,7 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
           vidriera hasta que el profesional publique su perfil.
         </p>
       )}
-      {err && <p className="mt-2 text-xs text-red-300">{err}</p>}
+      {err && <p className="mt-2 text-xs text-red-700">{err}</p>}
       {saved && <p className="mt-2 text-xs text-brand">Guardado.</p>}
     </li>
   );

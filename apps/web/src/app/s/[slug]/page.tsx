@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { OrgJsonLd, ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
 
@@ -37,14 +38,27 @@ export default async function OrgPublicPage({
 
   const displayName = org.displayName ?? org.name;
 
-  // Modo perfil-único: si hay un solo profesional listado, mostramos su perfil.
+  // Modo perfil-único: si hay un solo profesional listado, la página ES su perfil.
+  // Emitimos JSON-LD Physician (la página muestra una persona, no una org) y
+  // pasamos el copy público de la org como bajada, para que la edición del admin
+  // en "Página pública" no quede invisible en este modo.
   if (org.singleProfessional && org.roster[0]) {
     const pro = await fetchPublicProfessional(slug, org.roster[0].profileSlug);
     if (pro) {
       return (
         <main className="min-h-screen bg-stone-50 text-stone-900">
-          <OrgJsonLd name={displayName} description={org.publicDescription} />
-          <ProfessionalView professional={pro} orgName={displayName} />
+          <ProfessionalJsonLd
+            name={pro.fullName}
+            headline={pro.headline}
+            bio={pro.bio}
+            photoUrl={pro.photoUrl}
+            affiliation={displayName}
+          />
+          <ProfessionalView
+            professional={pro}
+            orgName={displayName}
+            orgTagline={org.publicHeadline}
+          />
         </main>
       );
     }
@@ -134,27 +148,5 @@ export default async function OrgPublicPage({
         {displayName} · hecho con Nutreitor
       </footer>
     </main>
-  );
-}
-
-/** JSON-LD Organization/MedicalBusiness (sólo campos públicos). */
-function OrgJsonLd({
-  name,
-  description,
-}: {
-  name: string;
-  description: string | null;
-}) {
-  const data: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "MedicalBusiness",
-    name,
-  };
-  if (description) data.description = description;
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
   );
 }

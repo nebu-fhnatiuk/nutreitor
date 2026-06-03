@@ -1,8 +1,22 @@
 import type { Metadata } from "next";
+import { Fraunces, Figtree } from "next/font/google";
 import type { CSSProperties, ReactNode } from "react";
 
 import { getTenantTheme } from "@/lib/tenant-theme";
 import "./globals.css";
+
+// Hilo conductor tipográfico: display serif editorial + UI sans humanista.
+const serif = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  axes: ["opsz"],
+});
+const sans = Figtree({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Nutreitor",
@@ -15,7 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const theme = getTenantTheme();
 
   return (
-    <html lang="es-AR">
+    <html lang="es-AR" className={`${serif.variable} ${sans.variable}`}>
       <body
         style={
           {

@@ -11,10 +11,13 @@ export function ProfessionalView({
   professional,
   orgName,
   backHref,
+  orgTagline,
 }: {
   professional: PublicProfessional;
   orgName: string;
   backHref?: string;
+  /** Bajada pública de la org (modo perfil-único): la voz de la org no se pierde. */
+  orgTagline?: string | null;
 }) {
   const p = professional;
   const initial = (p.fullName || "?").slice(0, 1).toUpperCase();
@@ -52,6 +55,11 @@ export function ProfessionalView({
           </h1>
           {p.headline && (
             <p className="mt-2 text-lg text-stone-600">{p.headline}</p>
+          )}
+          {orgTagline && (
+            <p className="mt-3 max-w-md text-sm italic text-stone-500">
+              {orgTagline}
+            </p>
           )}
         </div>
       </header>

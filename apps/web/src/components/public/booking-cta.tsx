@@ -16,18 +16,41 @@ export function BookingCta({ professionalName }: { professionalName: string }) {
         Agendá una primera consulta con {professionalName}.
       </p>
       {open ? (
-        <p className="mt-4 rounded-xl bg-brand/10 px-4 py-3 text-sm text-stone-700">
-          🗓️ El agendamiento online llega muy pronto. Mientras tanto, anotamos tu
-          interés — te vamos a contactar para coordinar.
-        </p>
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-brand/10 px-4 py-3 text-sm text-stone-700">
+          <CalendarIcon />
+          <span>
+            El agendamiento online estará disponible muy pronto. Guardá esta página
+            para reservar tu turno apenas se habilite.
+          </span>
+        </div>
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="mt-4 w-full rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-fg transition hover:brightness-110 sm:w-auto"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-fg transition hover:brightness-110 sm:w-auto"
         >
+          <CalendarIcon />
           Agendar una cita
         </button>
       )}
     </div>
+  );
+}
+
+/** Ícono calendario (Lucide), 24×24, hereda color/altura del contexto. */
+function CalendarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4 shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M8 2v4M16 2v4M3 10h18" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+    </svg>
   );
 }

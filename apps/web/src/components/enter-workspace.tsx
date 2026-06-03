@@ -19,14 +19,14 @@ export function EnterWorkspace() {
 
   return (
     <form onSubmit={go} className="flex w-full max-w-md items-center gap-2">
-      <div className="flex flex-1 items-center rounded-full border border-zinc-800 bg-zinc-900/60 pl-4 pr-2 focus-within:border-brand/60">
+      <div className="flex flex-1 items-center rounded-full border border-stone-200 bg-white pl-4 pr-2 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder="tu-organizacion"
-          className="flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-zinc-600"
+          className="flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-stone-400"
         />
-        <span className="text-sm text-zinc-600">.nutreitor.com</span>
+        <span className="text-sm text-stone-400">.nutreitor.com</span>
       </div>
       <button
         type="submit"

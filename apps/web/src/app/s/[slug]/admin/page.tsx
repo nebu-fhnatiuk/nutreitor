@@ -30,8 +30,8 @@ export default async function AdminPage({
       <p className="text-xs font-medium uppercase tracking-widest text-brand">
         Administración
       </p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight">Panel de {me.org.name}</h1>
-      <p className="mt-4 text-zinc-400">
+      <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Panel de {me.org.name}</h1>
+      <p className="mt-4 text-stone-500">
         Hola {me.user.fullName}. Desde acá vas a administrar la organización:
         profesionales, pacientes, planes y configuración white-label.
       </p>
@@ -40,10 +40,10 @@ export default async function AdminPage({
           <Link
             key={s.href}
             href={s.href}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-brand/50 hover:bg-zinc-900"
+            className="rounded-2xl border border-stone-200 bg-white p-6 transition hover:border-brand/50 hover:bg-stone-100"
           >
-            <div className="font-semibold text-zinc-100">{s.title}</div>
-            <p className="mt-1 text-sm text-zinc-500">{s.desc}</p>
+            <div className="font-semibold text-stone-900">{s.title}</div>
+            <p className="mt-1 text-sm text-stone-500">{s.desc}</p>
           </Link>
         ))}
       </div>

@@ -42,24 +42,24 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
   return (
     <form onSubmit={submit} className="max-w-lg space-y-5">
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">Nombre visible</label>
+        <label className="mb-1 block text-sm text-stone-500">Nombre visible</label>
         <input
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Nombre que ven los pacientes"
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none placeholder:text-zinc-600 focus:border-brand/60"
+          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">Color primario</label>
+        <label className="mb-1 block text-sm text-stone-500">Color primario</label>
         <div className="flex items-center gap-3">
           <input
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="h-10 w-14 cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900"
+            className="h-10 w-14 cursor-pointer rounded-lg border border-stone-200 bg-white"
           />
-          <span className="font-mono text-sm text-zinc-400">{color}</span>
+          <span className="font-mono text-sm text-stone-500">{color}</span>
           <span
             className="ml-auto inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium"
             style={{ backgroundColor: color, color: "#040a08" }}
@@ -69,16 +69,16 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">URL del logo (opcional)</label>
+        <label className="mb-1 block text-sm text-stone-500">URL del logo (opcional)</label>
         <input
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="https://…/logo.png"
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none placeholder:text-zinc-600 focus:border-brand/60"
+          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
-      {err && <p className="text-sm text-red-300">{err}</p>}
+      {err && <p className="text-sm text-red-700">{err}</p>}
       {msg && <p className="text-sm text-brand">{msg}</p>}
 
       <button

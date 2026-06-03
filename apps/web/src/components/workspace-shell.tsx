@@ -48,7 +48,7 @@ export function WorkspaceShell({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-zinc-900 bg-zinc-950 px-4 py-5 sm:flex">
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-stone-200 bg-white px-4 py-5 sm:flex">
         <div className="mb-8 flex items-center gap-2 px-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="truncate text-sm font-semibold tracking-tight">{orgName}</span>
@@ -65,7 +65,7 @@ export function WorkspaceShell({
                   "rounded-lg px-3 py-2 text-sm transition " +
                   (active
                     ? "bg-brand/15 text-brand"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100")
+                    : "text-stone-500 hover:bg-stone-100 hover:text-stone-900")
                 }
               >
                 {item.label}
@@ -73,13 +73,13 @@ export function WorkspaceShell({
             );
           })}
         </nav>
-        <div className="mt-4 border-t border-zinc-900 pt-4">
-          <span className="block px-3 text-[11px] uppercase tracking-wide text-zinc-600">
+        <div className="mt-4 border-t border-stone-200 pt-4">
+          <span className="block px-3 text-[11px] uppercase tracking-wide text-stone-400">
             {ROLE_LABEL[role]}
           </span>
           <button
             onClick={logout}
-            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
+            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
           >
             Salir
           </button>
@@ -88,9 +88,9 @@ export function WorkspaceShell({
 
       <div className="flex-1">
         {/* Topbar (mobile-friendly: muestra org + salir) */}
-        <header className="flex items-center justify-between border-b border-zinc-900 px-6 py-3 sm:hidden">
+        <header className="flex items-center justify-between border-b border-stone-200 px-6 py-3 sm:hidden">
           <span className="text-sm font-semibold">{orgName}</span>
-          <button onClick={logout} className="text-sm text-zinc-400">
+          <button onClick={logout} className="text-sm text-stone-500">
             Salir
           </button>
         </header>

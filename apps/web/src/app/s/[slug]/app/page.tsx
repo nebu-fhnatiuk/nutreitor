@@ -19,10 +19,10 @@ export default async function PatientAppPage({
       <p className="text-xs font-medium uppercase tracking-widest text-brand">
         Paciente
       </p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight">
+      <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
         Hola {me.user.fullName}
       </h1>
-      <p className="mt-4 text-zinc-400">
+      <p className="mt-4 text-stone-500">
         Tu espacio en {me.org.name}: vas a ver tus planes diarios, horarios de
         comidas, progreso y métricas.
       </p>
@@ -30,10 +30,10 @@ export default async function PatientAppPage({
         {["Plan de hoy", "Progreso", "Próxima cita"].map((s) => (
           <div
             key={s}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 text-zinc-300"
+            className="rounded-2xl border border-stone-200 bg-white p-6 text-stone-700"
           >
             {s}
-            <p className="mt-1 text-xs text-zinc-600">Próximamente</p>
+            <p className="mt-1 text-xs text-stone-400">Próximamente</p>
           </div>
         ))}
       </div>

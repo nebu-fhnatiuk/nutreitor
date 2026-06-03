@@ -24,13 +24,13 @@ export default async function AdminPublicPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role}>
-      <h1 className="text-2xl font-bold tracking-tight">Página pública</h1>
-      <p className="mt-1 mb-8 text-sm text-zinc-500">
+      <h1 className="font-serif text-2xl font-semibold tracking-tight">Página pública</h1>
+      <p className="mt-1 mb-8 text-sm text-stone-500">
         Lo que ven quienes llegan a {slug}.nutreitor.com antes de iniciar sesión.
       </p>
 
       <section className="mb-12">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-zinc-400">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">
           Presentación de la organización
         </h2>
         <OrgPublicForm
@@ -42,10 +42,10 @@ export default async function AdminPublicPage({
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-widest text-stone-500">
           Roster de profesionales
         </h2>
-        <p className="mb-4 text-sm text-zinc-500">
+        <p className="mb-4 text-sm text-stone-500">
           Quién aparece y en qué orden. El contenido de cada perfil lo edita su
           dueño desde “Mi perfil”.
         </p>

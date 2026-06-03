@@ -28,9 +28,9 @@ export default async function LoginPage({
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="text-lg font-semibold tracking-tight">{orgName}</span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Ingresá a tu cuenta</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Workspace de <span className="text-zinc-300">{orgName}</span>
+        <h1 className="font-serif text-2xl font-semibold tracking-tight">Ingresá a tu cuenta</h1>
+        <p className="mt-1 text-sm text-stone-500">
+          Workspace de <span className="text-stone-700">{orgName}</span>
         </p>
         <div className="mt-8">
           <LoginForm />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
 
@@ -52,36 +53,5 @@ export default async function ProfessionalPublicPage({
       />
       <ProfessionalView professional={pro} orgName={orgName} backHref="/" />
     </main>
-  );
-}
-
-/** JSON-LD Person/Physician (sólo campos públicos). */
-function ProfessionalJsonLd({
-  name,
-  headline,
-  bio,
-  photoUrl,
-  affiliation,
-}: {
-  name: string;
-  headline: string | null;
-  bio: string | null;
-  photoUrl: string | null;
-  affiliation: string;
-}) {
-  const data: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Physician",
-    name,
-  };
-  if (headline) data.jobTitle = headline;
-  if (bio) data.description = bio;
-  if (photoUrl) data.image = photoUrl;
-  if (affiliation) data.worksFor = { "@type": "MedicalBusiness", name: affiliation };
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
   );
 }
