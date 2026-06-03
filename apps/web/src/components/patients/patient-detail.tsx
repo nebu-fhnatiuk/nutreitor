@@ -10,6 +10,7 @@ import {
 
 import { api } from "@/lib/api";
 import { MemberSelect } from "./member-select";
+import { MetricsPanel } from "./metrics-panel";
 
 const SEX_LABEL: Record<string, string> = {
   female: "Femenino",
@@ -48,12 +49,14 @@ export function PatientDetail({
   canEdit,
   canAssign,
   canAddNote,
+  canRecord,
 }: {
   id: string;
   basePath: string;
   canEdit: boolean;
   canAssign: boolean;
   canAddNote: boolean;
+  canRecord: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -156,6 +159,8 @@ export function PatientDetail({
         />
         <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
       </div>
+
+      <MetricsPanel patientId={p.id} canRecord={canRecord} />
     </div>
   );
 }

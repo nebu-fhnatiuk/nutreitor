@@ -22,6 +22,7 @@ export default async function ProPatientPage({
         basePath="/pro"
         canEdit
         canAddNote
+        canRecord
         canAssign={false}
       />
     </WorkspaceShell>
