@@ -6,28 +6,29 @@ import {
 } from "@nutreitor/shared";
 
 import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
-import { RolesGuard } from "../../core/auth/guards/roles.guard.js";
-import { Roles } from "../../core/auth/roles.decorator.js";
+import { CapabilityGuard } from "../../core/auth/capability.guard.js";
+import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { PatientsService } from "./patients.service.js";
 
 /**
- * Endpoints de pacientes, tenant-scoped. Protegidos por la sesión real:
- * JwtAuthGuard valida el JWT, verifica el membership y setea el contexto de RLS;
- * RolesGuard restringe a admin/professional. RLS acota a las filas del tenant.
+ * Endpoints de pacientes, tenant-scoped. JwtAuthGuard valida la sesión y setea el
+ * contexto de RLS; CapabilityGuard autoriza por capacidad (no por rol crudo). RLS
+ * acota a las filas del tenant.
  */
 @Controller("patients")
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("admin", "professional")
+@UseGuards(JwtAuthGuard, CapabilityGuard)
 export class PatientsController {
   constructor(private readonly patients: PatientsService) {}
 
   @Get()
+  @RequireCapability("patient:read")
   list(): Promise<PatientDto[]> {
     return this.patients.list();
   }
 
   @Post()
+  @RequireCapability("patient:create")
   create(
     @Body(new ZodValidationPipe(createPatientSchema)) dto: CreatePatientDto,
   ): Promise<PatientDto> {

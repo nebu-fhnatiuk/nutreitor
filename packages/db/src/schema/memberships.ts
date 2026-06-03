@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, pgEnum, uuid, unique, index, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, timestamp, unique, index, foreignKey } from "drizzle-orm/pg-core";
 
 import { regionEnum } from "./_region.js";
 import { timestamps } from "./_shared.js";
@@ -32,6 +32,9 @@ export const memberships = pgTable(
     organizationId: uuid("organization_id").notNull(),
     role: membershipRole("role").notNull(),
     region: regionEnum("region").notNull(),
+    // Baja soft (reversible). Membership activo ⇔ revokedAt IS NULL. Toda
+    // resolución de auth filtra por esto.
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [

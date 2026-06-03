@@ -1,21 +1,30 @@
 import { Injectable } from "@nestjs/common";
 import { organizations } from "@nutreitor/db";
 import type {
+  BrandingDto,
   CreateOrganizationDto,
   OrganizationDto,
+  UpdateBrandingDto,
 } from "@nutreitor/shared";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
+import { AuditService } from "../../core/audit/audit.service.js";
 import { AdminDbService } from "../../core/database/admin-db.service.js";
+import { TenantDbService } from "../../core/database/tenant-db.service.js";
+import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
 
 /**
- * Servicio de organizaciones = control-plane. El alta de un tenant no pertenece a
- * ningún tenant, así que usa AdminDbService (rol owner, fuera de RLS). El listado
- * también: ve todas las orgs de la plataforma.
+ * Organizaciones. El alta/listado es control-plane (rol owner, fuera de RLS). El
+ * branding lo edita el admin del propio tenant: corre bajo sesión (RLS permite al
+ * rol app actualizar su propia org) y queda auditado.
  */
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly admin: AdminDbService) {}
+  constructor(
+    private readonly admin: AdminDbService,
+    private readonly tenantDb: TenantDbService,
+    private readonly audit: AuditService,
+  ) {}
 
   async create(dto: CreateOrganizationDto): Promise<OrganizationDto> {
     const [row] = await this.admin.db
@@ -32,6 +41,45 @@ export class OrganizationsService {
       .orderBy(desc(organizations.createdAt));
     return rows.map(toDto);
   }
+
+  /** Actualiza el branding del tenant actual (org:update_branding) + audit. */
+  async updateBranding(dto: UpdateBrandingDto): Promise<BrandingDto> {
+    const ctx = getTenantContext();
+    // Sólo los campos presentes (undefined = sin cambio; null = limpiar).
+    const patch: Partial<typeof organizations.$inferInsert> = {};
+    if (dto.displayName !== undefined) patch.displayName = dto.displayName;
+    if (dto.brandLogoUrl !== undefined) patch.brandLogoUrl = dto.brandLogoUrl;
+    if (dto.brandPrimaryColor !== undefined) patch.brandPrimaryColor = dto.brandPrimaryColor;
+    if (dto.brandSecondaryColor !== undefined)
+      patch.brandSecondaryColor = dto.brandSecondaryColor;
+
+    const changed = Object.keys(patch);
+
+    return this.tenantDb.run(async (tx) => {
+      const [row] =
+        changed.length > 0
+          ? await tx
+              .update(organizations)
+              .set(patch)
+              .where(eq(organizations.id, ctx.orgId))
+              .returning()
+          : await tx
+              .select()
+              .from(organizations)
+              .where(eq(organizations.id, ctx.orgId))
+              .limit(1);
+      // Sólo auditar si hubo cambios reales (evita filas no-op en el log inmutable).
+      if (changed.length > 0) {
+        await this.audit.recordForSession(tx, {
+          action: "org.branding_updated",
+          targetType: "organization",
+          targetId: ctx.orgId,
+          metadata: { fields: changed },
+        });
+      }
+      return toBranding(row!);
+    });
+  }
 }
 
 function toDto(row: typeof organizations.$inferSelect): OrganizationDto {
@@ -41,5 +89,17 @@ function toDto(row: typeof organizations.$inferSelect): OrganizationDto {
     slug: row.slug,
     region: row.region,
     createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function toBranding(row: typeof organizations.$inferSelect): BrandingDto {
+  return {
+    name: row.name,
+    slug: row.slug,
+    region: row.region,
+    displayName: row.displayName,
+    brandLogoUrl: row.brandLogoUrl,
+    brandPrimaryColor: row.brandPrimaryColor,
+    brandSecondaryColor: row.brandSecondaryColor,
   };
 }

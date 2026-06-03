@@ -3,10 +3,14 @@ import { Module } from "@nestjs/common";
 import { AppConfigModule } from "./core/config/app-config.module.js";
 import { DatabaseModule } from "./core/database/database.module.js";
 import { AuthModule } from "./core/auth/auth.module.js";
+import { AuditModule } from "./core/audit/audit.module.js";
+import { MailModule } from "./core/mail/mail.module.js";
 import { TenantModule } from "./core/tenant/tenant.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { OrganizationsModule } from "./modules/organizations/organizations.module.js";
 import { PatientsModule } from "./modules/patients/patients.module.js";
+import { InvitationsModule } from "./modules/invitations/invitations.module.js";
+import { MembersModule } from "./modules/members/members.module.js";
 import { ProfessionalsModule } from "./modules/professionals/professionals.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
 import { PlansModule } from "./modules/plans/plans.module.js";
@@ -29,9 +33,13 @@ import { MetricsModule } from "./modules/metrics/metrics.module.js";
     DatabaseModule,
     TenantModule,
     AuthModule,
+    AuditModule,
+    MailModule,
     HealthModule,
     OrganizationsModule,
     PatientsModule,
+    InvitationsModule,
+    MembersModule,
     ProfessionalsModule,
     SchedulingModule,
     PlansModule,

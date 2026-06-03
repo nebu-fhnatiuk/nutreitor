@@ -44,6 +44,10 @@ export const apiEnvSchema = z
   .object({
     NODE_ENV: nodeEnvSchema,
     API_PORT: z.coerce.number().int().positive().default(3001),
+    // Origen web del tenant para armar el link de invitación; `{slug}` se
+    // reemplaza por el slug de la org. En prod: https://{slug}.nutreitor.com
+    WEB_ORIGIN_TEMPLATE: z.string().default("http://{slug}.localhost:3000"),
+    INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
   })
   .merge(databaseEnvSchema)
   .merge(authEnvSchema);

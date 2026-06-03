@@ -4,6 +4,7 @@ import { PassportModule } from "@nestjs/passport";
 
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
+import { CapabilityGuard } from "./capability.guard.js";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
 import { RolesGuard } from "./guards/roles.guard.js";
 import { JwtStrategy } from "./strategies/jwt.strategy.js";
@@ -26,7 +27,14 @@ import { TenantResolverService } from "./tenant-resolver.service.js";
     JwtStrategy,
     JwtAuthGuard,
     RolesGuard,
+    CapabilityGuard,
   ],
-  exports: [AuthService, TenantResolverService, JwtAuthGuard, RolesGuard],
+  exports: [
+    AuthService,
+    TenantResolverService,
+    JwtAuthGuard,
+    RolesGuard,
+    CapabilityGuard,
+  ],
 })
 export class AuthModule {}

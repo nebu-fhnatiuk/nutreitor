@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { Capability } from "../auth/capabilities.js";
 import type { Region } from "../region.js";
 
 /** Roles dentro de una organización (espeja el enum de la DB). */
@@ -38,6 +39,8 @@ export interface MeResponse {
   user: AuthUser;
   org: AuthOrg;
   role: MembershipRole;
+  /** Capacidades del rol en este tenant; la UI gatea acciones con esto. */
+  capabilities: Capability[];
 }
 
 /** /auth/login agrega la ruta de destino por rol. */

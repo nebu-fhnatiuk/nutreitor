@@ -1,8 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
+
+const SECTIONS = [
+  { href: "/admin/members", title: "Miembros", desc: "Invitar, roles y bajas." },
+  { href: "/admin/settings", title: "Configuración", desc: "Branding white-label." },
+];
 
 export default async function AdminPage({
   params,
@@ -24,15 +30,16 @@ export default async function AdminPage({
         Hola {me.user.fullName}. Desde acá vas a administrar la organización:
         profesionales, pacientes, planes y configuración white-label.
       </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        {["Profesionales", "Facturación", "Configuración"].map((s) => (
-          <div
-            key={s}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 text-zinc-300"
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        {SECTIONS.map((s) => (
+          <Link
+            key={s.href}
+            href={s.href}
+            className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-brand/50 hover:bg-zinc-900"
           >
-            {s}
-            <p className="mt-1 text-xs text-zinc-600">Próximamente</p>
-          </div>
+            <div className="font-semibold text-zinc-100">{s.title}</div>
+            <p className="mt-1 text-sm text-zinc-500">{s.desc}</p>
+          </Link>
         ))}
       </div>
     </WorkspaceShell>

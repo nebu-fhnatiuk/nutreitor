@@ -18,6 +18,11 @@ hospitales) con aislamiento de datos fuerte.
    paciente).
 5. **Consola del profesional** (`/pro`) que lista/crea pacientes con la sesión real,
    aislados por RLS.
+6. **Administración del tenant (Sprint 1)**: autorización por **capacidades** (no por rol
+   crudo), **invitaciones** stateful (revocables, con expiración, link por mail), **paciente
+   como entidad clínica** separada de la cuenta de acceso, **gestión de miembros** (roles,
+   baja soft, guard de último admin), **branding white-label** editable, y **audit log
+   append-only**. Dashboard admin en `/admin`.
 
 Todavía NO hay agendamiento ni agentes (ver "Fuera de alcance").
 
@@ -109,11 +114,29 @@ curl -s localhost:3001/patients -H 'x-tenant-slug: demo' -b j | jq   # sólo pac
 # Token de demo usado en otro subdominio → 401 (el guard exige slug==org del JWT).
 ```
 
-### Correr el test de aislamiento
+### Probar la administración del tenant (Sprint 1)
+
+Entrá como `admin@demo.test` a http://demo.localhost:3000/admin :
+- **Miembros** (`/admin/members`): invitar (email + rol), cambiar rol, dar de baja, y
+  reenviar/revocar invitaciones pendientes. El **link de invitación** se loguea en la
+  consola de la API (no hay proveedor de mail real): `docker compose logs -f api` y buscá
+  `[invitación] … → http://{slug}.localhost:3000/accept?token=…`. Abrí ese link para
+  aceptar (alta de credencial si el email es nuevo) y quedás logueado.
+- **Configuración** (`/admin/settings`): editá el branding (nombre, color, logo); el color
+  primario se aplica al workspace del tenant en runtime.
+
+Autorización por **capacidad** (no por rol): un `professional` no ve/puede invitar (403); la
+UI oculta las acciones que el rol no tiene (`me.capabilities`). Toda mutación queda en el
+**audit log** append-only (el rol de runtime no puede UPDATE/DELETE esa tabla).
+
+### Correr los tests
 
 ```bash
 docker compose exec api pnpm --filter @nutreitor/api test
 ```
+
+Incluye: aislamiento RLS (2 tenants, fail-closed, WITH CHECK), anti-timing del login, y
+autorización del capability guard.
 
 Verifica con 2 tenants seedeados que: cada tenant ve sólo lo suyo, forzar el id de
 un paciente ajeno no devuelve nada, insertar con `tenant_id` ajeno es rechazado por

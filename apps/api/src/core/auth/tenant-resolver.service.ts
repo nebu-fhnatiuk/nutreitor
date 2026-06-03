@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { organizations } from "@nutreitor/db";
-import type { AuthOrg } from "@nutreitor/shared";
+import type { AuthOrg, BrandingDto } from "@nutreitor/shared";
 import { eq } from "drizzle-orm";
 
 import { AdminDbService } from "../database/admin-db.service.js";
@@ -37,7 +37,27 @@ export class TenantResolverService {
     return org ? this.toAuthOrg(org) : null;
   }
 
+  /** Branding público por slug (para el login/workspace brandeado). */
+  async brandingBySlug(slug: string): Promise<BrandingDto | null> {
+    const [org] = await this.admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, slug))
+      .limit(1);
+    if (!org) return null;
+    return {
+      name: org.name,
+      slug: org.slug,
+      region: org.region,
+      displayName: org.displayName,
+      brandLogoUrl: org.brandLogoUrl,
+      brandPrimaryColor: org.brandPrimaryColor,
+      brandSecondaryColor: org.brandSecondaryColor,
+    };
+  }
+
   private toAuthOrg(org: OrgRow): AuthOrg {
     return { id: org.id, name: org.name, slug: org.slug, region: org.region };
   }
 }
+

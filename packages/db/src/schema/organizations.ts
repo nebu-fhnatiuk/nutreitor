@@ -24,6 +24,12 @@ export const organizations = pgTable(
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
     region: regionEnum("region").notNull(),
+    // Branding white-label (acotado): nombre visible + logo + colores. Servido por
+    // tenant al front. NO es un theming engine.
+    displayName: text("display_name"),
+    brandLogoUrl: text("brand_logo_url"),
+    brandPrimaryColor: text("brand_primary_color"),
+    brandSecondaryColor: text("brand_secondary_color"),
     ...timestamps,
   },
   (table) => [index("organizations_slug_idx").on(table.slug)],

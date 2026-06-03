@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
-
 import {
   Inject,
   Injectable,
@@ -20,11 +18,12 @@ import type {
   MembershipRole,
   MeResponse,
 } from "@nutreitor/shared";
-import { roleHome } from "@nutreitor/shared";
+import { roleHome, capabilitiesForRole } from "@nutreitor/shared";
 import bcrypt from "bcryptjs";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { APP_ENV, type ApiEnv } from "../config/app-config.module.js";
+import { generateToken, hashToken } from "../crypto/tokens.js";
 import { AdminDbService } from "../database/admin-db.service.js";
 import { TenantResolverService } from "./tenant-resolver.service.js";
 
@@ -132,7 +131,7 @@ export class AuthService {
    *  - Errores transitorios de DB → 503 (reintentable), no 500.
    */
   async refresh(rawRefresh: string, userAgent?: string): Promise<IssuedSession> {
-    const tokenHash = this.hashToken(rawRefresh);
+    const tokenHash = hashToken(rawRefresh);
 
     const [row] = await this.admin.db
       .select({
@@ -183,6 +182,7 @@ export class AuthService {
           and(
             eq(memberships.userId, row.userId),
             eq(memberships.organizationId, row.organizationId),
+            isNull(memberships.revokedAt),
           ),
         )
         .limit(1);
@@ -199,7 +199,7 @@ export class AuthService {
       .set({ revokedAt: new Date() })
       .where(
         and(
-          eq(refreshTokens.tokenHash, this.hashToken(rawRefresh)),
+          eq(refreshTokens.tokenHash, hashToken(rawRefresh)),
           isNull(refreshTokens.revokedAt),
         ),
       );
@@ -214,7 +214,11 @@ export class AuthService {
       .select({ role: memberships.role })
       .from(memberships)
       .where(
-        and(eq(memberships.userId, userId), eq(memberships.organizationId, orgId)),
+        and(
+          eq(memberships.userId, userId),
+          eq(memberships.organizationId, orgId),
+          isNull(memberships.revokedAt),
+        ),
       )
       .limit(1);
     return m?.role ?? null;
@@ -228,7 +232,21 @@ export class AuthService {
   ): Promise<MeResponse> {
     const user = await this.getUserById(userId);
     if (!user) throw invalid();
-    return { user, org, role };
+    return { user, org, role, capabilities: capabilitiesForRole(role) };
+  }
+
+  /**
+   * Emite una sesión nueva (sin rotación) para `user` en `org` con `role`. Lo usa
+   * el flujo de aceptación de invitación para dejar al invitado logueado.
+   */
+  issueFor(
+    executor: Executor,
+    user: AuthUserRow,
+    org: AuthOrg,
+    role: MembershipRole,
+    userAgent?: string,
+  ): Promise<IssuedSession> {
+    return this.issue(executor, user, org, role, userAgent);
   }
 
   // ── internos ────────────────────────────────────────────────────────────────
@@ -247,7 +265,7 @@ export class AuthService {
     userAgent?: string,
     predecessorId?: string,
   ): Promise<IssuedSession> {
-    const refreshToken = randomBytes(32).toString("hex");
+    const refreshToken = generateToken();
     const expiresAt = new Date(
       Date.now() + this.env.REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
@@ -257,7 +275,7 @@ export class AuthService {
         userId: user.id,
         organizationId: org.id,
         region: org.region,
-        tokenHash: this.hashToken(refreshToken),
+        tokenHash: hashToken(refreshToken),
         expiresAt,
         userAgent,
       })
@@ -290,7 +308,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      result: { user, org, role, redirect: roleHome[role] },
+      result: {
+        user,
+        org,
+        role,
+        capabilities: capabilitiesForRole(role),
+        redirect: roleHome[role],
+      },
     };
   }
 
@@ -342,9 +366,5 @@ export class AuthService {
       .where(
         and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)),
       );
-  }
-
-  private hashToken(raw: string): string {
-    return createHash("sha256").update(raw).digest("hex");
   }
 }

@@ -3,14 +3,17 @@ import { pgTable, uuid, text, index, foreignKey } from "drizzle-orm/pg-core";
 
 import { tenantColumns, timestamps } from "./_shared.js";
 import { organizations } from "./organizations.js";
+import { users } from "./users.js";
 
 /**
- * Pacientes. Tabla de negocio de ejemplo que materializa el patrón multi-tenant:
- * `tenant_id` + `region` (de tenantColumns) y FK a organizations.
+ * Pacientes como ENTIDAD CLÍNICA, separada de la cuenta de acceso. Lo crea un
+ * profesional/admin y existe aunque el paciente nunca se loguee.
  *
- * El aislamiento NO depende de filtrar por `tenant_id` en la app: lo garantiza
- * la policy RLS `tenant_isolation` (ver migrations/0001_roles_and_rls.sql). El
- * índice sobre `tenant_id` es el índice de acceso primario en modelo POOL.
+ *  - `userId`: vínculo (nullable) a la identidad global. Se setea cuando el
+ *    paciente acepta una invitación y habilita su cuenta. Sin cuenta = NULL.
+ *  - `email`: dato de contacto (opcional). No es la credencial.
+ *
+ * Aislamiento por RLS `tenant_isolation` sobre `tenant_id` (modelo POOL).
  */
 export const patients = pgTable(
   "patients",
@@ -20,16 +23,24 @@ export const patients = pgTable(
       .default(sql`gen_random_uuid()`),
     ...tenantColumns,
     fullName: text("full_name").notNull(),
+    email: text("email"),
+    userId: uuid("user_id"),
     ...timestamps,
   },
   (table) => [
     index("patients_tenant_id_idx").on(table.tenantId),
     index("patients_tenant_created_idx").on(table.tenantId, table.createdAt),
+    index("patients_user_id_idx").on(table.userId),
     foreignKey({
       columns: [table.tenantId],
       foreignColumns: [organizations.id],
       name: "patients_tenant_id_fk",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "patients_user_id_fk",
+    }).onDelete("set null"),
   ],
 );
 
