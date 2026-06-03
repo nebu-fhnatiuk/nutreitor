@@ -30,6 +30,9 @@ export const organizations = pgTable(
     brandLogoUrl: text("brand_logo_url"),
     brandPrimaryColor: text("brand_primary_color"),
     brandSecondaryColor: text("brand_secondary_color"),
+    // Página pública de la org (capa de captación).
+    publicHeadline: text("public_headline"),
+    publicDescription: text("public_description"),
     ...timestamps,
   },
   (table) => [index("organizations_slug_idx").on(table.slug)],

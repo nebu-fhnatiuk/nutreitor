@@ -19,6 +19,8 @@ export const capabilities = [
   "patient:assign",
   "org:read",
   "org:update_branding",
+  "org:update_public_profile",
+  "professional:update_own_profile",
   "audit:read",
 ] as const;
 
@@ -34,6 +36,7 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     "patient:read_clinical",
     "patient:assign",
     "org:read",
+    "professional:update_own_profile",
   ],
   // El paciente, por ahora, no opera el panel de gestión. Acceso a SUS datos
   // se modelará scoped a futuro; mínimo por ahora.

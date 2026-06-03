@@ -11,6 +11,7 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
 import { PatientsModule } from "./modules/patients/patients.module.js";
 import { InvitationsModule } from "./modules/invitations/invitations.module.js";
 import { MembersModule } from "./modules/members/members.module.js";
+import { PublicModule } from "./modules/public/public.module.js";
 import { ProfessionalsModule } from "./modules/professionals/professionals.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
 import { PlansModule } from "./modules/plans/plans.module.js";
@@ -40,6 +41,7 @@ import { MetricsModule } from "./modules/metrics/metrics.module.js";
     PatientsModule,
     InvitationsModule,
     MembersModule,
+    PublicModule,
     ProfessionalsModule,
     SchedulingModule,
     PlansModule,

@@ -25,10 +25,20 @@ export class TenantDbService {
   }
 
   /**
-   * Ejecuta `cb` dentro de una transacción con el tenant del contexto inyectado.
-   * El `tx` que recibe el callback ya está acotado por RLS al tenant actual.
+   * Ejecuta `cb` dentro de una transacción con el tenant del contexto (ALS)
+   * inyectado. El `tx` ya está acotado por RLS al tenant autenticado.
    */
   run<T>(cb: (tx: TenantTx) => PromiseLike<T>): Promise<T> {
     return withTenant(this.db, this.context.tenantId, cb);
+  }
+
+  /**
+   * Igual que `run()` pero con el `tenantId` EXPLÍCITO en vez de tomarlo del ALS.
+   * Para flujos sin sesión (lectura pública): se resuelve la org del slug (bootstrap)
+   * y se corre la query bajo RLS con ese tenant. MISMA arquitectura de aislamiento
+   * que `run()` (pool app + SET LOCAL + RLS); no hay ruta exenta de RLS.
+   */
+  runAs<T>(tenantId: string, cb: (tx: TenantTx) => PromiseLike<T>): Promise<T> {
+    return withTenant(this.db, tenantId, cb);
   }
 }
