@@ -20,6 +20,7 @@ import { getAuth } from "../../core/tenant/tenant-context.store.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import {
   assertCanAccessPatient,
+  assertLocationInTenant,
   resolvePatientAccess,
 } from "./patient-access.js";
 import { PatientNotesService } from "./patient-notes.service.js";
@@ -148,6 +149,7 @@ export class PatientsService {
       throw new ForbiddenException("No tenés permiso para asignar profesionales.");
     }
     return this.tenantDb.run(async (tx) => {
+      await assertLocationInTenant(tx, dto.locationId);
       const [row] = await tx
         .insert(patients)
         .values({
@@ -198,6 +200,7 @@ export class PatientsService {
       if (existing.archivedAt) {
         throw new ConflictException("El paciente está archivado.");
       }
+      await assertLocationInTenant(tx, dto.locationId);
 
       // Sin read_clinical, los campos clínicos se ignoran (no clobber a ciegas).
       const patch = fichaValues(dto, canClinical);

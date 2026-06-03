@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import type { MemberDto, PatientDto } from "@nutreitor/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { PatientDto } from "@nutreitor/shared";
 
-async function api(path: string, init?: RequestInit) {
-  const r = await fetch(`/api/${path}`, { credentials: "include", ...init });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data?.message ?? `HTTP ${r.status}`);
-  return data;
-}
+import { api } from "@/lib/api";
+import { MemberSelect } from "./member-select";
 
 /**
  * Listado de pacientes, scopeado por la API (admin → todos; profesional → sólo
@@ -35,7 +31,7 @@ export function PatientsList({
     setError(null);
     try {
       const qs = term ? `?search=${encodeURIComponent(term)}` : "";
-      setPatients(await api(`patients${qs}`));
+      setPatients(await api<PatientDto[]>(`patients${qs}`));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -43,8 +39,22 @@ export function PatientsList({
     }
   }, []);
 
+  // Debounce de la búsqueda: una request al frenar de tipear, no por tecla.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearch = useCallback(
+    (term: string) => {
+      setSearch(term);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => void load(term), 250);
+    },
+    [load],
+  );
+
   useEffect(() => {
     void load("");
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, [load]);
 
   return (
@@ -69,10 +79,7 @@ export function PatientsList({
         </h2>
         <input
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            void load(e.target.value);
-          }}
+          onChange={(e) => onSearch(e.target.value)}
           placeholder="Buscar por nombre, documento o email"
           className="w-72 max-w-[55%] rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
@@ -141,17 +148,7 @@ function NewPatientForm({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [assignTo, setAssignTo] = useState("");
-  const [pros, setPros] = useState<MemberDto[]>([]);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!canAssign || !open) return;
-    api("members")
-      .then((m: MemberDto[]) =>
-        setPros(m.filter((x) => x.status === "active" && x.role !== "patient")),
-      )
-      .catch(() => setPros([]));
-  }, [canAssign, open]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -221,18 +218,7 @@ function NewPatientForm({
           <label className="mb-1 block text-xs text-stone-500">
             Asignar profesional (opcional)
           </label>
-          <select
-            value={assignTo}
-            onChange={(e) => setAssignTo(e.target.value)}
-            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-          >
-            <option value="">Sin asignar</option>
-            {pros.map((p) => (
-              <option key={p.membershipId} value={p.membershipId}>
-                {p.fullName} ({p.role})
-              </option>
-            ))}
-          </select>
+          <MemberSelect value={assignTo} onChange={setAssignTo} emptyLabel="Sin asignar" />
         </div>
       )}
       <div className="flex gap-2">

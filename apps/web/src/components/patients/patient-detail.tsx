@@ -5,16 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   activityLevels,
   patientSexes,
-  type MemberDto,
   type PatientDetailDto,
 } from "@nutreitor/shared";
 
-async function api(path: string, init?: RequestInit) {
-  const r = await fetch(`/api/${path}`, { credentials: "include", ...init });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data?.message ?? `HTTP ${r.status}`);
-  return data;
-}
+import { api } from "@/lib/api";
+import { MemberSelect } from "./member-select";
 
 const SEX_LABEL: Record<string, string> = {
   female: "Femenino",
@@ -67,7 +62,7 @@ export function PatientDetail({
 
   const load = useCallback(async () => {
     try {
-      setP(await api(`patients/${id}`));
+      setP(await api<PatientDetailDto>(`patients/${id}`));
       setState("ready");
     } catch {
       setState("notfound");
@@ -493,18 +488,8 @@ function Assignments({
   onChange: () => void;
   onError: (e: string) => void;
 }) {
-  const [pros, setPros] = useState<MemberDto[]>([]);
   const [assignTo, setAssignTo] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!canAssign) return;
-    api("members")
-      .then((m: MemberDto[]) =>
-        setPros(m.filter((x) => x.status === "active" && x.role !== "patient")),
-      )
-      .catch(() => setPros([]));
-  }, [canAssign]);
 
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -575,18 +560,7 @@ function Assignments({
         <div className="mt-4 flex items-end gap-2 border-t border-stone-100 pt-4">
           <label className="flex-1">
             <span className="mb-1 block text-xs text-stone-500">Asignar profesional</span>
-            <select
-              value={assignTo}
-              onChange={(e) => setAssignTo(e.target.value)}
-              className={inputCls}
-            >
-              <option value="">Elegir…</option>
-              {pros.map((pr) => (
-                <option key={pr.membershipId} value={pr.membershipId}>
-                  {pr.fullName} ({pr.role})
-                </option>
-              ))}
-            </select>
+            <MemberSelect value={assignTo} onChange={setAssignTo} />
           </label>
           <button
             disabled={busy || !assignTo}
