@@ -10,8 +10,11 @@ import {
 } from "@nestjs/common";
 import {
   changeRoleSchema,
+  updateRosterSchema,
   type ChangeRoleDto,
   type MemberDto,
+  type RosterAdminEntry,
+  type UpdateRosterDto,
 } from "@nutreitor/shared";
 
 import { CapabilityGuard } from "../../core/auth/capability.guard.js";
@@ -45,6 +48,22 @@ export class MembersController {
   @RequireCapability("member:revoke")
   async revoke(@Param("id") id: string): Promise<{ ok: true }> {
     await this.members.revoke(id);
+    return { ok: true };
+  }
+
+  @Get("roster")
+  @RequireCapability("org:update_public_profile")
+  listRoster(): Promise<RosterAdminEntry[]> {
+    return this.members.listRoster();
+  }
+
+  @Patch(":id/roster")
+  @RequireCapability("org:update_public_profile")
+  async updateRoster(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(updateRosterSchema)) dto: UpdateRosterDto,
+  ): Promise<{ ok: true }> {
+    await this.members.updateRoster(id, dto);
     return { ok: true };
   }
 }

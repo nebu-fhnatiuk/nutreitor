@@ -1,9 +1,16 @@
 import { Module } from "@nestjs/common";
 
+import { AuthModule } from "../../core/auth/auth.module.js";
+import { ProfessionalProfileController } from "./professional-profile.controller.js";
+import { ProfessionalProfileService } from "./professional-profile.service.js";
+
 /**
- * Profesionales (nutricionistas y staff del tenant). Placeholder modular.
- * Etapa 4 del recorrido: dashboard del profesional, gestión de planes y
- * seguimiento por paciente. Tabla de negocio futura: tenant_id + region.
+ * Profesionales (staff del tenant). Por ahora: edición del perfil público propio
+ * (vidriera por membership). Dashboard/planes/seguimiento llegan en etapas futuras.
  */
-@Module({})
+@Module({
+  imports: [AuthModule],
+  controllers: [ProfessionalProfileController],
+  providers: [ProfessionalProfileService],
+})
 export class ProfessionalsModule {}
