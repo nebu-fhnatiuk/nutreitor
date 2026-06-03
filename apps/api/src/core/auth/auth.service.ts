@@ -2,7 +2,13 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
-import { memberships, organizations, refreshTokens, users } from "@nutreitor/db";
+import {
+  memberships,
+  refreshTokens,
+  users,
+  type Database,
+  type TenantTx,
+} from "@nutreitor/db";
 import type {
   AuthOrg,
   LoginResponse,
@@ -29,8 +35,25 @@ export interface IssuedSession {
   result: LoginResponse;
 }
 
+interface AuthUserRow {
+  id: string;
+  email: string;
+  fullName: string;
+}
+
+/** Ejecutor de escritura: la conexión owner o una transacción sobre ella. */
+type Executor = Database | TenantTx;
+
 /** Error genérico de credenciales (anti-enumeración: no revela qué falló). */
-const INVALID = new UnauthorizedException("Credenciales inválidas.");
+const invalid = (): UnauthorizedException =>
+  new UnauthorizedException("Credenciales inválidas.");
+
+/**
+ * Hash dummy para igualar el costo de bcrypt en los caminos "no existe" del login
+ * (sin esto, un email inexistente respondería mucho más rápido → enumeración).
+ * Se computa una vez al cargar el módulo.
+ */
+const DUMMY_HASH = bcrypt.hashSync("nutreitor::timing::equalizer", 10);
 
 /**
  * Lógica de autenticación self-hosted. Todas las consultas pre-auth (resolver org,
@@ -54,86 +77,84 @@ export class AuthService {
     password: string,
     userAgent?: string,
   ): Promise<IssuedSession> {
-    const org = await this.tenantResolver.bySlug(slug);
-    if (!org) throw INVALID;
+    const normalizedEmail = email.toLowerCase();
 
-    const [user] = await this.admin.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
-    if (!user) throw INVALID;
+    // org y user son lecturas independientes → en paralelo.
+    const [org, user] = await Promise.all([
+      this.tenantResolver.bySlug(slug),
+      this.findUserByEmail(normalizedEmail),
+    ]);
 
-    const [membership] = await this.admin.db
-      .select()
-      .from(memberships)
-      .where(
-        and(
-          eq(memberships.userId, user.id),
-          eq(memberships.organizationId, org.id),
-        ),
-      )
-      .limit(1);
-    if (!membership) throw INVALID;
+    const role =
+      org && user
+        ? await this.findMembershipRole(user.id, org.id)
+        : null;
 
-    const ok = await bcrypt.compare(password, user.hashedPassword);
-    if (!ok) throw INVALID;
+    // SIEMPRE un bcrypt.compare (contra el hash real o el dummy) para que el
+    // tiempo de respuesta no delate si el user/membership existe.
+    const ok = await bcrypt.compare(
+      password,
+      user?.hashedPassword ?? DUMMY_HASH,
+    );
+
+    if (!org || !user || !role || !ok) throw invalid();
 
     return this.issue(
+      this.admin.db,
       { id: user.id, email: user.email, fullName: user.fullName },
       org,
-      membership.role,
+      role,
       userAgent,
     );
   }
 
-  /** Rota el refresh token: valida, revoca el viejo y emite un par nuevo. */
+  /**
+   * Rota el refresh token. Garantías:
+   *  - Compare-and-revoke ATÓMICO: ante dos requests concurrentes con el mismo
+   *    token, sólo uno gana la fila (el otro recibe 0 filas → rechazo). No hay
+   *    doble emisión.
+   *  - Detección de reuso: si el token presentado ya estaba revocado (replay de un
+   *    token rotado/robado), se revoca TODA la familia de sesiones del usuario.
+   *  - Atomicidad revoke+emisión: van en una transacción; si la emisión falla, el
+   *    revoke se deshace y el usuario no queda deslogueado.
+   */
   async refresh(rawRefresh: string, userAgent?: string): Promise<IssuedSession> {
     const tokenHash = this.hashToken(rawRefresh);
+
     const [row] = await this.admin.db
       .select()
       .from(refreshTokens)
-      .where(
-        and(
-          eq(refreshTokens.tokenHash, tokenHash),
-          isNull(refreshTokens.revokedAt),
-        ),
-      )
+      .where(eq(refreshTokens.tokenHash, tokenHash))
       .limit(1);
-    if (!row || row.expiresAt.getTime() < Date.now()) throw INVALID;
 
-    const org = await this.orgById(row.organizationId);
-    const [membership] = await this.admin.db
-      .select()
-      .from(memberships)
-      .where(
-        and(
-          eq(memberships.userId, row.userId),
-          eq(memberships.organizationId, row.organizationId),
-        ),
-      )
-      .limit(1);
-    if (!org || !membership) throw INVALID;
+    // Replay de un token ya revocado → reuso: invalidar todas las sesiones del user.
+    if (row?.revokedAt) {
+      await this.revokeAllForUser(row.userId);
+      throw invalid();
+    }
+    if (!row || row.expiresAt.getTime() < Date.now()) throw invalid();
 
-    const [user] = await this.admin.db
-      .select()
-      .from(users)
-      .where(eq(users.id, row.userId))
-      .limit(1);
-    if (!user) throw INVALID;
+    // Contexto en paralelo (lecturas independientes de la fila ya obtenida).
+    const [org, role, user] = await Promise.all([
+      this.tenantResolver.byId(row.organizationId),
+      this.findMembershipRole(row.userId, row.organizationId),
+      this.getUserById(row.userId),
+    ]);
+    if (!org || !role || !user) throw invalid();
 
-    // Revoca el token usado (rotación).
-    await this.admin.db
-      .update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(eq(refreshTokens.id, row.id));
-
-    return this.issue(
-      { id: user.id, email: user.email, fullName: user.fullName },
-      org,
-      membership.role,
-      userAgent,
-    );
+    // Revocación del viejo + emisión del nuevo, atómicas.
+    return this.admin.db.transaction(async (tx) => {
+      const revoked = await tx
+        .update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(eq(refreshTokens.id, row.id), isNull(refreshTokens.revokedAt)),
+        )
+        .returning({ id: refreshTokens.id });
+      // Otro request concurrente ya rotó este token → perdimos la carrera.
+      if (revoked.length === 0) throw invalid();
+      return this.issue(tx, user, org, role, userAgent);
+    });
   }
 
   /** Logout: revoca el refresh token (idempotente). */
@@ -142,7 +163,12 @@ export class AuthService {
     await this.admin.db
       .update(refreshTokens)
       .set({ revokedAt: new Date() })
-      .where(eq(refreshTokens.tokenHash, this.hashToken(rawRefresh)));
+      .where(
+        and(
+          eq(refreshTokens.tokenHash, this.hashToken(rawRefresh)),
+          isNull(refreshTokens.revokedAt),
+        ),
+      );
   }
 
   /** Verifica que el membership user↔org siga existiendo (lo usa el guard). */
@@ -166,23 +192,16 @@ export class AuthService {
     org: AuthOrg,
     role: MembershipRole,
   ): Promise<MeResponse> {
-    const [user] = await this.admin.db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    if (!user) throw INVALID;
-    return {
-      user: { id: user.id, email: user.email, fullName: user.fullName },
-      org,
-      role,
-    };
+    const user = await this.getUserById(userId);
+    if (!user) throw invalid();
+    return { user, org, role };
   }
 
   // ── internos ────────────────────────────────────────────────────────────────
 
   private async issue(
-    user: { id: string; email: string; fullName: string },
+    executor: Executor,
+    user: AuthUserRow,
     org: AuthOrg,
     role: MembershipRole,
     userAgent?: string,
@@ -199,7 +218,7 @@ export class AuthService {
     const expiresAt = new Date(
       Date.now() + this.env.REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
-    await this.admin.db.insert(refreshTokens).values({
+    await executor.insert(refreshTokens).values({
       userId: user.id,
       organizationId: org.id,
       region: org.region,
@@ -215,15 +234,41 @@ export class AuthService {
     };
   }
 
-  private async orgById(id: string): Promise<AuthOrg | null> {
-    const [org] = await this.admin.db
-      .select()
-      .from(organizations)
-      .where(eq(organizations.id, id))
+  /** Usuario por email (incluye el hash; sólo para login). */
+  private async findUserByEmail(
+    email: string,
+  ): Promise<(AuthUserRow & { hashedPassword: string }) | null> {
+    const [u] = await this.admin.db
+      .select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        hashedPassword: users.hashedPassword,
+      })
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
-    return org
-      ? { id: org.id, name: org.name, slug: org.slug, region: org.region }
-      : null;
+    return u ?? null;
+  }
+
+  /** Usuario por id (proyección acotada, sin el hash). */
+  private async getUserById(id: string): Promise<AuthUserRow | null> {
+    const [u] = await this.admin.db
+      .select({ id: users.id, email: users.email, fullName: users.fullName })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return u ?? null;
+  }
+
+  /** Revoca todos los refresh tokens activos de un usuario (reuso detectado). */
+  private async revokeAllForUser(userId: string): Promise<void> {
+    await this.admin.db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)),
+      );
   }
 
   private hashToken(raw: string): string {
