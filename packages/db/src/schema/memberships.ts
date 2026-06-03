@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
-import { pgTable, pgEnum, uuid, text, unique, index, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, unique, index, foreignKey } from "drizzle-orm/pg-core";
 
+import { regionEnum } from "./_region.js";
 import { timestamps } from "./_shared.js";
 import { users } from "./users.js";
 import { organizations } from "./organizations.js";
@@ -30,7 +31,7 @@ export const memberships = pgTable(
     userId: uuid("user_id").notNull(),
     organizationId: uuid("organization_id").notNull(),
     role: membershipRole("role").notNull(),
-    region: text("region").notNull(),
+    region: regionEnum("region").notNull(),
     ...timestamps,
   },
   (table) => [

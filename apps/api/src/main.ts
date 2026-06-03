@@ -5,13 +5,19 @@ import cookieParser from "cookie-parser";
 
 import { AppModule } from "./app.module.js";
 import { APP_ENV, type ApiEnv } from "./core/config/app-config.module.js";
+import { edgeSecretMiddleware } from "./core/security/edge-secret.middleware.js";
 import { TenantContextMiddleware } from "./core/tenant/tenant.middleware.js";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  const env = app.get<ApiEnv>(APP_ENV);
 
   // Cierra pools de Postgres en SIGTERM/SIGINT (dispara onModuleDestroy).
   app.enableShutdownHooks();
+
+  // Borde: exige el secreto compartido edge↔API (salvo /health). Primero de todo,
+  // antes de parsear cookies o abrir scopes.
+  app.use(edgeSecretMiddleware(env));
 
   // Parsea cookies (access_token / refresh_token) para el flujo de auth.
   app.use(cookieParser());
@@ -24,9 +30,7 @@ async function bootstrap(): Promise<void> {
   // CORS para el front en dev (Next.js).
   app.enableCors({ origin: true, credentials: true });
 
-  const env = app.get<ApiEnv>(APP_ENV);
   await app.listen(env.API_PORT, "0.0.0.0");
-  // eslint-disable-next-line no-console
   console.log(`API escuchando en http://0.0.0.0:${env.API_PORT}`);
 }
 

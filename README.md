@@ -168,9 +168,27 @@ sesión no lo sería.
 - Integridad referencial (FKs) bypassa RLS por diseño de Postgres, así el alta de
   pacientes valida la FK a su org sin filtrarse información cross-tenant.
 
-### `region` desde el commit cero
-Residencia de datos (GDPR/HIPAA) sin migración de modelo a futuro. Hoy se hereda de
-la organización; mañana habilita mover filas por región o promover a SILO regional.
+### `region` desde el commit cero (enum + denormalizado)
+Residencia de datos (GDPR/HIPAA) sin migración de modelo. `region` es un **enum**
+(`packages/db/src/schema/_region.ts`) — no text libre — para gobernar el set de
+regiones permitidas; agregar una = `ALTER TYPE region ADD VALUE`. Está
+**denormalizado** en cada tabla de negocio (organizations/patients/memberships/
+refresh_tokens): la región **viaja con el dato**, así el routing/placement no
+requiere join y promover a SILO regional es directo (la fila se autodescribe). Se
+hereda de la organización al crear y se trata como **inmutable** salvo un job de
+migración explícito (un cambio de región ES mover datos), lo que evita drift.
+
+### Borde edge↔API (defensa en profundidad)
+El `tenant_id`/`slug` que llega a la API viaja en headers que sólo el edge (proxy de
+Next) debería poder setear. Capas:
+1. **Lógica**: `JwtAuthGuard` exige `slug(subdominio) == org(JWT)` + membership, así
+   spoofear `x-tenant-slug` no escala privilegios.
+2. **Secreto compartido** (`x-internal-secret`, `EDGE_SHARED_SECRET`): el proxy/SSR lo
+   manda en cada request; un middleware de la API rechaza lo que no lo traiga (salvo
+   `/health`). Si la API quedara expuesta, los requests directos se caen.
+3. **Red (prod, documentado, NO implementado)**: API en **subnet privada**, alcanzable
+   sólo vía el edge/ALB. Es el borde primario; el secreto es la segunda capa. Upgrade
+   futuro: HMAC+TTL del contexto firmado / mTLS.
 
 ### Autenticación self-hosted + identidad global
 Auth propia (NestJS + Passport, datos en nuestro Postgres por residencia/salud):
@@ -202,6 +220,20 @@ versionado y ordenado** en `packages/db/migrations`, aplicado por un runner prop
 (`packages/db/src/migrate.ts`) con tabla de control e inmutabilidad por checksum.
 `drizzle-kit generate` se usa sólo para **autorar** el diff de DDL.
 
+### CI (GitHub Actions)
+`.github/workflows/ci.yml` corre en cada push/PR, 3 jobs:
+- **quality**: `install --frozen-lockfile` → `build` → `typecheck` → `lint`.
+- **test**: levanta un **Postgres real** (service container) y corre el test de
+  aislamiento RLS + el de timing del login; rompe el build si el aislamiento se
+  quiebra. No mockea la DB.
+- **docker**: buildea las imágenes `runtime` de api y web (valida los multi-stage +
+  frozen lockfile).
+
+Config por entorno: el **contrato** de variables es único (validado con zod al boot
+en api y web); cambia el **inyector** — dev usa `.env`/compose; staging/prod inyectan
+desde **AWS Secrets Manager / SSM Parameter Store** al task de Fargate (ver notas de
+producción). Nunca se commitean secrets reales.
+
 ---
 
 ## Fuera de alcance (con el lugar reservado)
@@ -225,6 +257,12 @@ versionado y ordenado** en `packages/db/migrations`, aplicado por un runner prop
 - **Auth**: bcryptjs → **argon2id** en prod; cookies `Secure=true` (TLS);
   `ROOT_DOMAIN` real + DNS/cert wildcard para subdominios; rate-limiting de login.
   `users` es global sin RLS (sólo credencial): el acceso queda gateado por membership.
+- **Borde de red**: en prod la API va en **subnet privada**, alcanzable sólo vía el
+  edge/ALB; el `EDGE_SHARED_SECRET` es defensa en profundidad, no el borde primario.
+- **Secrets/config**: staging/prod NO usan `.env`; las variables (DB URLs, JWT/edge
+  secrets) se inyectan desde **AWS Secrets Manager / SSM Parameter Store** al task de
+  Fargate (p. ej. `secrets` del task definition). Rotación de secretos vía esos
+  servicios. Local sigue con `.env` vía compose.
 - Las imágenes de runtime de los Dockerfile priorizan correctitud sobre tamaño:
   adelgazar con `pnpm deploy`/prune de devDeps.
 - Credenciales en `docker-compose.yml`/`.env.example` son **sólo de desarrollo**.

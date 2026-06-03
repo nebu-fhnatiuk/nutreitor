@@ -4,6 +4,9 @@
 **/.turbo
 **/coverage
 **/*.log
+# Caches de build incremental: si se copian, tsc cree que dist está "al día" y no
+# emite nada en la imagen → @nutreitor/* no resuelve. Deben generarse en la imagen.
+**/*.tsbuildinfo
 .git
 .gitignore
 .env

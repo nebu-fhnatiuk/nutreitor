@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, uuid, text, index } from "drizzle-orm/pg-core";
 
+import { regionEnum } from "./_region.js";
 import { timestamps } from "./_shared.js";
 
 /**
@@ -22,7 +23,7 @@ export const organizations = pgTable(
       .default(sql`gen_random_uuid()`),
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
-    region: text("region").notNull(),
+    region: regionEnum("region").notNull(),
     ...timestamps,
   },
   (table) => [index("organizations_slug_idx").on(table.slug)],

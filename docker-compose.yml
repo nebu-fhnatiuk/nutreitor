@@ -48,6 +48,8 @@ services:
       REFRESH_TTL_DAYS: "30"
       COOKIE_SECURE: "false"
       ROOT_DOMAIN: localhost
+      # Secreto compartido edge↔API (mismo valor en web). Sólo dev.
+      EDGE_SHARED_SECRET: dev-edge-shared-secret-change-me
     ports:
       - "3001:3001"
     volumes:
@@ -92,6 +94,8 @@ services:
       API_INTERNAL_URL: http://api:3001
       # Dominio raíz para distinguir landing (raíz) de workspace ({slug}.localhost).
       ROOT_DOMAIN: localhost
+      # Secreto compartido edge↔API (mismo valor que en api).
+      EDGE_SHARED_SECRET: dev-edge-shared-secret-change-me
     ports:
       - "3000:3000"
     volumes:

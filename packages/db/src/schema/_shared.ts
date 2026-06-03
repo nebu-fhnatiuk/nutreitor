@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
-import { timestamp, uuid, text } from "drizzle-orm/pg-core";
+import { timestamp, uuid } from "drizzle-orm/pg-core";
+
+import { regionEnum } from "./_region.js";
 
 /**
  * Columnas comunes a TODA tabla de negocio. Definidas una sola vez para que el
@@ -17,7 +19,7 @@ import { timestamp, uuid, text } from "drizzle-orm/pg-core";
  */
 export const tenantColumns = {
   tenantId: uuid("tenant_id").notNull(),
-  region: text("region").notNull(),
+  region: regionEnum("region").notNull(),
 };
 
 /** Timestamps estándar. `createdAt` en UTC (timestamptz), default en la DB. */

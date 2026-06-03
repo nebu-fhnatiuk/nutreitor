@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  test:
+    name: Tests (incl. aislamiento RLS contra Postgres real)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nutreitor_owner
+          POSTGRES_PASSWORD: owner_dev_pwd
+          POSTGRES_DB: nutreitor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nutreitor_owner -d nutreitor"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # El rol app (nutreitor_app) lo crea la migración 0001 en el beforeAll del test.
+      DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@localhost:5432/nutreitor
+      DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@localhost:5432/nutreitor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Los tests importan los packages compilados (@nutreitor/db, shared, config).
+      - run: pnpm --filter @nutreitor/config --filter @nutreitor/shared --filter @nutreitor/db build
+      # Corre auth-timing (unit) + rls-isolation (e2e contra el service container).
+      # Rompe el build si el aislamiento multi-tenant se quiebra.
+      - run: pnpm --filter @nutreitor/api test
+
+  docker:
+    name: Build de imágenes Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image (target runtime)
+        run: docker build --target runtime -f apps/api/Dockerfile -t nutreitor-api:ci .
+      - name: Build Web image (target runtime)
+        run: docker build --target runtime -f apps/web/Dockerfile -t nutreitor-web:ci .

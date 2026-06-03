@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { serverEnv } from "@/lib/server/env";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const API = process.env.API_INTERNAL_URL ?? "http://api:3001";
 
 /**
  * Proxy server-side hacia la API. El browser sólo habla con Next en el subdominio
@@ -15,10 +15,13 @@ async function handle(
   req: NextRequest,
   ctx: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
+  const env = serverEnv();
   const { path } = await ctx.params;
-  const target = `${API}/${path.join("/")}${req.nextUrl.search}`;
+  const target = `${env.API_INTERNAL_URL}/${path.join("/")}${req.nextUrl.search}`;
 
   const headers = new Headers();
+  // Secreto de borde: autentica al edge frente a la API.
+  headers.set("x-internal-secret", env.EDGE_SHARED_SECRET);
   const slug = req.headers.get("x-tenant-slug");
   if (slug) headers.set("x-tenant-slug", slug);
   const cookie = req.headers.get("cookie");

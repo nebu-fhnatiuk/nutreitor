@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Region } from "../region.js";
+
 /** Roles dentro de una organización (espeja el enum de la DB). */
 export const membershipRoles = ["admin", "professional", "patient"] as const;
 export type MembershipRole = (typeof membershipRoles)[number];
@@ -28,7 +30,7 @@ export interface AuthOrg {
   id: string;
   name: string;
   slug: string;
-  region: string;
+  region: Region;
 }
 
 /** Respuesta de /auth/me y /auth/login (sin tokens: van en cookies httpOnly). */

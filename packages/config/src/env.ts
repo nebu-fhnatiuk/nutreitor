@@ -35,6 +35,9 @@ export const authEnvSchema = z.object({
     .transform((v) => v === true || v === "true"),
   // Dominio raíz para distinguir host de marketing vs subdominio de tenant.
   ROOT_DOMAIN: z.string().default("localhost"),
+  // Secreto compartido edge↔API: el edge (proxy de Next) lo manda en cada request;
+  // la API rechaza lo que no lo traiga (defensa en profundidad si quedara expuesta).
+  EDGE_SHARED_SECRET: z.string().min(16),
 });
 
 export const apiEnvSchema = z
