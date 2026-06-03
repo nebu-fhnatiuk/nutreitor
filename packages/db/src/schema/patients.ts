@@ -8,6 +8,7 @@ import {
   numeric,
   timestamp,
   index,
+  uniqueIndex,
   foreignKey,
 } from "drizzle-orm/pg-core";
 
@@ -73,6 +74,11 @@ export const patients = pgTable(
     index("patients_tenant_id_idx").on(table.tenantId),
     index("patients_tenant_created_idx").on(table.tenantId, table.createdAt),
     index("patients_user_id_idx").on(table.userId),
+    // Una cuenta se vincula a UNA sola entidad paciente por tenant (el portal
+    // resuelve "mi paciente" por user_id; sin esto el match sería ambiguo).
+    uniqueIndex("patients_tenant_user_unique")
+      .on(table.tenantId, table.userId)
+      .where(sql`user_id IS NOT NULL`),
     foreignKey({
       columns: [table.tenantId],
       foreignColumns: [organizations.id],

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { PortalView } from "@/components/portal/portal-view";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -17,26 +18,12 @@ export default async function PatientAppPage({
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role}>
       <p className="text-xs font-medium uppercase tracking-widest text-brand">
-        Paciente
+        Tu espacio
       </p>
-      <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
+      <h1 className="mt-1 mb-8 font-serif text-3xl font-semibold tracking-tight">
         Hola {me.user.fullName}
       </h1>
-      <p className="mt-4 text-stone-500">
-        Tu espacio en {me.org.name}: vas a ver tus planes diarios, horarios de
-        comidas, progreso y métricas.
-      </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        {["Plan de hoy", "Progreso", "Próxima cita"].map((s) => (
-          <div
-            key={s}
-            className="rounded-2xl border border-stone-200 bg-white p-6 text-stone-700"
-          >
-            {s}
-            <p className="mt-1 text-xs text-stone-400">Próximamente</p>
-          </div>
-        ))}
-      </div>
+      <PortalView />
     </WorkspaceShell>
   );
 }

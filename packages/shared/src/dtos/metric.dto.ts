@@ -70,6 +70,8 @@ export interface PatientMetricDto {
   note: string | null;
   recordedByMembershipId: string;
   recordedByName: string;
+  /** Rol del autor: 'patient' ⇒ auto-reportado por el paciente desde su portal. */
+  recordedByRole: "admin" | "professional" | "patient";
   createdAt: string;
   updatedAt: string;
 }

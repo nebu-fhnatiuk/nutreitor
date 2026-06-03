@@ -25,6 +25,7 @@ export default async function ProPatientPage({
         canRecord
         canWritePlan
         canAssign={false}
+        canInvite={false}
       />
     </WorkspaceShell>
   );

@@ -52,6 +52,7 @@ export function PatientDetail({
   canAddNote,
   canRecord,
   canWritePlan,
+  canInvite,
 }: {
   id: string;
   basePath: string;
@@ -60,6 +61,7 @@ export function PatientDetail({
   canAddNote: boolean;
   canRecord: boolean;
   canWritePlan: boolean;
+  canInvite: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -123,13 +125,20 @@ export function PatientDetail({
             )}
           </p>
         </div>
-        {canEdit && !editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-brand/40 hover:text-brand"
-          >
-            Editar ficha
-          </button>
+        {!editing && (
+          <div className="flex gap-2">
+            {canInvite && (
+              <InviteToPortal patient={p} onDone={load} onError={setError} />
+            )}
+            {canEdit && (
+              <button
+                onClick={() => setEditing(true)}
+                className="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-brand/40 hover:text-brand"
+              >
+                Editar ficha
+              </button>
+            )}
+          </div>
         )}
       </header>
 
@@ -167,6 +176,67 @@ export function PatientDetail({
 
       <MetricsPanel patientId={p.id} canRecord={canRecord} />
     </div>
+  );
+}
+
+/** Invita al paciente a su portal: invitación role=patient enlazada a esta entidad. */
+function InviteToPortal({
+  patient: p,
+  onDone,
+  onError,
+}: {
+  patient: PatientDetailDto;
+  onDone: () => void;
+  onError: (e: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  if (p.hasAccount) {
+    return (
+      <span className="rounded-lg bg-brand/10 px-3 py-2 text-sm text-brand">
+        Tiene portal
+      </span>
+    );
+  }
+  if (sent) {
+    return (
+      <span className="rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-500">
+        Invitación enviada
+      </span>
+    );
+  }
+
+  async function invite() {
+    if (!p.email) {
+      onError("Cargá un email en la ficha para invitar al paciente.");
+      return;
+    }
+    setBusy(true);
+    onError("");
+    try {
+      await api("invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: p.email, role: "patient", patientId: p.id }),
+      });
+      setSent(true);
+      onDone();
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={invite}
+      disabled={busy}
+      className="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-brand/40 hover:text-brand disabled:opacity-50"
+    >
+      {busy ? "Invitando…" : "Invitar al portal"}
+    </button>
   );
 }
 

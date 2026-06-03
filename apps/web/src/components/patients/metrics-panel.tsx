@@ -98,7 +98,15 @@ export function MetricsPanel({
                   <Cell v={m.muscleMassKg} u="kg" />
                   <Cell v={m.waistCm} u="cm" />
                   <Cell v={m.hipCm} u="cm" />
-                  <td className="py-2 pr-4 text-xs text-stone-400">{m.recordedByName}</td>
+                  <td className="py-2 pr-4 text-xs text-stone-400">
+                    {m.recordedByRole === "patient" ? (
+                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-brand">
+                        auto-reportado
+                      </span>
+                    ) : (
+                      m.recordedByName
+                    )}
+                  </td>
                   {canRecord && (
                     <td className="py-2 text-right">
                       <button

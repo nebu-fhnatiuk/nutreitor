@@ -13,6 +13,7 @@ import { InvitationsModule } from "./modules/invitations/invitations.module.js";
 import { MembersModule } from "./modules/members/members.module.js";
 import { PublicModule } from "./modules/public/public.module.js";
 import { ProfessionalsModule } from "./modules/professionals/professionals.module.js";
+import { PortalModule } from "./modules/portal/portal.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
 
 /**
@@ -41,6 +42,7 @@ import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
     MembersModule,
     PublicModule,
     ProfessionalsModule,
+    PortalModule,
     SchedulingModule,
   ],
 })

@@ -130,7 +130,7 @@ export function MealPlanPanel({
   );
 }
 
-function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boolean }) {
+export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boolean }) {
   const start = fmtDate(plan.startDate);
   return (
     <div>
