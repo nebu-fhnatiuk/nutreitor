@@ -16,7 +16,9 @@ export const capabilities = [
   "patient:create",
   "patient:read",
   "patient:read_clinical",
+  "patient:update",
   "patient:assign",
+  "patient:add_note",
   "org:read",
   "org:update_branding",
   "org:update_public_profile",
@@ -31,12 +33,17 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
   admin: [...capabilities], // el admin del tenant tiene todas
   professional: [
     "member:read",
-    "patient:create",
     "patient:read",
     "patient:read_clinical",
-    "patient:assign",
+    "patient:update",
+    "patient:add_note",
     "org:read",
     "professional:update_own_profile",
+    // NO `patient:create` ni `patient:assign`: el ALTA y la asignación son del
+    // admin (el alta crea-y-asigna en un paso; evita pacientes huérfanos que el
+    // profesional no podría ver por el scoping assigned-only). El profesional
+    // read/update/add_note queda acotado a pacientes ASIGNADOS en la capa de
+    // servicio (la capability es condición necesaria, no suficiente).
   ],
   // El paciente, por ahora, no opera el panel de gestión. Acceso a SUS datos
   // se modelará scoped a futuro; mínimo por ahora.

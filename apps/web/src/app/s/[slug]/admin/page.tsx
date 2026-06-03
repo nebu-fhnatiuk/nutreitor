@@ -6,6 +6,11 @@ import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
 
 const SECTIONS = [
+  {
+    href: "/admin/patients",
+    title: "Pacientes",
+    desc: "Fichas clínicas, asignaciones y notas.",
+  },
   { href: "/admin/members", title: "Miembros", desc: "Invitar, roles y bajas." },
   {
     href: "/admin/public",

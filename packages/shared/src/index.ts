@@ -3,6 +3,8 @@ export * from "./tenant-context.js";
 export * from "./auth/capabilities.js";
 export * from "./dtos/organization.dto.js";
 export * from "./dtos/patient.dto.js";
+export * from "./dtos/care-assignment.dto.js";
+export * from "./dtos/patient-note.dto.js";
 export * from "./dtos/auth.dto.js";
 export * from "./dtos/audit.dto.js";
 export * from "./dtos/invitation.dto.js";

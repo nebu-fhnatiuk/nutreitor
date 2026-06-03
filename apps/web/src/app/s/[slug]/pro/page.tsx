@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PatientsPanel } from "@/components/patients-panel";
+import { PatientsList } from "@/components/patients/patients-list";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -32,7 +32,7 @@ export default async function ProPage({
       >
         Editar mi perfil público →
       </Link>
-      <PatientsPanel />
+      <PatientsList basePath="/pro/patients" canCreate={false} canAssign={false} />
     </WorkspaceShell>
   );
 }
