@@ -6,12 +6,15 @@ import { NextResponse, type NextRequest } from "next/server";
  *  - host raíz (localhost / nutreitor.com / www.*) → landing de producto (sin tocar).
  *  - {slug}.ROOT_DOMAIN → workspace del tenant: reescribe el path a /s/{slug}/...
  *    e inyecta el header `x-tenant-slug` (lo consume el proxy /api y la API).
- *  - rutas /api/* NO se reescriben (las maneja el proxy), pero igual reciben el header.
- *  - chequeo coarse de auth: ruta protegida sin cookie de access → redirect a /login.
+ *  - rutas /api/*, /sitemap.xml y /robots.txt NO se reescriben (las maneja el app
+ *    root, que lee el host); igual reciben el header para resolver el tenant.
+ *  - la RAÍZ del subdominio y `/{professional-slug}` son PÚBLICAS (no se redirigen).
+ *  - chequeo coarse de auth: ruta protegida (workspace) sin cookie → redirect a /login.
  *
  * El slug sale del hostname; la API lo valida por lookup (no es un tenant_id de confianza).
  */
 const PROTECTED = ["/admin", "/pro", "/app"];
+const NO_REWRITE = ["/sitemap.xml", "/robots.txt"];
 
 function resolveSlug(hostname: string): string | null {
   const root = process.env.ROOT_DOMAIN ?? "localhost";
@@ -32,8 +35,8 @@ export function middleware(req: NextRequest): NextResponse {
   const headers = new Headers(req.headers);
   headers.set("x-tenant-slug", slug);
 
-  // /api/* lo maneja el proxy catch-all; sólo propagamos el header.
-  if (pathname.startsWith("/api/")) {
+  // /api/* (proxy) y sitemap/robots (app root, por host): no se reescriben.
+  if (pathname.startsWith("/api/") || NO_REWRITE.includes(pathname)) {
     return NextResponse.next({ request: { headers } });
   }
 

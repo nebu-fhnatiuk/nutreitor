@@ -7,6 +7,7 @@ export * from "./refresh-tokens.js";
 export * from "./invitations.js";
 export * from "./patient-assignments.js";
 export * from "./audit-log.js";
+export * from "./professional-profiles.js";
 
 import { organizations } from "./organizations.js";
 import { patients } from "./patients.js";
@@ -16,6 +17,7 @@ import { refreshTokens } from "./refresh-tokens.js";
 import { invitations } from "./invitations.js";
 import { patientAssignments } from "./patient-assignments.js";
 import { auditLog } from "./audit-log.js";
+import { professionalProfiles } from "./professional-profiles.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -27,4 +29,5 @@ export const schema = {
   invitations,
   patientAssignments,
   auditLog,
+  professionalProfiles,
 };
