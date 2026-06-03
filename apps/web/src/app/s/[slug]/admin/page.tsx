@@ -7,6 +7,11 @@ import { roleHome } from "@nutreitor/shared";
 
 const SECTIONS = [
   { href: "/admin/members", title: "Miembros", desc: "Invitar, roles y bajas." },
+  {
+    href: "/admin/public",
+    title: "Página pública",
+    desc: "Presentación de la org y curaduría del roster.",
+  },
   { href: "/admin/settings", title: "Configuración", desc: "Branding white-label." },
 ];
 

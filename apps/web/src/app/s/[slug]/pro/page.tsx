@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PatientsPanel } from "@/components/patients-panel";
@@ -21,10 +22,16 @@ export default async function ProPage({
         Profesional
       </p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight">Tus pacientes</h1>
-      <p className="mt-2 mb-8 text-zinc-400">
+      <p className="mt-2 mb-6 text-zinc-400">
         Hola {me.user.fullName}. Pacientes de {me.org.name} (aislados por RLS según
         tu sesión).
       </p>
+      <Link
+        href="/pro/profile"
+        className="mb-8 inline-flex items-center gap-1 text-sm text-brand transition hover:brightness-110"
+      >
+        Editar mi perfil público →
+      </Link>
       <PatientsPanel />
     </WorkspaceShell>
   );

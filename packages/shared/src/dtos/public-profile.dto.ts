@@ -95,6 +95,19 @@ export type UpdateOrgPublicProfileDto = z.infer<
   typeof updateOrgPublicProfileSchema
 >;
 
+/** Vista admin de una entrada del roster: incluye no-listados y sin contenido
+ * (a diferencia del roster público). `hasPublicContent` refleja la regla del
+ * serializer (Ajuste 1) para advertir por qué un profesional no aparece. */
+export interface RosterAdminEntry {
+  membershipId: string;
+  fullName: string;
+  profileSlug: string;
+  isPubliclyListed: boolean;
+  displayOrder: number;
+  specialty: string | null;
+  hasPublicContent: boolean;
+}
+
 /** Curaduría del roster (admin), por membership. */
 export const updateRosterSchema = z.object({
   isPubliclyListed: z.boolean().optional(),

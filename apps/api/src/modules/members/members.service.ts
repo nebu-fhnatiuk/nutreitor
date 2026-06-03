@@ -4,12 +4,23 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { memberships, users, type TenantTx } from "@nutreitor/db";
-import type { MemberDto, MembershipRole } from "@nutreitor/shared";
-import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import {
+  memberships,
+  professionalProfiles,
+  users,
+  type TenantTx,
+} from "@nutreitor/db";
+import type {
+  MemberDto,
+  MembershipRole,
+  RosterAdminEntry,
+  UpdateRosterDto,
+} from "@nutreitor/shared";
+import { and, asc, desc, eq, ilike, isNull, or } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
+import { hasPublicRosterContent } from "../public/public-serializer.js";
 
 @Injectable()
 export class MembersService {
@@ -88,6 +99,92 @@ export class MembersService {
         targetType: "membership",
         targetId: membershipId,
         metadata: { role: m.role },
+      });
+    });
+  }
+
+  /**
+   * Roster para curaduría del admin: TODOS los perfiles del tenant (incluye no
+   * listados y sin contenido, a diferencia del roster público). `hasPublicContent`
+   * usa la misma regla del serializer (Ajuste 1) para explicar ausencias.
+   */
+  async listRoster(): Promise<RosterAdminEntry[]> {
+    const rows = await this.tenantDb.run((tx) =>
+      tx
+        .select({
+          membershipId: professionalProfiles.membershipId,
+          fullName: users.fullName,
+          profileSlug: professionalProfiles.profileSlug,
+          isPubliclyListed: professionalProfiles.isPubliclyListed,
+          displayOrder: professionalProfiles.displayOrder,
+          specialty: professionalProfiles.specialty,
+          headline: professionalProfiles.headline,
+          bio: professionalProfiles.bio,
+          visibility: professionalProfiles.visibility,
+        })
+        .from(professionalProfiles)
+        .innerJoin(
+          memberships,
+          eq(memberships.id, professionalProfiles.membershipId),
+        )
+        .innerJoin(users, eq(users.id, memberships.userId))
+        .where(isNull(memberships.revokedAt))
+        .orderBy(asc(professionalProfiles.displayOrder), asc(users.fullName)),
+    );
+
+    return rows.map((r) => ({
+      membershipId: r.membershipId,
+      fullName: r.fullName,
+      profileSlug: r.profileSlug,
+      isPubliclyListed: r.isPubliclyListed,
+      displayOrder: r.displayOrder,
+      specialty: r.specialty,
+      hasPublicContent: hasPublicRosterContent({
+        profileSlug: r.profileSlug,
+        isPubliclyListed: r.isPubliclyListed,
+        specialty: r.specialty,
+        headline: r.headline,
+        bio: r.bio,
+        photoUrl: null,
+        credentials: null,
+        specialties: [],
+        services: [],
+        visibility: r.visibility ?? {},
+      }),
+    }));
+  }
+
+  /**
+   * Curaduría del roster por membership (isPubliclyListed, displayOrder, specialty)
+   * + audit. La visibilidad por campo y el contenido los edita el profesional; acá
+   * el admin sólo decide presencia/orden/agrupación.
+   */
+  async updateRoster(
+    membershipId: string,
+    dto: UpdateRosterDto,
+  ): Promise<void> {
+    const patch: Partial<typeof professionalProfiles.$inferInsert> = {};
+    if (dto.isPubliclyListed !== undefined)
+      patch.isPubliclyListed = dto.isPubliclyListed;
+    if (dto.displayOrder !== undefined) patch.displayOrder = dto.displayOrder;
+    if (dto.specialty !== undefined) patch.specialty = dto.specialty;
+    const changed = Object.keys(patch);
+    if (changed.length === 0) return;
+
+    await this.tenantDb.run(async (tx) => {
+      const updated = await tx
+        .update(professionalProfiles)
+        .set(patch)
+        .where(eq(professionalProfiles.membershipId, membershipId))
+        .returning({ id: professionalProfiles.id });
+      if (updated.length === 0) {
+        throw new NotFoundException("Perfil no encontrado para ese miembro.");
+      }
+      await this.audit.recordForSession(tx, {
+        action: "roster.updated",
+        targetType: "membership",
+        targetId: membershipId,
+        metadata: { fields: changed },
       });
     });
   }
