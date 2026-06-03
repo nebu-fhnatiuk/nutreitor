@@ -50,15 +50,7 @@ export class MealPlansService {
       if (!access.membershipId) {
         throw new ForbiddenException("No tenés un membership para editar el plan.");
       }
-      const [patient] = await tx
-        .select({ archivedAt: patients.archivedAt })
-        .from(patients)
-        .where(eq(patients.id, patientId))
-        .limit(1);
-      if (!patient) throw new NotFoundException();
-      if (patient.archivedAt) {
-        throw new ConflictException("El paciente está archivado.");
-      }
+      await this.assertPatientActive(tx, patientId);
 
       // Última versión (de cualquier estado) para numerar la nueva.
       const [latest] = await tx
@@ -81,20 +73,33 @@ export class MealPlansService {
         );
 
       const ctx = getTenantContext();
-      const [row] = await tx
-        .insert(mealPlans)
-        .values({
-          tenantId: ctx.tenantId,
-          region: ctx.region,
-          patientId,
-          authorMembershipId: access.membershipId,
-          version: nextVersion,
-          status: "active",
-          title: dto.title,
-          startDate: dto.startDate ?? null,
-          body: dto.body,
-        })
-        .returning();
+      let row: MealPlanRow | undefined;
+      try {
+        [row] = await tx
+          .insert(mealPlans)
+          .values({
+            tenantId: ctx.tenantId,
+            region: ctx.region,
+            patientId,
+            authorMembershipId: access.membershipId,
+            version: nextVersion,
+            status: "active",
+            title: dto.title,
+            startDate: dto.startDate ?? null,
+            body: dto.body,
+          })
+          .returning();
+      } catch (e) {
+        // Unique parcial de "un activo por paciente": dos saves concurrentes →
+        // 409 limpio en vez de un 500 crudo de Postgres.
+        const err = e as { code?: string; cause?: { code?: string } };
+        if (err?.code === "23505" || err?.cause?.code === "23505") {
+          throw new ConflictException(
+            "Se guardó otra versión al mismo tiempo. Reintentá.",
+          );
+        }
+        throw e;
+      }
       await this.audit.recordForSession(tx, {
         action: "plan.saved",
         targetType: "patient",
@@ -110,6 +115,7 @@ export class MealPlansService {
     await this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, patientId, access);
+      await this.assertPatientActive(tx, patientId);
       const archived = await tx
         .update(mealPlans)
         .set({ status: "archived" })
@@ -133,6 +139,19 @@ export class MealPlansService {
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  /** 404 si no existe, 409 si está archivado: no se mutan pacientes dados de baja. */
+  private async assertPatientActive(tx: TenantTx, patientId: string): Promise<void> {
+    const [patient] = await tx
+      .select({ archivedAt: patients.archivedAt })
+      .from(patients)
+      .where(eq(patients.id, patientId))
+      .limit(1);
+    if (!patient) throw new NotFoundException();
+    if (patient.archivedAt) {
+      throw new ConflictException("El paciente está archivado.");
+    }
+  }
 
   private async toDto(tx: TenantTx, planId: string): Promise<MealPlanDto> {
     const [row] = await this.query(tx, eq(mealPlans.id, planId));
@@ -158,7 +177,8 @@ function toPlanDto(row: MealPlanRow, authorName: string): MealPlanDto {
     status: row.status,
     title: row.title,
     startDate: row.startDate,
-    body: row.body ?? { meals: [] },
+    // Blindaje: garantiza `meals` array aunque el JSONB venga sin la clave.
+    body: { meals: row.body?.meals ?? [], generalNotes: row.body?.generalNotes },
     authorMembershipId: row.authorMembershipId,
     authorName,
     createdAt: row.createdAt.toISOString(),
