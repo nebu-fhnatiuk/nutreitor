@@ -1,6 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
 import {
   memberships,
@@ -44,6 +49,17 @@ interface AuthUserRow {
 /** Ejecutor de escritura: la conexión owner o una transacción sobre ella. */
 type Executor = Database | TenantTx;
 
+/** UUID nulo para lookups que deben correr SIEMPRE (igualar timing) sin matchear. */
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+
+/**
+ * Ventana de gracia para la rotación de refresh: si se replayea un token revocado
+ * hace menos de esto y su sucesor sigue activo, se asume retry benigno (respuesta
+ * perdida / doble submit) y NO se revoca la familia. Fuera de la ventana, o si la
+ * cadena ya avanzó, se trata como reuso real.
+ */
+const REUSE_GRACE_MS = 30_000;
+
 /** Error genérico de credenciales (anti-enumeración: no revela qué falló). */
 const invalid = (): UnauthorizedException =>
   new UnauthorizedException("Credenciales inválidas.");
@@ -79,23 +95,20 @@ export class AuthService {
   ): Promise<IssuedSession> {
     const normalizedEmail = email.toLowerCase();
 
-    // org y user son lecturas independientes → en paralelo.
+    // org y user: lecturas independientes → en paralelo.
     const [org, user] = await Promise.all([
       this.tenantResolver.bySlug(slug),
       this.findUserByEmail(normalizedEmail),
     ]);
 
-    const role =
-      org && user
-        ? await this.findMembershipRole(user.id, org.id)
-        : null;
-
-    // SIEMPRE un bcrypt.compare (contra el hash real o el dummy) para que el
-    // tiempo de respuesta no delate si el user/membership existe.
-    const ok = await bcrypt.compare(
-      password,
-      user?.hashedPassword ?? DUMMY_HASH,
-    );
+    // membership y bcrypt corren SIEMPRE y en paralelo: el lookup de membership se
+    // hace aun sin org/user (con ids nulos → null) para no filtrar por timing si
+    // el usuario existe, y el bcrypt usa el hash dummy si no hay user. Así todos
+    // los caminos de fallo tardan lo mismo.
+    const [role, ok] = await Promise.all([
+      this.findMembershipRole(user?.id ?? NIL_UUID, org?.id ?? NIL_UUID),
+      bcrypt.compare(password, user?.hashedPassword ?? DUMMY_HASH),
+    ]);
 
     if (!org || !user || !role || !ok) throw invalid();
 
@@ -110,50 +123,71 @@ export class AuthService {
 
   /**
    * Rota el refresh token. Garantías:
-   *  - Compare-and-revoke ATÓMICO: ante dos requests concurrentes con el mismo
-   *    token, sólo uno gana la fila (el otro recibe 0 filas → rechazo). No hay
-   *    doble emisión.
-   *  - Detección de reuso: si el token presentado ya estaba revocado (replay de un
-   *    token rotado/robado), se revoca TODA la familia de sesiones del usuario.
-   *  - Atomicidad revoke+emisión: van en una transacción; si la emisión falla, el
-   *    revoke se deshace y el usuario no queda deslogueado.
+   *  - Compare-and-revoke ATÓMICO (en `issue`): ante requests concurrentes con el
+   *    mismo token, sólo uno gana la fila; el otro recibe 0 filas → rechazo.
+   *  - Detección de reuso con cadena `replacedBy` + ventana de gracia: el replay de
+   *    un token revocado revoca TODA la familia, SALVO que sea un retry benigno
+   *    (dentro de la gracia y con el sucesor todavía activo).
+   *  - Atomicidad revoke+emisión: van en una transacción; si algo falla, se deshace.
+   *  - Errores transitorios de DB → 503 (reintentable), no 500.
    */
   async refresh(rawRefresh: string, userAgent?: string): Promise<IssuedSession> {
     const tokenHash = this.hashToken(rawRefresh);
 
     const [row] = await this.admin.db
-      .select()
+      .select({
+        id: refreshTokens.id,
+        userId: refreshTokens.userId,
+        organizationId: refreshTokens.organizationId,
+        expiresAt: refreshTokens.expiresAt,
+        revokedAt: refreshTokens.revokedAt,
+        replacedBy: refreshTokens.replacedBy,
+      })
       .from(refreshTokens)
       .where(eq(refreshTokens.tokenHash, tokenHash))
       .limit(1);
 
-    // Replay de un token ya revocado → reuso: invalidar todas las sesiones del user.
+    // Token revocado: distinguir retry benigno de reuso real.
     if (row?.revokedAt) {
-      await this.revokeAllForUser(row.userId);
+      const benign =
+        Date.now() - row.revokedAt.getTime() <= REUSE_GRACE_MS &&
+        row.replacedBy !== null &&
+        (await this.isActiveToken(row.replacedBy));
+      // Reuso real (fuera de gracia o cadena avanzada) → matar la familia.
+      if (!benign) await this.revokeAllForUser(row.userId);
       throw invalid();
     }
     if (!row || row.expiresAt.getTime() < Date.now()) throw invalid();
 
-    // Contexto en paralelo (lecturas independientes de la fila ya obtenida).
-    const [org, role, user] = await Promise.all([
-      this.tenantResolver.byId(row.organizationId),
-      this.findMembershipRole(row.userId, row.organizationId),
-      this.getUserById(row.userId),
-    ]);
-    if (!org || !role || !user) throw invalid();
+    // Contexto (org + user) en paralelo. Un fallo transitorio acá es reintentable.
+    let org: AuthOrg | null;
+    let user: AuthUserRow | null;
+    try {
+      [org, user] = await Promise.all([
+        this.tenantResolver.byId(row.organizationId),
+        this.getUserById(row.userId),
+      ]);
+    } catch {
+      throw new ServiceUnavailableException("Servicio no disponible, reintentá.");
+    }
+    if (!org || !user) throw invalid();
 
-    // Revocación del viejo + emisión del nuevo, atómicas.
+    // Revocación del viejo (atómica, encadenada) + emisión del nuevo, en una tx.
+    // El rol se re-verifica DENTRO de la tx (cierra el TOCTOU: un membership
+    // revocado entre la lectura y el commit aborta la emisión).
     return this.admin.db.transaction(async (tx) => {
-      const revoked = await tx
-        .update(refreshTokens)
-        .set({ revokedAt: new Date() })
+      const [member] = await tx
+        .select({ role: memberships.role })
+        .from(memberships)
         .where(
-          and(eq(refreshTokens.id, row.id), isNull(refreshTokens.revokedAt)),
+          and(
+            eq(memberships.userId, row.userId),
+            eq(memberships.organizationId, row.organizationId),
+          ),
         )
-        .returning({ id: refreshTokens.id });
-      // Otro request concurrente ya rotó este token → perdimos la carrera.
-      if (revoked.length === 0) throw invalid();
-      return this.issue(tx, user, org, role, userAgent);
+        .limit(1);
+      if (!member) throw invalid();
+      return this.issue(tx, user, org, member.role, userAgent, row.id);
     });
   }
 
@@ -199,39 +233,78 @@ export class AuthService {
 
   // ── internos ────────────────────────────────────────────────────────────────
 
+  /**
+   * Emite el par de tokens. Si `predecessorId` está presente (rotación), revoca el
+   * token anterior de forma ATÓMICA y lo encadena (`replacedBy`) al nuevo: si otro
+   * request ya lo revocó (carrera), el UPDATE afecta 0 filas → se aborta (y, dentro
+   * de una tx, se deshace la emisión).
+   */
   private async issue(
     executor: Executor,
     user: AuthUserRow,
     org: AuthOrg,
     role: MembershipRole,
     userAgent?: string,
+    predecessorId?: string,
   ): Promise<IssuedSession> {
-    const payload: AccessPayload = { sub: user.id, org: org.id, role };
-    const accessToken = await this.jwt.signAsync(payload, {
-      secret: this.env.JWT_ACCESS_SECRET,
-      // ACCESS_TTL es un string tipo "900s"; @nestjs/jwt tipa expiresIn con el
-      // StringValue de `ms`, así que casteamos al tipo esperado.
-      expiresIn: this.env.ACCESS_TTL as JwtSignOptions["expiresIn"],
-    });
-
     const refreshToken = randomBytes(32).toString("hex");
     const expiresAt = new Date(
       Date.now() + this.env.REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
-    await executor.insert(refreshTokens).values({
-      userId: user.id,
-      organizationId: org.id,
-      region: org.region,
-      tokenHash: this.hashToken(refreshToken),
-      expiresAt,
-      userAgent,
-    });
+    const [inserted] = await executor
+      .insert(refreshTokens)
+      .values({
+        userId: user.id,
+        organizationId: org.id,
+        region: org.region,
+        tokenHash: this.hashToken(refreshToken),
+        expiresAt,
+        userAgent,
+      })
+      .returning({ id: refreshTokens.id });
+
+    if (predecessorId) {
+      const revoked = await executor
+        .update(refreshTokens)
+        .set({ revokedAt: new Date(), replacedBy: inserted!.id })
+        .where(
+          and(
+            eq(refreshTokens.id, predecessorId),
+            isNull(refreshTokens.revokedAt),
+          ),
+        )
+        .returning({ id: refreshTokens.id });
+      if (revoked.length === 0) throw invalid(); // perdimos la carrera de rotación
+    }
+
+    const accessToken = await this.jwt.signAsync(
+      { sub: user.id, org: org.id, role } satisfies AccessPayload,
+      {
+        secret: this.env.JWT_ACCESS_SECRET,
+        // ACCESS_TTL es un string tipo "900s"; @nestjs/jwt tipa expiresIn con el
+        // StringValue de `ms`, así que casteamos al tipo esperado.
+        expiresIn: this.env.ACCESS_TTL as JwtSignOptions["expiresIn"],
+      },
+    );
 
     return {
       accessToken,
       refreshToken,
       result: { user, org, role, redirect: roleHome[role] },
     };
+  }
+
+  /** ¿El token (por id) sigue activo? (no revocado y no expirado). */
+  private async isActiveToken(id: string): Promise<boolean> {
+    const [t] = await this.admin.db
+      .select({
+        revokedAt: refreshTokens.revokedAt,
+        expiresAt: refreshTokens.expiresAt,
+      })
+      .from(refreshTokens)
+      .where(eq(refreshTokens.id, id))
+      .limit(1);
+    return !!t && t.revokedAt === null && t.expiresAt.getTime() > Date.now();
   }
 
   /** Usuario por email (incluye el hash; sólo para login). */
