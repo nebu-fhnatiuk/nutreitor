@@ -18,8 +18,9 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
-import { getAuth } from "../../core/tenant/tenant-context.store.js";
+import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
 import { isReservedSlug } from "../../core/util/slug.js";
+import { ensureProfessionalProfile } from "./profile-provisioning.js";
 
 type ProfileRow = typeof professionalProfiles.$inferSelect;
 type LoadedProfile = { profile: ProfileRow; fullName: string };
@@ -86,21 +87,31 @@ export class ProfessionalProfileService {
 
   // ── helpers ───────────────────────────────────────────────────────────────
 
-  /** Carga el perfil del membership activo de la sesión (RLS por org) + el nombre. */
+  /**
+   * Carga el perfil del membership activo de la sesión (RLS por org) + el nombre.
+   * Si el membership no tiene perfil (anterior a 0011, o borrado), lo provisiona
+   * en el acto (create-on-read) con el helper compartido — así "Mi perfil" nunca
+   * queda inutilizable.
+   */
   private async loadMine(tx: TenantTx): Promise<LoadedProfile> {
     const { user } = getAuth();
-    const [row] = await tx
-      .select({ profile: professionalProfiles, fullName: users.fullName })
-      .from(professionalProfiles)
-      .innerJoin(
-        memberships,
-        eq(memberships.id, professionalProfiles.membershipId),
-      )
+    const ctx = getTenantContext();
+    const [m] = await tx
+      .select({ membershipId: memberships.id, fullName: users.fullName })
+      .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(and(eq(memberships.userId, user.id), isNull(memberships.revokedAt)))
       .limit(1);
-    if (!row) throw new NotFoundException("No tenés un perfil en esta organización.");
-    return { profile: row.profile, fullName: row.fullName };
+    if (!m) {
+      throw new NotFoundException("No tenés un membership activo en esta organización.");
+    }
+    const profile = await ensureProfessionalProfile(tx, {
+      membershipId: m.membershipId,
+      organizationId: ctx.orgId,
+      region: ctx.region,
+      fullName: m.fullName,
+    });
+    return { profile, fullName: m.fullName };
   }
 
   /** El slug debe ser no-reservado y único por org (RLS acota a la org). */
