@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { createDb } from "./client.js";
 import {
@@ -8,6 +8,8 @@ import {
   users,
   memberships,
   professionalProfiles,
+  careAssignments,
+  patientNotes,
 } from "./schema/index.js";
 
 /**
@@ -168,6 +170,74 @@ export async function runSeed(connectionString: string): Promise<void> {
         .insert(professionalProfiles)
         .values(profileValues)
         .onConflictDoNothing();
+    }
+
+    // ── Núcleo clínico demo: ficha + asignación + nota para "Paciente Demo Uno" ──
+    const proMembershipId = membershipByUser.get(DEMO_USERS[1]!.id); // pro@demo
+    const adminMembershipId = membershipByUser.get(DEMO_USERS[0]!.id); // admin@demo
+    const pacienteUnoId = "00000000-0000-0000-0000-0000000000d1";
+
+    await db
+      .update(patients)
+      .set({
+        documentId: "30.111.222",
+        birthDate: "1990-05-12",
+        sex: "female",
+        phone: "+54 9 11 5555-1234",
+        country: "AR",
+        timezone: "America/Argentina/Buenos_Aires",
+        reasonForConsult: "Mejorar composición corporal y energía diaria.",
+        medicalHistory: "Sin antecedentes quirúrgicos relevantes.",
+        allergies: "Intolerancia a la lactosa.",
+        currentMedication: "Ninguna.",
+        diagnosedConditions: "—",
+        familyHistory: "Diabetes tipo 2 (materna).",
+        heightCm: 165,
+        initialWeightKg: "68.00",
+        activityLevel: "moderate",
+        goal: "Recomposición corporal",
+        dietaryPreferences: "Sin lácteos; prefiere cocina casera.",
+      })
+      .where(eq(patients.id, pacienteUnoId));
+
+    if (proMembershipId) {
+      const [existingAssign] = await db
+        .select({ id: careAssignments.id })
+        .from(careAssignments)
+        .where(
+          and(
+            eq(careAssignments.patientId, pacienteUnoId),
+            eq(careAssignments.membershipId, proMembershipId),
+            eq(careAssignments.status, "active"),
+          ),
+        )
+        .limit(1);
+      if (!existingAssign) {
+        await db.insert(careAssignments).values({
+          tenantId: SEED.orgDemo.id,
+          region: SEED.orgDemo.region,
+          patientId: pacienteUnoId,
+          membershipId: proMembershipId,
+          status: "active",
+          assignedByMembershipId: adminMembershipId ?? null,
+        });
+      }
+
+      const [existingNote] = await db
+        .select({ id: patientNotes.id })
+        .from(patientNotes)
+        .where(eq(patientNotes.patientId, pacienteUnoId))
+        .limit(1);
+      if (!existingNote) {
+        await db.insert(patientNotes).values({
+          tenantId: SEED.orgDemo.id,
+          region: SEED.orgDemo.region,
+          patientId: pacienteUnoId,
+          authorMembershipId: proMembershipId,
+          content:
+            "Primera consulta: pauta hipocalórica moderada + registro de hábitos. Reevaluar en 2 semanas.",
+        });
+      }
     }
   } finally {
     await pool.end();

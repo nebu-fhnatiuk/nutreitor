@@ -14,6 +14,7 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
 const NAV: Record<MembershipRole, { href: string; label: string }[]> = {
   admin: [
     { href: "/admin", label: "Resumen" },
+    { href: "/admin/patients", label: "Pacientes" },
     { href: "/admin/members", label: "Miembros" },
     { href: "/admin/public", label: "Página pública" },
     { href: "/admin/settings", label: "Configuración" },

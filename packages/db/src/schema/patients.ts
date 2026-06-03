@@ -1,17 +1,32 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, text, index, foreignKey } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  date,
+  integer,
+  numeric,
+  timestamp,
+  index,
+  foreignKey,
+} from "drizzle-orm/pg-core";
 
 import { tenantColumns, timestamps } from "./_shared.js";
+import { locations } from "./locations.js";
 import { organizations } from "./organizations.js";
 import { users } from "./users.js";
 
 /**
  * Pacientes como ENTIDAD CLÍNICA, separada de la cuenta de acceso. Lo crea un
- * profesional/admin y existe aunque el paciente nunca se loguee.
+ * profesional/admin y existe aunque el paciente nunca se loguee. Pertenece al
+ * TENANT (no a un profesional): si un profesional se va, el paciente permanece y
+ * es reasignable (ver care_assignments).
  *
  *  - `userId`: vínculo (nullable) a la identidad global. Se setea cuando el
  *    paciente acepta una invitación y habilita su cuenta. Sin cuenta = NULL.
- *  - `email`: dato de contacto (opcional). No es la credencial.
+ *  - `archivedAt`: baja LÓGICA (soft-delete). Nunca se borra físico.
+ *  - Campos de ficha SOBRESCRIBIBLES (estado actual). La serie temporal de peso/
+ *    medidas NO vive acá (sprint de métricas): sólo el antropométrico BASAL.
  *
  * Aislamiento por RLS `tenant_isolation` sobre `tenant_id` (modelo POOL).
  */
@@ -22,9 +37,36 @@ export const patients = pgTable(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
     ...tenantColumns,
+    // Identificación / contacto
     fullName: text("full_name").notNull(),
+    documentId: text("document_id"),
+    birthDate: date("birth_date"),
+    sex: text("sex"),
     email: text("email"),
+    phone: text("phone"),
+    country: text("country"),
+    timezone: text("timezone"),
+    // Clínicos de base
+    reasonForConsult: text("reason_for_consult"),
+    medicalHistory: text("medical_history"),
+    allergies: text("allergies"),
+    currentMedication: text("current_medication"),
+    diagnosedConditions: text("diagnosed_conditions"),
+    familyHistory: text("family_history"),
+    // Antropométrico BASAL
+    heightCm: integer("height_cm"),
+    initialWeightKg: numeric("initial_weight_kg", { precision: 5, scale: 2 }),
+    // Hábitos / contexto
+    activityLevel: text("activity_level"),
+    goal: text("goal"),
+    dietaryPreferences: text("dietary_preferences"),
+    // Sede (referencia; sin UI en este sprint) + cuenta + baja lógica
+    locationId: uuid("location_id"),
     userId: uuid("user_id"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
     ...timestamps,
   },
   (table) => [
@@ -40,6 +82,11 @@ export const patients = pgTable(
       columns: [table.userId],
       foreignColumns: [users.id],
       name: "patients_user_id_fk",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [table.locationId],
+      foreignColumns: [locations.id],
+      name: "patients_location_id_fk",
     }).onDelete("set null"),
   ],
 );
