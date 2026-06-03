@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { careAssignments, memberships, patients, users, type TenantTx } from "@nutreitor/db";
 import {
   hasCapability,
@@ -132,6 +137,16 @@ export class PatientsService {
    */
   async create(dto: CreatePatientDto): Promise<PatientDetailDto> {
     const ctx = this.tenantDb.context;
+    const { user } = getAuth();
+    const canClinical = hasCapability(user.role, "patient:read_clinical");
+    // El atajo crear-y-asignar requiere patient:assign (admin); defensa en
+    // profundidad además de que el profesional ya no tiene patient:create.
+    if (
+      dto.assignToMembershipId &&
+      !hasCapability(user.role, "patient:assign")
+    ) {
+      throw new ForbiddenException("No tenés permiso para asignar profesionales.");
+    }
     return this.tenantDb.run(async (tx) => {
       const [row] = await tx
         .insert(patients)
@@ -139,7 +154,7 @@ export class PatientsService {
           // tenant_id y region salen del contexto, jamás del request.
           tenantId: ctx.tenantId,
           region: ctx.region,
-          ...fichaValues(dto),
+          ...fichaValues(dto, canClinical),
           // fullName es obligatorio en el alta (el spread lo deja opcional).
           fullName: dto.fullName,
         })
@@ -161,13 +176,7 @@ export class PatientsService {
         this.assignments.listInTx(tx, row!.id),
         this.notes.listNotes(tx, row!.id),
       ]);
-      const { user } = getAuth();
-      return toDetailDto(
-        row!,
-        hasCapability(user.role, "patient:read_clinical"),
-        assignments,
-        notes,
-      );
+      return toDetailDto(row!, canClinical, assignments, notes);
     });
   }
 
@@ -176,8 +185,22 @@ export class PatientsService {
     return this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, id, access);
+      const { user } = getAuth();
+      const canClinical = hasCapability(user.role, "patient:read_clinical");
 
-      const patch = fichaValues(dto);
+      // No se mutan pacientes archivados (la baja lógica es terminal salvo restore).
+      const [existing] = await tx
+        .select({ id: patients.id, archivedAt: patients.archivedAt })
+        .from(patients)
+        .where(eq(patients.id, id))
+        .limit(1);
+      if (!existing) throw new NotFoundException();
+      if (existing.archivedAt) {
+        throw new ConflictException("El paciente está archivado.");
+      }
+
+      // Sin read_clinical, los campos clínicos se ignoran (no clobber a ciegas).
+      const patch = fichaValues(dto, canClinical);
       const changed = Object.keys(patch);
       const [row] = changed.length
         ? await tx
@@ -200,13 +223,7 @@ export class PatientsService {
         this.assignments.listInTx(tx, id),
         this.notes.listNotes(tx, id),
       ]);
-      const { user } = getAuth();
-      return toDetailDto(
-        row,
-        hasCapability(user.role, "patient:read_clinical"),
-        assignments,
-        notes,
-      );
+      return toDetailDto(row, canClinical, assignments, notes);
     });
   }
 
@@ -261,9 +278,24 @@ export class PatientsService {
   }
 }
 
-/** Mapea los campos definidos del dto a columnas (undefined = no tocar). */
+/** Campos clínicos sensibles: sólo se escriben con patient:read_clinical. */
+const CLINICAL_KEYS = [
+  "reasonForConsult",
+  "medicalHistory",
+  "allergies",
+  "currentMedication",
+  "diagnosedConditions",
+  "familyHistory",
+] as const;
+
+/**
+ * Mapea los campos definidos del dto a columnas (undefined = no tocar). Si la
+ * sesión no tiene read_clinical, los campos clínicos se omiten: no se permite
+ * escribir (clobber) datos clínicos que no se pueden leer.
+ */
 function fichaValues(
   dto: CreatePatientDto | UpdatePatientDto,
+  canClinical: boolean,
 ): Partial<typeof patients.$inferInsert> {
   const p: Partial<typeof patients.$inferInsert> = {};
   const set = <K extends keyof typeof patients.$inferInsert>(
@@ -295,6 +327,9 @@ function fichaValues(
   set("goal", dto.goal);
   set("dietaryPreferences", dto.dietaryPreferences);
   set("locationId", dto.locationId);
+  if (!canClinical) {
+    for (const k of CLINICAL_KEYS) delete p[k];
+  }
   return p;
 }
 

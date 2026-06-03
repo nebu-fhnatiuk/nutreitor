@@ -43,7 +43,8 @@ const patientFichaFields = {
   familyHistory: z.string().max(4000).nullish(),
   // Antropométrico BASAL (dato fijo inicial)
   heightCm: z.number().int().min(1).max(300).nullish(),
-  initialWeightKg: z.number().min(1).max(1000).nullish(),
+  // Cota alineada con la columna numeric(5,2) en DB (máx 999.99): evita overflow 500.
+  initialWeightKg: z.number().min(1).max(999.99).nullish(),
   // Hábitos / contexto
   activityLevel: z.enum(activityLevels).nullish(),
   goal: z.string().max(200).nullish(),

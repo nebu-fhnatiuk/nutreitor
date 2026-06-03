@@ -1,5 +1,16 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
-import { memberships, patientNotes, users, type TenantTx } from "@nutreitor/db";
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  memberships,
+  patientNotes,
+  patients,
+  users,
+  type TenantTx,
+} from "@nutreitor/db";
 import type { AddPatientNoteDto, PatientNoteDto } from "@nutreitor/shared";
 import { desc, eq } from "drizzle-orm";
 
@@ -26,6 +37,16 @@ export class PatientNotesService {
       await assertCanAccessPatient(tx, patientId, access);
       if (!access.membershipId) {
         throw new ForbiddenException("No tenés un membership para autorar la nota.");
+      }
+      // No se anotan pacientes archivados (la ficha está dada de baja).
+      const [patient] = await tx
+        .select({ archivedAt: patients.archivedAt })
+        .from(patients)
+        .where(eq(patients.id, patientId))
+        .limit(1);
+      if (!patient) throw new NotFoundException();
+      if (patient.archivedAt) {
+        throw new ConflictException("El paciente está archivado.");
       }
       const ctx = getTenantContext();
       const [row] = await tx

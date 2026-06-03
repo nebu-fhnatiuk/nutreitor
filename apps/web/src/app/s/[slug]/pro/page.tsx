@@ -32,7 +32,7 @@ export default async function ProPage({
       >
         Editar mi perfil público →
       </Link>
-      <PatientsList basePath="/pro/patients" canCreate canAssign={false} />
+      <PatientsList basePath="/pro/patients" canCreate={false} canAssign={false} />
     </WorkspaceShell>
   );
 }

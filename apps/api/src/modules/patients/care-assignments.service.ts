@@ -48,11 +48,15 @@ export class CareAssignmentsService {
   ): Promise<CareAssignmentDto> {
     // El paciente debe existir en el tenant (RLS ya acota). 404 si no.
     const [patient] = await tx
-      .select({ id: patients.id })
+      .select({ id: patients.id, archivedAt: patients.archivedAt })
       .from(patients)
       .where(eq(patients.id, patientId))
       .limit(1);
     if (!patient) throw new NotFoundException("Paciente no encontrado.");
+    // No se asigna sobre un paciente archivado (reabrir requiere restaurarlo).
+    if (patient.archivedAt) {
+      throw new ConflictException("El paciente está archivado.");
+    }
 
     // El profesional asignado debe ser un membership ACTIVO y no-paciente.
     const [target] = await tx
