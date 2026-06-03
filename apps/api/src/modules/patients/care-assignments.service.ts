@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -17,7 +18,11 @@ import { and, asc, desc, eq, type SQL } from "drizzle-orm";
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
-import { assertCanAccessPatient, resolvePatientAccess } from "./patient-access.js";
+import {
+  assertCanAccessPatient,
+  assertLocationInTenant,
+  resolvePatientAccess,
+} from "./patient-access.js";
 
 /**
  * Asignaciones de cuidado (paciente↔profesional), M:N y VERSIONADAS. La lógica de
@@ -71,7 +76,13 @@ export class CareAssignmentsService {
       throw new BadRequestException("No se puede asignar a un paciente como profesional.");
     }
 
+    await assertLocationInTenant(tx, dto.locationId);
+
     const access = await resolvePatientAccess(tx);
+    // Trazabilidad: no se registra una asignación sin saber quién la hizo.
+    if (!access.membershipId) {
+      throw new ForbiddenException("No tenés un membership activo para asignar.");
+    }
     const ctx = getTenantContext();
 
     let inserted;

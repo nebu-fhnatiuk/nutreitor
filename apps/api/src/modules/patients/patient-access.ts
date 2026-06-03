@@ -1,5 +1,10 @@
-import { NotFoundException } from "@nestjs/common";
-import { careAssignments, memberships, type TenantTx } from "@nutreitor/db";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  careAssignments,
+  locations,
+  memberships,
+  type TenantTx,
+} from "@nutreitor/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { getAuth } from "../../core/tenant/tenant-context.store.js";
@@ -54,4 +59,23 @@ export async function assertCanAccessPatient(
     )
     .limit(1);
   if (!a) throw new NotFoundException();
+}
+
+/**
+ * Valida que la sede referenciada sea del tenant. El FK de location_id corre como
+ * owner y BYPASSA RLS, así que sin este chequeo se podría plantar una referencia a
+ * una location de otro tenant. Acá el SELECT corre bajo RLS: si es de otro tenant,
+ * no existe → rechazo. No-op si locationId es null/undefined.
+ */
+export async function assertLocationInTenant(
+  tx: TenantTx,
+  locationId: string | null | undefined,
+): Promise<void> {
+  if (!locationId) return;
+  const [loc] = await tx
+    .select({ id: locations.id })
+    .from(locations)
+    .where(eq(locations.id, locationId))
+    .limit(1);
+  if (!loc) throw new BadRequestException("Sede inexistente o de otra organización.");
 }

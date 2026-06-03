@@ -12,7 +12,7 @@ import {
   type TenantTx,
 } from "@nutreitor/db";
 import type { AddPatientNoteDto, PatientNoteDto } from "@nutreitor/shared";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, type SQL } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
@@ -79,7 +79,17 @@ export class PatientNotesService {
   }
 
   /** Historial de notas (más reciente primero). Lectura tras access check. */
-  async listNotes(tx: TenantTx, patientId: string): Promise<PatientNoteDto[]> {
+  listNotes(tx: TenantTx, patientId: string): Promise<PatientNoteDto[]> {
+    return this.queryNotes(tx, eq(patientNotes.patientId, patientId));
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+
+  /** Única proyección nota→DTO (join membership→user para el nombre del autor). */
+  private async queryNotes(
+    tx: TenantTx,
+    where: SQL,
+  ): Promise<PatientNoteDto[]> {
     const rows = await tx
       .select({
         id: patientNotes.id,
@@ -91,7 +101,7 @@ export class PatientNotesService {
       .from(patientNotes)
       .innerJoin(memberships, eq(memberships.id, patientNotes.authorMembershipId))
       .innerJoin(users, eq(users.id, memberships.userId))
-      .where(eq(patientNotes.patientId, patientId))
+      .where(where)
       .orderBy(desc(patientNotes.createdAt));
     return rows.map((r) => ({
       id: r.id,
@@ -103,26 +113,7 @@ export class PatientNotesService {
   }
 
   private async toDto(tx: TenantTx, noteId: string): Promise<PatientNoteDto> {
-    const rows = await tx
-      .select({
-        id: patientNotes.id,
-        authorMembershipId: patientNotes.authorMembershipId,
-        authorName: users.fullName,
-        content: patientNotes.content,
-        createdAt: patientNotes.createdAt,
-      })
-      .from(patientNotes)
-      .innerJoin(memberships, eq(memberships.id, patientNotes.authorMembershipId))
-      .innerJoin(users, eq(users.id, memberships.userId))
-      .where(eq(patientNotes.id, noteId))
-      .limit(1);
-    const r = rows[0]!;
-    return {
-      id: r.id,
-      authorMembershipId: r.authorMembershipId,
-      authorName: r.authorName,
-      content: r.content,
-      createdAt: r.createdAt.toISOString(),
-    };
+    const [row] = await this.queryNotes(tx, eq(patientNotes.id, noteId));
+    return row!;
   }
 }
