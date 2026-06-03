@@ -11,6 +11,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { TenantResolverService } from "../../core/auth/tenant-resolver.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import {
+  hasPublicRosterContent,
   toPublicProfessional,
   toRosterEntry,
   type ProfileLike,
@@ -125,7 +126,13 @@ export class PublicService {
         )
         .limit(1);
       if (!row) throw new NotFoundException();
-      return toPublicProfessional(asProfileLike(row), row.fullName);
+      const profile = asProfileLike(row);
+      // La URL directa respeta la MISMA regla que el roster (Ajuste 1): si no hay
+      // contenido público mínimo, el perfil no es alcanzable (404). Si no, un
+      // perfil oculto de la grilla seguiría siendo enumerable por slug, filtrando
+      // el nombre del profesional antes de que publique nada.
+      if (!hasPublicRosterContent(profile)) throw new NotFoundException();
+      return toPublicProfessional(profile, row.fullName);
     });
   }
 }

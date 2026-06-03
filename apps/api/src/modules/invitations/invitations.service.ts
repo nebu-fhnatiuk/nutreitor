@@ -10,9 +10,7 @@ import {
   memberships,
   organizations,
   patients,
-  professionalProfiles,
   users,
-  type TenantTx,
 } from "@nutreitor/db";
 import type {
   AuthOrg,
@@ -20,7 +18,6 @@ import type {
   AcceptInvitationDto,
   InvitationDto,
   InvitationPreview,
-  Region,
 } from "@nutreitor/shared";
 import bcrypt from "bcryptjs";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -33,7 +30,7 @@ import { AdminDbService } from "../../core/database/admin-db.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { MAIL_SENDER, type MailSender } from "../../core/mail/mail-sender.js";
 import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
-import { isReservedSlug, slugify } from "../../core/util/slug.js";
+import { ensureProfessionalProfile } from "../professionals/profile-provisioning.js";
 
 type InvitationRow = typeof invitations.$inferSelect;
 
@@ -307,13 +304,12 @@ export class InvitationsService {
       // Vidriera pública: admin/professional arrancan con un perfil (privado por
       // default). El paciente no tiene perfil público.
       if (inv.role !== "patient") {
-        await this.ensureProfile(
-          tx,
+        await ensureProfessionalProfile(tx, {
           membershipId,
-          inv.organizationId,
-          inv.region,
-          user!.fullName,
-        );
+          organizationId: inv.organizationId,
+          region: inv.region,
+          fullName: user!.fullName,
+        });
       }
 
       // Vincular la entidad paciente con la cuenta (guard: misma org y sin vincular).
@@ -357,58 +353,6 @@ export class InvitationsService {
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
-
-  /**
-   * Crea el perfil público del membership si no existe, con un profileSlug único
-   * por org (kebab(fullName) + dedupe), evitando slugs reservados del workspace.
-   * Visibilidad vacía (todo privado): el profesional cura su vidriera después.
-   */
-  private async ensureProfile(
-    tx: TenantTx,
-    membershipId: string,
-    organizationId: string,
-    region: Region,
-    fullName: string,
-  ): Promise<void> {
-    const [existing] = await tx
-      .select({ id: professionalProfiles.id })
-      .from(professionalProfiles)
-      .where(eq(professionalProfiles.membershipId, membershipId))
-      .limit(1);
-    if (existing) return;
-
-    const base = slugify(fullName);
-    let slug = base;
-    let n = 1;
-    // Dedupe por org + evitar reservados.
-    for (;;) {
-      const reserved = isReservedSlug(slug);
-      const [clash] = reserved
-        ? [{ id: "reserved" }]
-        : await tx
-            .select({ id: professionalProfiles.id })
-            .from(professionalProfiles)
-            .where(
-              and(
-                eq(professionalProfiles.organizationId, organizationId),
-                eq(professionalProfiles.profileSlug, slug),
-              ),
-            )
-            .limit(1);
-      if (!clash) break;
-      n += 1;
-      slug = `${base}-${n}`;
-    }
-
-    await tx.insert(professionalProfiles).values({
-      organizationId,
-      region,
-      membershipId,
-      profileSlug: slug,
-      isPubliclyListed: true,
-      visibility: {},
-    });
-  }
 
   /** Mapea la violación del índice único parcial (pending duplicada) a un 409. */
   private async runMappingConflict<T>(fn: () => Promise<T>): Promise<T> {

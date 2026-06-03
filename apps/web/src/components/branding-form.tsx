@@ -18,7 +18,7 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
     setErr(null);
     setMsg(null);
     try {
-      const r = await fetch("/api/organizations/current/branding", {
+      const r = await fetch("/api/editor/branding", {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
