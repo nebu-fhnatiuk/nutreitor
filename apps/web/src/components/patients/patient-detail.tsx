@@ -9,6 +9,7 @@ import {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
+import { MealPlanPanel } from "./meal-plan-panel";
 import { MemberSelect } from "./member-select";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -50,6 +51,7 @@ export function PatientDetail({
   canAssign,
   canAddNote,
   canRecord,
+  canWritePlan,
 }: {
   id: string;
   basePath: string;
@@ -57,6 +59,7 @@ export function PatientDetail({
   canAssign: boolean;
   canAddNote: boolean;
   canRecord: boolean;
+  canWritePlan: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -159,6 +162,8 @@ export function PatientDetail({
         />
         <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
       </div>
+
+      <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />
 
       <MetricsPanel patientId={p.id} canRecord={canRecord} />
     </div>
