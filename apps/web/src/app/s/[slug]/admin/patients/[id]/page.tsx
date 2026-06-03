@@ -17,7 +17,7 @@ export default async function AdminPatientPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role}>
-      <PatientDetail id={id} basePath="/admin/patients" canEdit canAddNote canAssign />
+      <PatientDetail id={id} basePath="/admin/patients" canEdit canAddNote canRecord canAssign />
     </WorkspaceShell>
   );
 }

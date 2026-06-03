@@ -10,6 +10,7 @@ import {
   professionalProfiles,
   careAssignments,
   patientNotes,
+  patientMetrics,
 } from "./schema/index.js";
 
 /**
@@ -237,6 +238,28 @@ export async function runSeed(connectionString: string): Promise<void> {
           content:
             "Primera consulta: pauta hipocalórica moderada + registro de hábitos. Reevaluar en 2 semanas.",
         });
+      }
+
+      // Serie de evolución (peso a la baja) para mostrar el gráfico.
+      const [existingMetric] = await db
+        .select({ id: patientMetrics.id })
+        .from(patientMetrics)
+        .where(eq(patientMetrics.patientId, pacienteUnoId))
+        .limit(1);
+      if (!existingMetric) {
+        await db.insert(patientMetrics).values(
+          [
+            { measuredAt: "2026-03-01", weightKg: "68.00", bodyFatPct: "32.0", waistCm: "92.0" },
+            { measuredAt: "2026-04-15", weightKg: "66.40", bodyFatPct: "30.5", waistCm: "89.0" },
+            { measuredAt: "2026-05-20", weightKg: "65.10", bodyFatPct: "29.2", waistCm: "86.5" },
+          ].map((m) => ({
+            tenantId: SEED.orgDemo.id,
+            region: SEED.orgDemo.region,
+            patientId: pacienteUnoId,
+            recordedByMembershipId: proMembershipId,
+            ...m,
+          })),
+        );
       }
     }
   } finally {

@@ -8,6 +8,7 @@ export * from "./refresh-tokens.js";
 export * from "./invitations.js";
 export * from "./care-assignments.js";
 export * from "./patient-notes.js";
+export * from "./patient-metrics.js";
 export * from "./audit-log.js";
 export * from "./professional-profiles.js";
 
@@ -20,6 +21,7 @@ import { refreshTokens } from "./refresh-tokens.js";
 import { invitations } from "./invitations.js";
 import { careAssignments } from "./care-assignments.js";
 import { patientNotes } from "./patient-notes.js";
+import { patientMetrics } from "./patient-metrics.js";
 import { auditLog } from "./audit-log.js";
 import { professionalProfiles } from "./professional-profiles.js";
 
@@ -34,6 +36,7 @@ export const schema = {
   invitations,
   careAssignments,
   patientNotes,
+  patientMetrics,
   auditLog,
   professionalProfiles,
 };
