@@ -46,6 +46,9 @@ export class PortalService {
   async getMe(): Promise<PortalMeDto> {
     return this.tenantDb.run(async (tx) => {
       const patient = await this.resolveMyPatient(tx);
+      // Ficha dada de baja → sin portal (consistente con el 409 de selfReport y
+      // con assertPatientActive en la gestión).
+      if (patient.archivedAt) throw new NotFoundException();
       const { user } = getAuth();
 
       const profRows = await tx

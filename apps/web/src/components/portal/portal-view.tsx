@@ -41,7 +41,8 @@ export function PortalView() {
   if (state === "none" || !me) {
     return (
       <p className="text-sm text-stone-500">
-        Todavía no hay una ficha vinculada a tu cuenta. Escribile a tu profesional.
+        No pudimos cargar tu información. Reintentá en un momento; si el problema
+        sigue, escribile a tu profesional.
       </p>
     );
   }

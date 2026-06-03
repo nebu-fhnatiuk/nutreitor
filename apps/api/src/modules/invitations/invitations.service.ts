@@ -74,6 +74,23 @@ export class InvitationsService {
         if (m) throw new ConflictException("Ese email ya es miembro de la organización.");
       }
 
+      // Si se vincula una entidad paciente: debe existir en el tenant (RLS) y estar
+      // SIN cuenta. Evita la invitación basura y la cuenta-sin-ficha (dead-end:
+      // accept sólo linkea si userId IS NULL).
+      if (dto.patientId) {
+        const [patient] = await tx
+          .select({ userId: patients.userId })
+          .from(patients)
+          .where(eq(patients.id, dto.patientId))
+          .limit(1);
+        if (!patient) {
+          throw new BadRequestException("Paciente inexistente en la organización.");
+        }
+        if (patient.userId) {
+          throw new ConflictException("Ese paciente ya tiene una cuenta vinculada.");
+        }
+      }
+
       // Supersede invitaciones pendientes previas para (email, org).
       await tx
         .update(invitations)
