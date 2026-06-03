@@ -21,8 +21,8 @@ export default async function ProPage({
       <p className="text-xs font-medium uppercase tracking-widest text-brand">
         Profesional
       </p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight">Tus pacientes</h1>
-      <p className="mt-2 mb-6 text-zinc-400">
+      <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Tus pacientes</h1>
+      <p className="mt-2 mb-6 text-stone-500">
         Hola {me.user.fullName}. Pacientes de {me.org.name} (aislados por RLS según
         tu sesión).
       </p>

@@ -37,32 +37,32 @@ export default function MarketingHome() {
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="text-lg font-semibold tracking-tight">Nutreitor</span>
         </div>
-        <nav className="hidden items-center gap-8 text-sm text-zinc-400 sm:flex">
-          <span className="cursor-default transition hover:text-zinc-100">Producto</span>
-          <span className="cursor-default transition hover:text-zinc-100">Segmentos</span>
-          <span className="cursor-default transition hover:text-zinc-100">Precios</span>
+        <nav className="hidden items-center gap-8 text-sm text-stone-500 sm:flex">
+          <span className="cursor-default transition hover:text-stone-900">Producto</span>
+          <span className="cursor-default transition hover:text-stone-900">Segmentos</span>
+          <span className="cursor-default transition hover:text-stone-900">Precios</span>
         </nav>
         <a
           href="#ingresar"
-          className="rounded-full border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-600"
+          className="rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-800 transition hover:border-stone-300"
         >
           Ingresar
         </a>
       </header>
 
       {/* Hero */}
-      <section className="brand-glow">
+      <section className="brand-wash">
         <div className="mx-auto max-w-3xl px-6 pb-16 pt-16 text-center sm:pt-24">
-          <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-400">
+          <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-500">
             <span className="h-1.5 w-1.5 rounded-full bg-brand" />
             Plataforma SaaS white-label para nutrición
           </span>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl">
+          <h1 className="mt-6 font-serif text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl">
             La plataforma para captar y seguir
             <br />
             <span className="text-brand">a tus pacientes.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-zinc-400">
+          <p className="mx-auto mt-6 max-w-xl text-lg text-stone-500">
             Captación, agendamiento, planes y seguimiento — con tu marca y tus
             datos aislados. Para nutricionistas y organizaciones de salud y deporte.
           </p>
@@ -75,7 +75,7 @@ export default function MarketingHome() {
             </a>
             <a
               href="#ingresar"
-              className="rounded-full border border-zinc-800 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-900"
+              className="rounded-full border border-stone-200 px-6 py-3 text-sm font-medium text-stone-800 transition hover:border-stone-300 hover:bg-stone-100"
             >
               Ingresar a mi workspace
             </a>
@@ -85,14 +85,14 @@ export default function MarketingHome() {
 
       {/* Para quién es */}
       <section className="mx-auto max-w-6xl px-6 pb-16">
-        <h2 className="text-center text-sm font-medium uppercase tracking-widest text-zinc-500">
+        <h2 className="text-center text-sm font-medium uppercase tracking-widest text-stone-500">
           Para quién es
         </h2>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           {SEGMENTS.map((s) => (
             <span
               key={s}
-              className="rounded-full border border-zinc-800 bg-zinc-900/40 px-4 py-1.5 text-sm text-zinc-300"
+              className="rounded-full border border-stone-200 bg-white px-4 py-1.5 text-sm text-stone-700"
             >
               {s}
             </span>
@@ -106,11 +106,11 @@ export default function MarketingHome() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-brand/50 hover:bg-zinc-900"
+              className="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md"
             >
-              <div className="mb-4 h-9 w-9 rounded-lg border border-zinc-700 bg-zinc-950 transition group-hover:border-brand/60" />
-              <h3 className="font-semibold text-zinc-100">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{f.desc}</p>
+              <div className="mb-4 h-9 w-9 rounded-lg bg-brand/10 transition group-hover:bg-brand/20" />
+              <h3 className="font-semibold text-stone-900">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-500">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -118,9 +118,9 @@ export default function MarketingHome() {
 
       {/* Ingresar */}
       <section id="ingresar" className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight">Ingresá a tu workspace</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
+        <div className="rounded-3xl border border-stone-200 bg-white p-10 text-center">
+          <h2 className="font-serif text-2xl font-semibold tracking-tight">Ingresá a tu workspace</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-stone-500">
             Cada organización tiene su propio subdominio. Escribí el tuyo para ir a
             tu login. (Demo: probá <span className="text-brand">demo</span>.)
           </p>
@@ -130,8 +130,8 @@ export default function MarketingHome() {
         </div>
       </section>
 
-      <footer className="border-t border-zinc-900">
-        <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-zinc-600">
+      <footer className="border-t border-stone-200">
+        <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-stone-400">
           © 2026 Nutreitor — plataforma multi-tenant white-label.
         </div>
       </footer>

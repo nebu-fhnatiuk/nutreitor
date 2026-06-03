@@ -19,8 +19,8 @@ export default async function SettingsPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role}>
-      <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
-      <p className="mt-1 mb-8 text-sm text-zinc-500">
+      <h1 className="font-serif text-2xl font-semibold tracking-tight">Configuración</h1>
+      <p className="mt-1 mb-8 text-sm text-stone-500">
         Branding white-label de la organización.
       </p>
       <BrandingForm initial={branding} />

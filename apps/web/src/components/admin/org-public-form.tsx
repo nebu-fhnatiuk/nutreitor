@@ -45,28 +45,28 @@ export function OrgPublicForm({
   return (
     <form onSubmit={submit} className="max-w-lg space-y-5">
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">Titular</label>
+        <label className="mb-1 block text-sm text-stone-500">Titular</label>
         <input
           value={headline}
           onChange={(e) => setHeadline(e.target.value)}
           maxLength={160}
           placeholder="Una frase que resuma la propuesta"
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none placeholder:text-zinc-600 focus:border-brand/60"
+          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">Descripción</label>
+        <label className="mb-1 block text-sm text-stone-500">Descripción</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={4000}
           rows={5}
           placeholder="Presentá la organización a quien llega a la página."
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none placeholder:text-zinc-600 focus:border-brand/60"
+          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
-      {err && <p className="text-sm text-red-300">{err}</p>}
+      {err && <p className="text-sm text-red-700">{err}</p>}
       {msg && <p className="text-sm text-brand">{msg}</p>}
 
       <button

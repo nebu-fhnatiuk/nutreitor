@@ -59,7 +59,7 @@ export function PatientsPanel() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nuevo paciente"
-          className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2.5 text-sm outline-none transition placeholder:text-zinc-600 focus:border-brand/60"
+          className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
         <button
           type="submit"
@@ -71,29 +71,29 @@ export function PatientsPanel() {
       </form>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-800">
-        <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/40 px-5 py-3 text-sm text-zinc-400">
-          <span>Pacientes{loading && <span className="ml-2 text-zinc-600">cargando…</span>}</span>
-          <span className="font-mono text-xs text-zinc-600">{patients.length}</span>
+      <div className="overflow-hidden rounded-2xl border border-stone-200">
+        <div className="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-3 text-sm text-stone-500">
+          <span>Pacientes{loading && <span className="ml-2 text-stone-400">cargando…</span>}</span>
+          <span className="font-mono text-xs text-stone-400">{patients.length}</span>
         </div>
         {patients.length === 0 && !loading ? (
-          <div className="px-5 py-10 text-center text-sm text-zinc-600">Sin pacientes.</div>
+          <div className="px-5 py-10 text-center text-sm text-stone-400">Sin pacientes.</div>
         ) : (
-          <ul className="divide-y divide-zinc-900">
+          <ul className="divide-y divide-stone-200">
             {patients.map((p) => (
               <li key={p.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3">
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-brand/15 text-xs font-semibold text-brand">
                     {p.fullName.slice(0, 1).toUpperCase()}
                   </span>
-                  <span className="text-zinc-100">{p.fullName}</span>
+                  <span className="text-stone-900">{p.fullName}</span>
                 </div>
-                <span className="font-mono text-xs text-zinc-600">{p.region}</span>
+                <span className="font-mono text-xs text-stone-400">{p.region}</span>
               </li>
             ))}
           </ul>

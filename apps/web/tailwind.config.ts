@@ -15,6 +15,11 @@ const config: Config = {
           fg: "rgb(var(--brand-fg-rgb) / <alpha-value>)",
         },
       },
+      fontFamily: {
+        // Display editorial (serif) + UI (sans). Cargadas con next/font en el layout.
+        serif: ["var(--font-serif)", "Georgia", "ui-serif", "serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
     },
   },
   plugins: [],

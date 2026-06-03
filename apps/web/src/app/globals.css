@@ -3,25 +3,41 @@
 @tailwind utilities;
 
 /*
- * Identidad visual: oscura (casi negro), verde, limpia.
+ * Identidad visual unificada: clara, cálida, editorial (un solo hilo conductor
+ * para captación pública Y workspace). Superficie crema + tinta stone, display
+ * serif (Fraunces) + UI sans (Figtree), acento de marca por tenant.
+ *
  * Los colores de marca van como CSS variables → el white-label por tenant los
  * sobrescribe en runtime (ver lib/tenant-theme + layout) sin recompilar.
  */
 :root {
-  --brand-rgb: 16 185 129; /* emerald-500 */
-  --brand-fg-rgb: 4 10 8; /* casi negro, para texto sobre verde */
+  --brand-rgb: 16 122 87; /* emerald profundo: buen contraste sobre superficies claras */
+  --brand-fg-rgb: 255 255 255; /* texto sobre relleno de marca */
 }
 
 html,
 body {
-  @apply bg-zinc-950 text-zinc-100 antialiased;
+  @apply bg-stone-50 text-stone-900 antialiased;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Glow verde sutil reutilizable para hero/acentos */
-.brand-glow {
+/* Wash de marca sutil para heros/acentos sobre claro. */
+.brand-wash {
   background-image: radial-gradient(
-    60% 60% at 50% 0%,
-    rgb(var(--brand-rgb) / 0.18) 0%,
+    70% 60% at 50% 0%,
+    rgb(var(--brand-rgb) / 0.1) 0%,
     rgb(var(--brand-rgb) / 0) 70%
   );
+}
+
+/* Respeta la preferencia de movimiento reducido (a11y). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

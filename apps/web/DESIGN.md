@@ -1,0 +1,39 @@
+# Sistema visual — Nutreitor
+
+Un solo hilo conductor para TODA la app (captación pública + workspace + login/landing):
+**claro, cálido, editorial, accesible**. Basado en la skill `ui-ux-pro-max`
+(estilo "Accessible & Ethical" para healthcare: alto contraste, tipografía clara,
+sin oscuro/neón en superficies públicas).
+
+## Tokens
+
+- **Superficie:** página `bg-stone-50` (crema), tarjetas `bg-white` con
+  `border-stone-200` + `shadow-sm`, radios `rounded-2xl` (tarjetas) / `rounded-lg`
+  (inputs/botones).
+- **Tinta:** títulos `text-stone-900`, cuerpo `text-stone-600/700`, atenuado
+  `text-stone-500`, sutil `text-stone-400`.
+- **Marca (white-label por tenant):** `--brand-rgb` (default emerald profundo
+  `16 122 87`) + `--brand-fg-rgb` (texto sobre relleno de marca, default blanco).
+  Usar `bg-brand`/`text-brand-fg` en rellenos, `text-brand` y `bg-brand/10..15` en
+  acentos. El color lo sobrescribe la org en runtime (ver `lib/tenant-theme`).
+- **Tipografía:** display serif **Fraunces** (`font-serif`) para títulos de página
+  y heros; UI/cuerpo sans **Figtree** (`font-sans`, default del body). Cargadas con
+  `next/font` en `app/layout.tsx`.
+- **Estados:** foco visible `focus:border-brand focus:ring-2 focus:ring-brand/20`
+  (a11y); hover con transición `transition` 150–300ms; error `border-red-200
+  bg-red-50 text-red-700`.
+
+## Reglas (de la skill)
+
+- Iconos SVG (no emojis). Ver `CalendarIcon` en `components/public/booking-cta.tsx`.
+- `cursor-pointer` + feedback de hover en todo lo clickeable.
+- Contraste mínimo 4.5:1; `prefers-reduced-motion` respetado (ver `globals.css`).
+- Responsive mobile-first (375 / 768 / 1024 / 1440).
+
+## Dónde vive
+
+- `app/globals.css` — base (superficie, fuente, reduced-motion, `.brand-wash`).
+- `tailwind.config.ts` — `colors.brand`, `fontFamily.serif/sans`.
+- `app/layout.tsx` — carga de fuentes + inyección de marca.
+- Público: `components/public/*` (claro/editorial). Workspace: `components/*` +
+  `workspace-shell.tsx` (mismo sistema claro).
