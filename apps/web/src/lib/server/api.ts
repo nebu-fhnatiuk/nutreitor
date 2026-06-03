@@ -1,7 +1,12 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import type { BrandingDto, MeResponse } from "@nutreitor/shared";
+import type {
+  BrandingDto,
+  MeResponse,
+  OwnProfessionalProfile,
+  RosterAdminEntry,
+} from "@nutreitor/shared";
 
 import { serverEnv } from "./env";
 
@@ -26,9 +31,14 @@ export async function fetchTenant(slug: string): Promise<BrandingDto | null> {
 
 /** Sesión actual reenviando la cookie. null si no autenticado. */
 export async function fetchMe(slug: string): Promise<MeResponse | null> {
+  return authGet<MeResponse>(slug, "/auth/me");
+}
+
+/** GET autenticado a la API (reenvía cookie + secreto de borde + slug). */
+async function authGet<T>(slug: string, path: string): Promise<T | null> {
   const env = serverEnv();
   const cookieHeader = (await cookies()).toString();
-  const r = await fetch(`${env.API_INTERNAL_URL}/auth/me`, {
+  const r = await fetch(`${env.API_INTERNAL_URL}${path}`, {
     headers: {
       "x-internal-secret": env.EDGE_SHARED_SECRET,
       cookie: cookieHeader,
@@ -37,5 +47,17 @@ export async function fetchMe(slug: string): Promise<MeResponse | null> {
     cache: "no-store",
   });
   if (!r.ok) return null;
-  return r.json();
+  return r.json() as Promise<T>;
+}
+
+/** Roster completo para curaduría del admin (incluye no-listados). */
+export function fetchRoster(slug: string): Promise<RosterAdminEntry[] | null> {
+  return authGet<RosterAdminEntry[]>(slug, "/members/roster");
+}
+
+/** Perfil público propio del profesional (campos privados + visibilidad). */
+export function fetchOwnProfile(
+  slug: string,
+): Promise<OwnProfessionalProfile | null> {
+  return authGet<OwnProfessionalProfile>(slug, "/professional/me/profile");
 }

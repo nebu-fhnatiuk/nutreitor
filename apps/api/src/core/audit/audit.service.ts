@@ -13,7 +13,10 @@ export type AuditAction =
   | "member.role_changed"
   | "member.revoked"
   | "patient.created"
-  | "org.branding_updated";
+  | "org.branding_updated"
+  | "org.public_profile_updated"
+  | "roster.updated"
+  | "professional.profile_updated";
 
 export interface AuditEvent {
   organizationId: string;

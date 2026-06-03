@@ -5,6 +5,7 @@ import type {
   CreateOrganizationDto,
   OrganizationDto,
   UpdateBrandingDto,
+  UpdateOrgPublicProfileDto,
 } from "@nutreitor/shared";
 import { desc, eq } from "drizzle-orm";
 
@@ -78,6 +79,50 @@ export class OrganizationsService {
         });
       }
       return toBranding(row!);
+    });
+  }
+
+  /**
+   * Edita la página pública de la org (headline/description) — capa de captación.
+   * Corre bajo sesión admin (RLS permite a la org actualizarse a sí misma) + audit.
+   * Devuelve los campos públicos resultantes.
+   */
+  async updatePublicProfile(
+    dto: UpdateOrgPublicProfileDto,
+  ): Promise<{ publicHeadline: string | null; publicDescription: string | null }> {
+    const ctx = getTenantContext();
+    const patch: Partial<typeof organizations.$inferInsert> = {};
+    if (dto.publicHeadline !== undefined) patch.publicHeadline = dto.publicHeadline;
+    if (dto.publicDescription !== undefined)
+      patch.publicDescription = dto.publicDescription;
+
+    const changed = Object.keys(patch);
+
+    return this.tenantDb.run(async (tx) => {
+      const [row] =
+        changed.length > 0
+          ? await tx
+              .update(organizations)
+              .set(patch)
+              .where(eq(organizations.id, ctx.orgId))
+              .returning()
+          : await tx
+              .select()
+              .from(organizations)
+              .where(eq(organizations.id, ctx.orgId))
+              .limit(1);
+      if (changed.length > 0) {
+        await this.audit.recordForSession(tx, {
+          action: "org.public_profile_updated",
+          targetType: "organization",
+          targetId: ctx.orgId,
+          metadata: { fields: changed },
+        });
+      }
+      return {
+        publicHeadline: row!.publicHeadline,
+        publicDescription: row!.publicDescription,
+      };
     });
   }
 }
