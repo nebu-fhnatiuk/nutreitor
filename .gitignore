@@ -30,3 +30,10 @@ pnpm-debug.log*
 
 # Cobertura de tests
 coverage/
+
+# Skills / tooling local (no se versionan en el repo del producto)
+.agents/
+skills-lock.json
+
+# Notas locales
+ROADMAP.md
