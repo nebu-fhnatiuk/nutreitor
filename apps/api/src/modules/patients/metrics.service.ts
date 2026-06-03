@@ -57,15 +57,7 @@ export class MetricsService {
       if (!access.membershipId) {
         throw new ForbiddenException("No tenés un membership para registrar.");
       }
-      const [patient] = await tx
-        .select({ archivedAt: patients.archivedAt })
-        .from(patients)
-        .where(eq(patients.id, patientId))
-        .limit(1);
-      if (!patient) throw new NotFoundException();
-      if (patient.archivedAt) {
-        throw new ConflictException("El paciente está archivado.");
-      }
+      await this.assertPatientActive(tx, patientId);
 
       const ctx = getTenantContext();
       const [row] = await tx
@@ -103,6 +95,7 @@ export class MetricsService {
     return this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, patientId, access);
+      await this.assertPatientActive(tx, patientId);
       const [existing] = await tx
         .select({ id: patientMetrics.id })
         .from(patientMetrics)
@@ -137,6 +130,7 @@ export class MetricsService {
     await this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, patientId, access);
+      await this.assertPatientActive(tx, patientId);
       const deleted = await tx
         .delete(patientMetrics)
         .where(
@@ -157,6 +151,19 @@ export class MetricsService {
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  /** 404 si no existe, 409 si está archivado: no se mutan pacientes dados de baja. */
+  private async assertPatientActive(tx: TenantTx, patientId: string): Promise<void> {
+    const [patient] = await tx
+      .select({ archivedAt: patients.archivedAt })
+      .from(patients)
+      .where(eq(patients.id, patientId))
+      .limit(1);
+    if (!patient) throw new NotFoundException();
+    if (patient.archivedAt) {
+      throw new ConflictException("El paciente está archivado.");
+    }
+  }
 
   private async toDto(tx: TenantTx, metricId: string): Promise<PatientMetricDto> {
     const [row] = await this.query(tx, eq(patientMetrics.id, metricId));

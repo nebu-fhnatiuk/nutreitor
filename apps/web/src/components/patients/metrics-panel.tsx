@@ -136,7 +136,9 @@ function AddMetric({
   onAdded: () => void;
   onError: (e: string) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  // Fecha LOCAL (no UTC): toISOString() adelantaría un día de noche en AR (UTC-3).
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({
     measuredAt: today,

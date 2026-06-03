@@ -14,15 +14,13 @@ import { MembersModule } from "./modules/members/members.module.js";
 import { PublicModule } from "./modules/public/public.module.js";
 import { ProfessionalsModule } from "./modules/professionals/professionals.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
-import { PlansModule } from "./modules/plans/plans.module.js";
-import { MetricsModule } from "./modules/metrics/metrics.module.js";
 
 /**
  * Raíz de la API.
  *
  * core/  → infraestructura transversal (config, database, tenant, auth).
- * modules/ → bounded contexts del producto (placeholders salvo organizations y
- *            patients, que demuestran el patrón multi-tenant + RLS).
+ * modules/ → bounded contexts del producto. Scheduling sigue siendo placeholder;
+ *            el resto implementa el patrón multi-tenant + RLS + capacidades.
  *
  * El TenantContextMiddleware se registra globalmente en main.ts (app.use) para
  * abrir el scope de AsyncLocalStorage en todas las rutas sin depender de patrones
@@ -44,8 +42,6 @@ import { MetricsModule } from "./modules/metrics/metrics.module.js";
     PublicModule,
     ProfessionalsModule,
     SchedulingModule,
-    PlansModule,
-    MetricsModule,
   ],
 })
 export class AppModule {}

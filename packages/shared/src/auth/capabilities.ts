@@ -21,6 +21,8 @@ export const capabilities = [
   "patient:add_note",
   "metric:read",
   "metric:record",
+  "plan:read",
+  "plan:write",
   "org:read",
   "org:update_branding",
   "org:update_public_profile",
@@ -41,6 +43,8 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     "patient:add_note",
     "metric:read",
     "metric:record",
+    "plan:read",
+    "plan:write",
     "org:read",
     "professional:update_own_profile",
     // NO `patient:create` ni `patient:assign`: el ALTA y la asignación son del

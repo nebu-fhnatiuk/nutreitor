@@ -11,6 +11,7 @@ import {
   careAssignments,
   patientNotes,
   patientMetrics,
+  mealPlans,
 } from "./schema/index.js";
 
 /**
@@ -260,6 +261,50 @@ export async function runSeed(connectionString: string): Promise<void> {
             ...m,
           })),
         );
+      }
+
+      // Plan alimentario activo demo.
+      const [existingPlan] = await db
+        .select({ id: mealPlans.id })
+        .from(mealPlans)
+        .where(eq(mealPlans.patientId, pacienteUnoId))
+        .limit(1);
+      if (!existingPlan) {
+        await db.insert(mealPlans).values({
+          tenantId: SEED.orgDemo.id,
+          region: SEED.orgDemo.region,
+          patientId: pacienteUnoId,
+          authorMembershipId: proMembershipId,
+          version: 1,
+          status: "active",
+          title: "Plan de recomposición",
+          startDate: "2026-03-01",
+          body: {
+            meals: [
+              {
+                name: "Desayuno",
+                time: "08:00",
+                items: [
+                  { text: "Avena con frutas", note: "60 g de avena" },
+                  { text: "Café con bebida vegetal" },
+                ],
+              },
+              {
+                name: "Almuerzo",
+                time: "13:00",
+                items: [
+                  { text: "Pechuga de pollo", note: "150 g" },
+                  { text: "Arroz integral + vegetales" },
+                ],
+              },
+              {
+                name: "Merienda",
+                items: [{ text: "Yogur sin lactosa + frutos secos" }],
+              },
+            ],
+            generalNotes: "Tomar 2 L de agua por día. Evitar ultraprocesados.",
+          },
+        });
       }
     }
   } finally {

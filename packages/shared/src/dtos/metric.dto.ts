@@ -11,7 +11,12 @@ const coreMetrics = {
   muscleMassKg: weight.nullish(),
   waistCm: cm.nullish(),
   hipCm: cm.nullish(),
-  extra: z.record(z.string().min(1).max(60), z.number()).optional(),
+  // Medidas ad-hoc: número finito (sin NaN/Infinity) y cota de cantidad de claves
+  // para no inflar el JSONB.
+  extra: z
+    .record(z.string().min(1).max(60), z.number().finite())
+    .refine((o) => Object.keys(o).length <= 20, "Demasiadas métricas extra (máx 20).")
+    .optional(),
   note: z.string().max(500).nullish(),
 };
 

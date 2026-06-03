@@ -23,6 +23,7 @@ export default async function ProPatientPage({
         canEdit
         canAddNote
         canRecord
+        canWritePlan
         canAssign={false}
       />
     </WorkspaceShell>

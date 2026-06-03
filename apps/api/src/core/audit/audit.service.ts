@@ -21,6 +21,8 @@ export type AuditAction =
   | "metric.recorded"
   | "metric.updated"
   | "metric.deleted"
+  | "plan.saved"
+  | "plan.archived"
   | "org.branding_updated"
   | "org.public_profile_updated"
   | "roster.updated"
