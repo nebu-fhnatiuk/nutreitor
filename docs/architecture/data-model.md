@@ -31,6 +31,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
+| `availability_rules` | Tenant-scoped (RLS) | `tenant_id` | Disponibilidad semanal por `membership`, con huso IANA. |
+| `appointments` | Tenant-scoped (RLS) | `tenant_id` | Citas; `starts_at`/`ends_at` UTC. No-overlap por profesional vía `EXCLUDE gist`. Sin DELETE (se cancela). |
 
 > `users` es la **única** tabla global. Todo lo demás está aislado por tenant.
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
@@ -43,10 +45,19 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 
 - `audit_log`, `patient_notes`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
-- `care_assignments`, `meal_plans`: `SELECT` + `INSERT` + `UPDATE`, **sin `DELETE`**
-  → la historia versionada no se borra (una asignación se *cierra*, un plan se
-  *supersede*).
-- `patient_metrics`, `patients`, `memberships`, etc.: DML completo (data entry).
+- `care_assignments`, `meal_plans`, `appointments`: `SELECT` + `INSERT` + `UPDATE`,
+  **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
+  *supersede*, una cita se *cancela*).
+- `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
+  completo (data entry; la disponibilidad se reescribe por completo al editarla).
+
+> **`appointments` y el no-overlap**: `starts_at`/`ends_at` van en **UTC**
+> (conversión en presentación). Dos citas *reservadas* del mismo profesional no
+> pueden solaparse: lo fuerza la DB con `EXCLUDE USING gist (membership_id WITH =,
+> tstzrange(starts_at, ends_at) WITH &&) WHERE status='booked'` (requiere
+> `btree_gist`). Se guarda `ends_at` explícito porque `timestamptz + interval` no es
+> `IMMUTABLE` y no puede ir en el índice. Ver el ADR
+> [`../decisions/0011-agendamiento-motor-propio.md`](../decisions/0011-agendamiento-motor-propio.md).
 
 ### `region` denormalizado
 
@@ -72,6 +83,8 @@ erDiagram
   organizations ||--o{ patient_metrics        : "scopes"
   organizations ||--o{ meal_plans             : "scopes"
   organizations ||--o{ professional_profiles  : "scopes"
+  organizations ||--o{ availability_rules      : "scopes"
+  organizations ||--o{ appointments            : "scopes"
   organizations ||--o{ audit_log              : "scopes (RESTRICT)"
 
   users ||--o{ memberships     : "is member via"
@@ -85,11 +98,14 @@ erDiagram
   memberships ||--o{ patient_notes          : "authors"
   memberships ||--o{ patient_metrics        : "records"
   memberships ||--o{ meal_plans             : "authors"
+  memberships ||--o{ availability_rules      : "defines"
+  memberships ||--o{ appointments            : "attends"
 
   patients ||--o{ care_assignments : "cared by"
   patients ||--o{ patient_notes    : "has"
   patients ||--o{ patient_metrics  : "has"
   patients ||--o{ meal_plans       : "has"
+  patients ||--o{ appointments     : "books"
   patients |o--o{ invitations      : "links (SET NULL)"
 
   locations |o--o{ patients         : "based at (SET NULL)"
@@ -225,6 +241,34 @@ erDiagram
     text title
     date start_date
     jsonb body "documento por layout: day|week (ver nota)"
+    timestamptz created_at
+  }
+
+  availability_rules {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid membership_id FK
+    text timezone "IANA"
+    smallint weekday "ISO 1=lun..7=dom"
+    smallint start_minute
+    smallint end_minute
+    smallint slot_minutes
+    timestamptz created_at
+  }
+
+  appointments {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid patient_id FK
+    uuid membership_id FK "RESTRICT"
+    timestamptz starts_at "UTC"
+    timestamptz ends_at "UTC; EXCLUDE no-overlap"
+    appointment_status status "booked|cancelled|completed|no_show"
+    appointment_booked_via booked_via "professional|patient|public"
+    uuid created_by_membership_id
+    text notes
     timestamptz created_at
   }
 
