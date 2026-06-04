@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../../core/auth/auth.module.js";
 import { PortalSchedulingController } from "./portal-scheduling.controller.js";
+import { PublicSchedulingController } from "./public-scheduling.controller.js";
 import { SchedulingController } from "./scheduling.controller.js";
 import { SchedulingService } from "./scheduling.service.js";
 
@@ -15,7 +16,7 @@ import { SchedulingService } from "./scheduling.service.js";
  */
 @Module({
   imports: [AuthModule],
-  controllers: [SchedulingController, PortalSchedulingController],
+  controllers: [SchedulingController, PortalSchedulingController, PublicSchedulingController],
   providers: [SchedulingService],
 })
 export class SchedulingModule {}

@@ -11,18 +11,22 @@ import {
   careAssignments,
   memberships,
   patients,
+  professionalProfiles,
   users,
   type TenantTx,
 } from "@nutreitor/db";
 import type {
   AppointmentDto,
+  AuthOrg,
   AvailabilityDto,
   BookAppointmentDto,
+  PublicBookAppointmentDto,
+  PublicBookingResult,
   RescheduleAppointmentDto,
   SetAvailabilityDto,
   SlotDto,
 } from "@nutreitor/shared";
-import { and, asc, eq, gt, gte, lt, type SQL } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, lt, type SQL } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
@@ -135,14 +139,23 @@ export class SchedulingService {
       const access = await resolvePatientAccess(tx);
       if (!access.membershipId) throw new ForbiddenException("Sin membership.");
       await assertCanAccessPatient(tx, dto.patientId!, access);
+      const ctx = getTenantContext();
       const slot = await this.resolveSlot(tx, access.membershipId, dto.startsAt);
       const id = await this.insertAppointment(tx, {
+        tenantId: ctx.tenantId,
+        region: ctx.region,
         patientId: dto.patientId!,
         membershipId: access.membershipId,
         slot,
         bookedVia: "professional",
         createdByMembershipId: access.membershipId,
         notes: dto.notes,
+      });
+      await this.audit.recordForSession(tx, {
+        action: "appointment.booked",
+        targetType: "appointment",
+        targetId: id,
+        metadata: { patientId: dto.patientId, startsAt: slot.startsAt },
       });
       return this.toDto(tx, id);
     });
@@ -152,14 +165,23 @@ export class SchedulingService {
   async bookAsPatient(dto: BookAppointmentDto): Promise<AppointmentDto> {
     return this.tenantDb.run(async (tx) => {
       const { patientId, membershipId } = await this.resolveMyCare(tx);
+      const ctx = getTenantContext();
       const slot = await this.resolveSlot(tx, membershipId, dto.startsAt);
       const id = await this.insertAppointment(tx, {
+        tenantId: ctx.tenantId,
+        region: ctx.region,
         patientId,
         membershipId,
         slot,
         bookedVia: "patient",
         createdByMembershipId: null,
         notes: dto.notes,
+      });
+      await this.audit.recordForSession(tx, {
+        action: "appointment.booked",
+        targetType: "appointment",
+        targetId: id,
+        metadata: { patientId, startsAt: slot.startsAt, via: "patient" },
       });
       return this.toDto(tx, id);
     });
@@ -201,6 +223,8 @@ export class SchedulingService {
       await tx.update(appointments).set({ status: "cancelled" }).where(eq(appointments.id, id));
       const slot = await this.resolveSlot(tx, appt.membershipId, dto.startsAt);
       const newId = await this.insertAppointment(tx, {
+        tenantId: appt.tenantId,
+        region: appt.region,
         patientId: appt.patientId,
         membershipId: appt.membershipId,
         slot,
@@ -216,6 +240,111 @@ export class SchedulingService {
       });
       return this.toDto(tx, newId);
     });
+  }
+
+  // ── Público (reserva desde la vidriera, lead → cita) ───────────────────────
+
+  /** Slots libres de un profesional, sin sesión. La org se resolvió por slug
+   * (owner, bootstrap); acá se lee bajo runAs(org) → RLS scopea al tenant. */
+  async publicSlots(
+    org: AuthOrg,
+    profileSlug: string,
+    fromISO?: string,
+    toISO?: string,
+  ): Promise<SlotDto[]> {
+    const { from, to } = this.range(fromISO, toISO);
+    return this.tenantDb.runAs(org.id, async (tx) => {
+      const membershipId = await this.resolvePublicMembership(tx, profileSlug);
+      return this.computeSlots(tx, membershipId, from, to, new Date());
+    });
+  }
+
+  /** Reserva pública: crea/relaciona el paciente (lead) por email y agenda. */
+  async publicBook(
+    org: AuthOrg,
+    profileSlug: string,
+    dto: PublicBookAppointmentDto,
+  ): Promise<PublicBookingResult> {
+    return this.tenantDb.runAs(org.id, async (tx) => {
+      const membershipId = await this.resolvePublicMembership(tx, profileSlug);
+      const slot = await this.resolveSlot(tx, membershipId, dto.startsAt);
+      const patientId = await this.findOrCreateLeadPatient(tx, org, dto);
+      const id = await this.insertAppointment(tx, {
+        tenantId: org.id,
+        region: org.region,
+        patientId,
+        membershipId,
+        slot,
+        bookedVia: "public",
+        createdByMembershipId: null,
+        notes: dto.notes,
+      });
+      // Sin sesión: audit con actor nulo (igual que el accept de invitaciones).
+      await this.audit.record(tx, {
+        organizationId: org.id,
+        region: org.region,
+        actorUserId: null,
+        actorRole: null,
+        action: "appointment.booked",
+        targetType: "appointment",
+        targetId: id,
+        metadata: { via: "public", email: dto.email, startsAt: slot.startsAt },
+      });
+      const [prof] = await tx
+        .select({ name: users.fullName })
+        .from(memberships)
+        .innerJoin(users, eq(users.id, memberships.userId))
+        .where(eq(memberships.id, membershipId))
+        .limit(1);
+      return {
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        professionalName: prof?.name ?? "",
+      };
+    });
+  }
+
+  /** Membership del profesional público (perfil listado + membership vigente). */
+  private async resolvePublicMembership(tx: TenantTx, profileSlug: string): Promise<string> {
+    const [row] = await tx
+      .select({ membershipId: professionalProfiles.membershipId })
+      .from(professionalProfiles)
+      .innerJoin(memberships, eq(memberships.id, professionalProfiles.membershipId))
+      .where(
+        and(
+          eq(professionalProfiles.profileSlug, profileSlug),
+          eq(professionalProfiles.isPubliclyListed, true),
+          isNull(memberships.revokedAt),
+        ),
+      )
+      .limit(1);
+    if (!row) throw new NotFoundException();
+    return row.membershipId;
+  }
+
+  /** Lead: reusa el paciente del tenant con ese email (no archivado) o crea uno. */
+  private async findOrCreateLeadPatient(
+    tx: TenantTx,
+    org: AuthOrg,
+    dto: PublicBookAppointmentDto,
+  ): Promise<string> {
+    const [existing] = await tx
+      .select({ id: patients.id })
+      .from(patients)
+      .where(and(eq(patients.email, dto.email), isNull(patients.archivedAt)))
+      .limit(1);
+    if (existing) return existing.id;
+    const [created] = await tx
+      .insert(patients)
+      .values({
+        tenantId: org.id,
+        region: org.region,
+        fullName: dto.fullName,
+        email: dto.email,
+        phone: dto.phone ?? null,
+      })
+      .returning({ id: patients.id });
+    return created!.id;
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────────
@@ -323,9 +452,14 @@ export class SchedulingService {
     return slot;
   }
 
+  /** Inserta la cita (tenant/region EXPLÍCITOS: sirve bajo run() y bajo runAs(),
+   * donde no hay contexto de sesión). NO audita: cada caller audita según el caso
+   * (booked/rescheduled, sesión o público). El EXCLUDE de no-overlap → 409. */
   private async insertAppointment(
     tx: TenantTx,
     args: {
+      tenantId: string;
+      region: AppointmentRow["region"];
       patientId: string;
       membershipId: string;
       slot: SlotDto;
@@ -334,14 +468,12 @@ export class SchedulingService {
       notes?: string;
     },
   ): Promise<string> {
-    const ctx = getTenantContext();
-    let id: string;
     try {
       const [row] = await tx
         .insert(appointments)
         .values({
-          tenantId: ctx.tenantId,
-          region: ctx.region,
+          tenantId: args.tenantId,
+          region: args.region,
           patientId: args.patientId,
           membershipId: args.membershipId,
           startsAt: new Date(args.slot.startsAt),
@@ -352,7 +484,7 @@ export class SchedulingService {
           notes: args.notes ?? null,
         })
         .returning({ id: appointments.id });
-      id = row!.id;
+      return row!.id;
     } catch (e) {
       // 23P01 = exclusion_violation (EXCLUDE de no-overlap): el slot se tomó entre
       // el cálculo y el insert (carrera). 409 limpio en vez de 500.
@@ -362,13 +494,6 @@ export class SchedulingService {
       }
       throw e;
     }
-    await this.audit.recordForSession(tx, {
-      action: "appointment.booked",
-      targetType: "appointment",
-      targetId: id,
-      metadata: { patientId: args.patientId, startsAt: args.slot.startsAt },
-    });
-    return id;
   }
 
   /** Carga una cita y verifica que la sesión pueda tocarla (pro/admin dueños del

@@ -1,42 +1,27 @@
-"use client";
-
-import { useState } from "react";
-
 /**
- * CTA "Agendar una cita". En este sprint captura intención con un placeholder
- * (no construye el motor de agendamiento). Es el punto de enganche del Sprint 3.
+ * CTA "Agendar una cita": ancla al widget de reserva real (más abajo en la página).
+ * Era el placeholder del Sprint 2; con el agendamiento (Sprint 3) ahora enlaza al
+ * formulario de reserva pública.
  */
 export function BookingCta({ professionalName }: { professionalName: string }) {
-  const [open, setOpen] = useState(false);
-
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-stone-900">¿Querés empezar?</h3>
       <p className="mt-1 text-sm text-stone-600">
         Agendá una primera consulta con {professionalName}.
       </p>
-      {open ? (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-brand/10 px-4 py-3 text-sm text-stone-700">
-          <CalendarIcon />
-          <span>
-            El agendamiento online estará disponible muy pronto. Guardá esta página
-            para reservar tu turno apenas se habilite.
-          </span>
-        </div>
-      ) : (
-        <button
-          onClick={() => setOpen(true)}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-fg transition hover:brightness-110 sm:w-auto"
-        >
-          <CalendarIcon />
-          Agendar una cita
-        </button>
-      )}
+      <a
+        href="#reservar"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-brand-fg transition hover:brightness-110 sm:w-auto"
+      >
+        <CalendarIcon />
+        Agendar una cita
+      </a>
     </div>
   );
 }
 
-/** Ícono calendario (Lucide), 24×24, hereda color/altura del contexto. */
+/** Ícono calendario (Lucide), hereda color/altura del contexto. */
 function CalendarIcon() {
   return (
     <svg

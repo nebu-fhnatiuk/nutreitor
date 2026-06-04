@@ -68,6 +68,13 @@ export const publicBookAppointmentSchema = z.object({
 });
 export type PublicBookAppointmentDto = z.infer<typeof publicBookAppointmentSchema>;
 
+/** Confirmación de una reserva pública (sin datos internos del paciente). */
+export interface PublicBookingResult {
+  startsAt: string;
+  endsAt: string;
+  professionalName: string;
+}
+
 /** Reprogramar: nuevo slot. */
 export const rescheduleAppointmentSchema = z.object({
   startsAt: isoDatetime,
