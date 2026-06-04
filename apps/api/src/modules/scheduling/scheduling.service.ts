@@ -35,7 +35,7 @@ import {
   assertCanAccessPatient,
   resolvePatientAccess,
 } from "../patients/patient-access.js";
-import { generateSlots, type AvailabilityRuleInput } from "./slots.js";
+import { generateSlots, isValidTimezone, type AvailabilityRuleInput } from "./slots.js";
 
 type AppointmentRow = typeof appointments.$inferSelect;
 
@@ -67,6 +67,9 @@ export class SchedulingService {
 
   /** Reemplaza la disponibilidad del profesional (borra + inserta en una tx). */
   async setMyAvailability(dto: SetAvailabilityDto): Promise<AvailabilityDto> {
+    if (!isValidTimezone(dto.timezone)) {
+      throw new BadRequestException("Zona horaria inválida (usá un huso IANA, ej. America/Argentina/Buenos_Aires).");
+    }
     return this.tenantDb.run(async (tx) => {
       const membershipId = await this.requireOwnMembership(tx);
       const ctx = getTenantContext();
@@ -268,7 +271,7 @@ export class SchedulingService {
     return this.tenantDb.runAs(org.id, async (tx) => {
       const membershipId = await this.resolvePublicMembership(tx, profileSlug);
       const slot = await this.resolveSlot(tx, membershipId, dto.startsAt);
-      const patientId = await this.findOrCreateLeadPatient(tx, org, dto);
+      const patientId = await this.createLeadPatient(tx, org, dto);
       const id = await this.insertAppointment(tx, {
         tenantId: org.id,
         region: org.region,
@@ -322,18 +325,18 @@ export class SchedulingService {
     return row.membershipId;
   }
 
-  /** Lead: reusa el paciente del tenant con ese email (no archivado) o crea uno. */
-  private async findOrCreateLeadPatient(
+  /**
+   * Crea SIEMPRE un paciente lead nuevo para la reserva pública. A propósito NO
+   * reusa por email: una ruta sin sesión no debe poder atar una cita a la ficha de
+   * un paciente existente (sería un oracle de existencia + contaminación de su
+   * historia con sólo conocer/adivinar el email). Un lead que ya es paciente queda
+   * como duplicado y el profesional lo reconcilia desde la gestión.
+   */
+  private async createLeadPatient(
     tx: TenantTx,
     org: AuthOrg,
     dto: PublicBookAppointmentDto,
   ): Promise<string> {
-    const [existing] = await tx
-      .select({ id: patients.id })
-      .from(patients)
-      .where(and(eq(patients.email, dto.email), isNull(patients.archivedAt)))
-      .limit(1);
-    if (existing) return existing.id;
     const [created] = await tx
       .insert(patients)
       .values({
