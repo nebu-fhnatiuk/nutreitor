@@ -23,8 +23,21 @@ hospitales) con aislamiento de datos fuerte.
    como entidad clínica** separada de la cuenta de acceso, **gestión de miembros** (roles,
    baja soft, guard de último admin), **branding white-label** editable, y **audit log
    append-only**. Dashboard admin en `/admin`.
+7. **Perfil público y captación (Sprint 2)**: vidriera del profesional indexable (SSR/ISR)
+   con **visibilidad por campo**, en el subdominio del tenant.
+8. **Vertical clínica (Sprints 4–5)**: **ficha clínica** del paciente, **planes
+   alimentarios** versionados (documento JSONB, día-tipo o semanal con cantidades/
+   alternativas/macros), **métricas y evolución** (serie temporal con gráficos), y el
+   **portal del paciente** (su plan, su evolución, auto-reporte). Visibilidad por campo de
+   la ficha hacia el paciente (default conservador).
+9. **Agendamiento (Sprint 3)**: motor **propio** tenant-scoped. Disponibilidad semanal del
+   profesional (huso IANA), **slots** con UTC en storage + DST por país (Luxon),
+   **no-overlap** forzado por la DB (`EXCLUDE gist`), reserva interna (pro/portal) y
+   **pública** (lead → cita desde la vidriera, sin login). Agenda en `/pro/agenda`.
+10. **Landing de producto** (host raíz, dirección "editorial cálido") que vende la
+    plataforma al nutricionista independiente.
 
-Todavía NO hay agendamiento ni agentes (ver "Fuera de alcance").
+Todavía NO hay agentes (ver "Fuera de alcance").
 
 ---
 
@@ -40,7 +53,8 @@ Todavía NO hay agendamiento ni agentes (ver "Fuera de alcance").
 apps/
   api/   NestJS
     core/      tenant (ALS) · auth (passport-jwt, guards, roles) · database (RLS) · config
-    modules/   organizations · patients · professionals/scheduling/plans/metrics (placeholders)
+    modules/   organizations · patients (ficha/planes/métricas/notas) · professionals ·
+               scheduling (agenda + reserva pública) · portal · public · members · invitations
     agents/    slot vacío (servicio Python a futuro)
   web/   Next.js (App Router)
     app/page.tsx          landing de producto (host raíz)
@@ -264,10 +278,13 @@ producción). Nunca se commitean secrets reales.
 - **Agentes (CHEF/NUTRI/PSICO)**: `apps/api/src/agents/` es un slot vacío. Vivirán
   en un servicio Python separado que consume el mismo Postgres y las mismas RLS
   policies. Ver `apps/api/src/agents/README.md`.
-- **Agendamiento (etapa 2)**: módulo placeholder. Antes de implementar se decidirá
-  **Cal.com self-hosted vs motor propio** (trade-offs en
-  `apps/api/src/modules/scheduling/scheduling.module.ts`). Invariante ya fijado:
-  UTC en storage, conversión en presentación, DST por país.
+- **Agendamiento — deuda del MVP**: el motor ya está (Sprint 3, motor propio; ver el
+  ADR `docs/decisions/0011`). Queda fuera por ahora: sync con Google/Outlook Calendar,
+  **recordatorios** (necesitan cron/worker — sólo hay confirmación al reservar), email
+  real (reusa el `ConsoleMailSender`, como invitaciones), **rate-limiting** de los
+  endpoints públicos de reserva, y dedupe de leads.
+- **Compliance / data governance (Sprint 6)**: audit de acceso a datos de salud,
+  export/portabilidad (GDPR), retención, consentimientos.
 
 ---
 
