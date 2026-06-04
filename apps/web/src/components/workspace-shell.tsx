@@ -21,6 +21,7 @@ const NAV: Record<MembershipRole, { href: string; label: string }[]> = {
   ],
   professional: [
     { href: "/pro", label: "Pacientes" },
+    { href: "/pro/agenda", label: "Agenda" },
     { href: "/pro/profile", label: "Mi perfil" },
   ],
   patient: [{ href: "/app", label: "Inicio" }],

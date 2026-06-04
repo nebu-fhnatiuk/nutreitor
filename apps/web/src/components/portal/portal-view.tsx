@@ -6,6 +6,7 @@ import type { PortalMeDto } from "@nutreitor/shared";
 import { api } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { PlanView } from "@/components/patients/meal-plan-panel";
+import { PortalAppointments } from "./portal-appointments";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -65,6 +66,8 @@ export function PortalView() {
           <span className="text-stone-800">{me.professionals.join(", ")}</span>
         </p>
       )}
+
+      <PortalAppointments />
 
       <section className={card}>
         <h2 className={h2}>Tu plan</h2>
