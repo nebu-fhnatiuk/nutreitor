@@ -15,6 +15,7 @@ export type AuditAction =
   | "patient.created"
   | "patient.updated"
   | "patient.archived"
+  | "patient.clinical_visibility_updated"
   | "patient.assigned"
   | "patient.assignment_ended"
   | "patient.note_added"

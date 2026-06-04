@@ -7,6 +7,7 @@ import {
   integer,
   numeric,
   timestamp,
+  jsonb,
   index,
   uniqueIndex,
   foreignKey,
@@ -16,6 +17,18 @@ import { tenantColumns, timestamps } from "./_shared.js";
 import { locations } from "./locations.js";
 import { organizations } from "./organizations.js";
 import { users } from "./users.js";
+
+/** Qué campos clínicos de la ficha ve el paciente en su portal (default: ninguno).
+ * Tipado local para no acoplar db con shared; shared expone el mismo shape. */
+type ClinicalVisibility = Partial<Record<
+  | "reasonForConsult"
+  | "medicalHistory"
+  | "allergies"
+  | "currentMedication"
+  | "diagnosedConditions"
+  | "familyHistory",
+  boolean
+>>;
 
 /**
  * Pacientes como ENTIDAD CLÍNICA, separada de la cuenta de acceso. Lo crea un
@@ -61,6 +74,12 @@ export const patients = pgTable(
     activityLevel: text("activity_level"),
     goal: text("goal"),
     dietaryPreferences: text("dietary_preferences"),
+    // Visibilidad por campo de la ficha clínica hacia el paciente (portal).
+    // Default `{}` = todo oculto (conservador): se habilita campo por campo.
+    clinicalVisibility: jsonb("clinical_visibility")
+      .$type<ClinicalVisibility>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     // Sede (referencia; sin UI en este sprint) + cuenta + baja lógica
     locationId: uuid("location_id"),
     userId: uuid("user_id"),

@@ -12,6 +12,7 @@ import {
   addPatientNoteSchema,
   assignCareSchema,
   createPatientSchema,
+  updateClinicalVisibilitySchema,
   updatePatientSchema,
   type AddPatientNoteDto,
   type AssignCareDto,
@@ -20,6 +21,7 @@ import {
   type PatientDetailDto,
   type PatientDto,
   type PatientNoteDto,
+  type UpdateClinicalVisibilityDto,
   type UpdatePatientDto,
 } from "@nutreitor/shared";
 
@@ -80,6 +82,16 @@ export class PatientsController {
   async archive(@Param("id") id: string): Promise<{ ok: true }> {
     await this.patients.archive(id);
     return { ok: true };
+  }
+
+  @Patch(":id/clinical-visibility")
+  @RequireCapability("patient:update_clinical_visibility")
+  setClinicalVisibility(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(updateClinicalVisibilitySchema))
+    dto: UpdateClinicalVisibilityDto,
+  ): Promise<PatientDetailDto> {
+    return this.patients.setClinicalVisibility(id, dto);
   }
 
   // ── Asignaciones (admin) ───────────────────────────────────────────────────

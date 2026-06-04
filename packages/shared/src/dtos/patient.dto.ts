@@ -97,6 +97,48 @@ export interface PatientClinical {
   familyHistory: string | null;
 }
 
+/** Campos clínicos cuya visibilidad hacia el paciente es configurable. Única
+ * fuente de verdad del set (la usan el schema de update, el filtro del portal y
+ * la UI de toggles). Coincide con las claves de `PatientClinical`. */
+export const clinicalFields = [
+  "reasonForConsult",
+  "medicalHistory",
+  "allergies",
+  "currentMedication",
+  "diagnosedConditions",
+  "familyHistory",
+] as const;
+export type ClinicalField = (typeof clinicalFields)[number];
+
+/** Qué campos clínicos ve el paciente en su portal. Ausente/false = oculto
+ * (default conservador `{}`). El stripping lo aplica la API, nunca el front. */
+export type ClinicalVisibility = Partial<Record<ClinicalField, boolean>>;
+
+/** Update de la visibilidad: subconjunto de campos → boolean. */
+export const updateClinicalVisibilitySchema = z.record(
+  z.enum(clinicalFields),
+  z.boolean(),
+);
+export type UpdateClinicalVisibilityDto = z.infer<
+  typeof updateClinicalVisibilitySchema
+>;
+
+/**
+ * Devuelve el bloque clínico con los campos NO visibles puestos en `null`.
+ * Pure: no muta la entrada. Es el único lugar que decide qué ve el paciente, así
+ * el portal no replica la regla campo por campo.
+ */
+export function applyClinicalVisibility(
+  clinical: PatientClinical,
+  visibility: ClinicalVisibility,
+): PatientClinical {
+  const out = {} as PatientClinical;
+  for (const field of clinicalFields) {
+    out[field] = visibility[field] === true ? clinical[field] : null;
+  }
+  return out;
+}
+
 /** Ficha completa del paciente. `clinical` = null si la sesión no tiene
  * patient:read_clinical. `assignments` y `notes` se devuelven con la ficha. */
 export interface PatientDetailDto {
@@ -121,6 +163,9 @@ export interface PatientDetailDto {
   createdAt: string;
   updatedAt: string;
   clinical: PatientClinical | null;
+  /** Qué campos clínicos ve el paciente en el portal (para la UI de toggles del
+   * profesional). Sólo presente si la sesión tiene patient:read_clinical. */
+  clinicalVisibility: ClinicalVisibility | null;
   assignments: CareAssignmentDto[];
   notes: PatientNoteDto[];
 }

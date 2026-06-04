@@ -24,6 +24,7 @@ export default async function AdminPatientPage({
         canAddNote
         canRecord
         canWritePlan
+        canEditVisibility
         canAssign
         canInvite
       />
