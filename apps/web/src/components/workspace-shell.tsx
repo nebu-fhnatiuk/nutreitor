@@ -84,6 +84,32 @@ export function WorkspaceShell({
           <div className="hidden sm:block" />
           <UserMenu userName={userName} role={role} />
         </header>
+
+        {/* Navegación mobile: en celular el sidebar está oculto, así que las
+            secciones viven en una fila de tabs scrolleable bajo el topbar. */}
+        {NAV[role].length > 1 && (
+          <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden">
+            {NAV[role].map((item) => {
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={
+                    "shrink-0 rounded-full px-3 py-1.5 text-sm transition " +
+                    (active
+                      ? "bg-brand/15 text-brand"
+                      : "text-stone-500 hover:bg-stone-100")
+                  }
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+
         <main className="mx-auto w-full max-w-5xl px-6 py-8">{children}</main>
       </div>
     </div>
