@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { MembershipRole } from "@nutreitor/shared";
 
 const ROLE_LABEL: Record<MembershipRole, string> = {
@@ -28,24 +28,21 @@ const NAV: Record<MembershipRole, { href: string; label: string }[]> = {
 
 /**
  * Layout base de un destino autenticado: sidebar de navegación por rol + topbar
- * con org/rol/logout. Densidad de herramienta de gestión; el acento usa el color
- * de marca del tenant (`brand`, vía CSS var inyectada por el layout).
+ * persistente con un menú de usuario (quién sos + cerrar sesión) arriba a la
+ * derecha. El acento usa el color de marca del tenant (`brand`, vía CSS var).
  */
 export function WorkspaceShell({
   orgName,
   role,
+  userName,
   children,
 }: {
   orgName: string;
   role: MembershipRole;
+  userName: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    window.location.assign("/login");
-  }
 
   return (
     <div className="flex min-h-screen">
@@ -74,29 +71,95 @@ export function WorkspaceShell({
             );
           })}
         </nav>
-        <div className="mt-4 border-t border-stone-200 pt-4">
-          <span className="block px-3 text-[11px] uppercase tracking-wide text-stone-400">
-            {ROLE_LABEL[role]}
-          </span>
-          <button
-            onClick={logout}
-            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
-          >
-            Salir
-          </button>
-        </div>
       </aside>
 
-      <div className="flex-1">
-        {/* Topbar (mobile-friendly: muestra org + salir) */}
-        <header className="flex items-center justify-between border-b border-stone-200 px-6 py-3 sm:hidden">
-          <span className="text-sm font-semibold">{orgName}</span>
-          <button onClick={logout} className="text-sm text-stone-500">
-            Salir
-          </button>
+      <div className="flex flex-1 flex-col">
+        {/* Topbar persistente (todos los tamaños): org (solo mobile) + menú de usuario. */}
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="flex items-center gap-2 sm:hidden">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand" />
+            <span className="truncate text-sm font-semibold">{orgName}</span>
+          </div>
+          {/* En desktop la org vive en el sidebar; este spacer empuja el menú a la derecha. */}
+          <div className="hidden sm:block" />
+          <UserMenu userName={userName} role={role} />
         </header>
-        <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-5xl px-6 py-8">{children}</main>
       </div>
+    </div>
+  );
+}
+
+/** Menú de cuenta: avatar + nombre → desplegable con rol y "Cerrar sesión". */
+function UserMenu({ userName, role }: { userName: string; role: MembershipRole }) {
+  const [open, setOpen] = useState(false);
+  const initial = userName.trim().charAt(0).toUpperCase() || "?";
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    window.location.assign("/login");
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-2 rounded-full border border-stone-200 py-1 pl-1 pr-2.5 transition hover:border-stone-300"
+      >
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-semibold text-brand-fg">
+          {initial}
+        </span>
+        <span className="hidden max-w-[10rem] truncate text-sm text-stone-700 sm:block">
+          {userName}
+        </span>
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-stone-400" aria-hidden>
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          {/* Backdrop: cierra el menú al hacer click afuera. */}
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+          />
+          <div
+            role="menu"
+            className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg"
+          >
+            <div className="px-3 py-2">
+              <p className="truncate text-sm font-medium text-stone-900">{userName}</p>
+              <p className="text-xs text-stone-500">{ROLE_LABEL[role]}</p>
+            </div>
+            <div className="my-1 border-t border-stone-100" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={logout}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+            >
+              <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden>
+                <path
+                  d="M6 2H3.5A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H6M10 11l3-3-3-3M13 8H6"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

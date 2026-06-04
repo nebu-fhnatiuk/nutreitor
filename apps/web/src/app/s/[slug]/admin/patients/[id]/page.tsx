@@ -16,7 +16,7 @@ export default async function AdminPatientPage({
   if (me.role !== "admin") redirect(roleHome[me.role]);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <PatientDetail
         id={id}
         basePath="/admin/patients"
