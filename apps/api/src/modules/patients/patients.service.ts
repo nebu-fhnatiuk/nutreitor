@@ -10,6 +10,7 @@ import {
   type CreatePatientDto,
   type PatientDetailDto,
   type PatientDto,
+  type UpdateClinicalVisibilityDto,
   type UpdatePatientDto,
 } from "@nutreitor/shared";
 import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
@@ -230,6 +231,56 @@ export class PatientsService {
     });
   }
 
+  /**
+   * Setea qué campos clínicos ve el paciente en su portal (merge sobre lo
+   * existente). El stripping efectivo lo hace el portal (`getMe`) con este flag;
+   * acá sólo se persiste la configuración. Access check + audit, igual que el
+   * resto de las mutaciones de la ficha.
+   */
+  async setClinicalVisibility(
+    id: string,
+    dto: UpdateClinicalVisibilityDto,
+  ): Promise<PatientDetailDto> {
+    return this.tenantDb.run(async (tx) => {
+      const access = await resolvePatientAccess(tx);
+      await assertCanAccessPatient(tx, id, access);
+
+      const [existing] = await tx
+        .select({
+          archivedAt: patients.archivedAt,
+          clinicalVisibility: patients.clinicalVisibility,
+        })
+        .from(patients)
+        .where(eq(patients.id, id))
+        .limit(1);
+      if (!existing) throw new NotFoundException();
+      if (existing.archivedAt) {
+        throw new ConflictException("El paciente está archivado.");
+      }
+
+      // Merge: el dto trae un subconjunto de campos; no piso los no enviados.
+      const next = { ...existing.clinicalVisibility, ...dto };
+      const [row] = await tx
+        .update(patients)
+        .set({ clinicalVisibility: next, updatedAt: new Date() })
+        .where(eq(patients.id, id))
+        .returning();
+      await this.audit.recordForSession(tx, {
+        action: "patient.clinical_visibility_updated",
+        targetType: "patient",
+        targetId: id,
+        metadata: { fields: Object.keys(dto) },
+      });
+
+      const [assignments, notes] = await Promise.all([
+        this.assignments.listInTx(tx, id),
+        this.notes.listNotes(tx, id),
+      ]);
+      // El caller ya pasó CapabilityGuard de read_clinical-equivalente; exponé full.
+      return toDetailDto(row!, true, assignments, notes);
+    });
+  }
+
   /** Baja lógica (soft-delete): marca archivedAt. Nunca borra físico. */
   async archive(id: string): Promise<void> {
     await this.tenantDb.run(async (tx) => {
@@ -373,6 +424,8 @@ function toDetailDto(
           familyHistory: row.familyHistory,
         }
       : null,
+    // Visibilidad hacia el paciente: sólo se expone (y edita) con read_clinical.
+    clinicalVisibility: canClinical ? row.clinicalVisibility : null,
     assignments,
     notes,
   };

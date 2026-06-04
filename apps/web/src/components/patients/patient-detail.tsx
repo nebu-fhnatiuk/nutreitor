@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   activityLevels,
+  clinicalFields,
   patientSexes,
+  type ClinicalField,
+  type ClinicalVisibility,
   type PatientDetailDto,
 } from "@nutreitor/shared";
 
@@ -25,6 +28,16 @@ const ACTIVITY_LABEL: Record<string, string> = {
   moderate: "Moderada",
   active: "Activa",
   very_active: "Muy activa",
+};
+/** Etiquetas de los campos clínicos. Única fuente: la usan la lectura y el panel
+ * de visibilidad. El orden de `clinicalFields` (shared) define el orden de render. */
+const CLINICAL_LABELS: Record<ClinicalField, string> = {
+  reasonForConsult: "Motivo de consulta",
+  medicalHistory: "Antecedentes médicos",
+  allergies: "Alergias / intolerancias",
+  currentMedication: "Medicación actual",
+  diagnosedConditions: "Patologías diagnosticadas",
+  familyHistory: "Antecedentes familiares",
 };
 
 function ageFrom(birthDate: string | null): string | null {
@@ -53,6 +66,7 @@ export function PatientDetail({
   canRecord,
   canWritePlan,
   canInvite,
+  canEditVisibility,
 }: {
   id: string;
   basePath: string;
@@ -62,6 +76,7 @@ export function PatientDetail({
   canRecord: boolean;
   canWritePlan: boolean;
   canInvite: boolean;
+  canEditVisibility: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -160,6 +175,15 @@ export function PatientDetail({
         />
       ) : (
         <ReadView patient={p} age={age} />
+      )}
+
+      {!editing && canEditVisibility && p.clinical && p.clinicalVisibility && (
+        <ClinicalVisibilityPanel
+          patientId={p.id}
+          visibility={p.clinicalVisibility}
+          onChange={load}
+          onError={setError}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -291,16 +315,15 @@ function ReadView({
 
       {p.clinical && (
         <Section title="Clínicos de base">
-          <Field label="Motivo de consulta" value={p.clinical.reasonForConsult} wide />
-          <Field label="Antecedentes médicos" value={p.clinical.medicalHistory} wide />
-          <Field label="Alergias / intolerancias" value={p.clinical.allergies} wide />
-          <Field label="Medicación actual" value={p.clinical.currentMedication} wide />
-          <Field
-            label="Patologías diagnosticadas"
-            value={p.clinical.diagnosedConditions}
-            wide
-          />
-          <Field label="Antecedentes familiares" value={p.clinical.familyHistory} wide />
+          {clinicalFields.map((f) => (
+            <Field
+              key={f}
+              label={CLINICAL_LABELS[f]}
+              value={p.clinical![f]}
+              hint={p.clinicalVisibility?.[f] ? "visible al paciente" : undefined}
+              wide
+            />
+          ))}
         </Section>
       )}
     </div>
@@ -315,6 +338,108 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{children}</dl>
     </section>
+  );
+}
+
+/**
+ * Visibilidad por campo de la ficha clínica hacia el PORTAL del paciente. Default
+ * conservador: nada visible hasta que el profesional lo habilite. El stripping
+ * real lo hace la API (`getMe`); acá sólo se configura. Optimista: refleja el
+ * cambio al toque y revierte si el PATCH falla.
+ */
+function ClinicalVisibilityPanel({
+  patientId,
+  visibility,
+  onChange,
+  onError,
+}: {
+  patientId: string;
+  visibility: ClinicalVisibility;
+  onChange: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [pending, setPending] = useState<ClinicalField | null>(null);
+
+  async function toggle(field: ClinicalField, next: boolean) {
+    setPending(field);
+    try {
+      await api(`patients/${patientId}/clinical-visibility`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: next }),
+      });
+      onChange();
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  const shownCount = clinicalFields.filter((f) => visibility[f]).length;
+
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+        Visible para el paciente
+      </h2>
+      <p className="mt-1 text-sm text-stone-500">
+        Elegí qué datos clínicos ve el paciente en su portal. Por defecto no ve
+        ninguno. Las notas clínicas nunca se comparten.
+        {shownCount === 0
+          ? " Hoy no ve ningún campo."
+          : ` Hoy ve ${shownCount} de ${clinicalFields.length}.`}
+      </p>
+      <ul className="mt-4 divide-y divide-stone-100">
+        {clinicalFields.map((f) => {
+          const on = visibility[f] === true;
+          return (
+            <li key={f} className="flex items-center justify-between gap-4 py-3">
+              <span className="text-sm text-stone-700">{CLINICAL_LABELS[f]}</span>
+              <Toggle
+                on={on}
+                busy={pending === f}
+                label={`${on ? "Ocultar" : "Mostrar"} ${CLINICAL_LABELS[f]} al paciente`}
+                onChange={() => void toggle(f, !on)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/** Switch accesible (role=switch). Acento de marca en ON; gris stone en OFF. */
+function Toggle({
+  on,
+  busy,
+  label,
+  onChange,
+}: {
+  on: boolean;
+  busy: boolean;
+  label: string;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={busy}
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        on ? "bg-brand" : "bg-stone-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-5" : "translate-x-0.5"
+        }`}
+      />
+    </button>
   );
 }
 

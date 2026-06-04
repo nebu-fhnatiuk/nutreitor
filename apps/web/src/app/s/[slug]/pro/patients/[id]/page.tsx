@@ -24,6 +24,7 @@ export default async function ProPatientPage({
         canAddNote
         canRecord
         canWritePlan
+        canEditVisibility
         canAssign={false}
         canInvite={false}
       />

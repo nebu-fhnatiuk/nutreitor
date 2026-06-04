@@ -14,6 +14,7 @@ import {
   type TenantTx,
 } from "@nutreitor/db";
 import {
+  applyClinicalVisibility,
   hasCapability,
   type PatientMetricDto,
   type PortalMeDto,
@@ -94,14 +95,19 @@ export class PortalService {
           goal: patient.goal,
           email: patient.email,
           phone: patient.phone,
-          clinical: {
-            reasonForConsult: patient.reasonForConsult,
-            medicalHistory: patient.medicalHistory,
-            allergies: patient.allergies,
-            currentMedication: patient.currentMedication,
-            diagnosedConditions: patient.diagnosedConditions,
-            familyHistory: patient.familyHistory,
-          },
+          // Stripping por campo: el paciente sólo ve lo habilitado en
+          // clinical_visibility (default `{}` = nada). Único punto de decisión.
+          clinical: applyClinicalVisibility(
+            {
+              reasonForConsult: patient.reasonForConsult,
+              medicalHistory: patient.medicalHistory,
+              allergies: patient.allergies,
+              currentMedication: patient.currentMedication,
+              diagnosedConditions: patient.diagnosedConditions,
+              familyHistory: patient.familyHistory,
+            },
+            patient.clinicalVisibility,
+          ),
         },
         professionals: profRows.map((r) => r.name),
         plan: planRow ? toPlanDto(planRow.plan, planRow.authorName) : null,
