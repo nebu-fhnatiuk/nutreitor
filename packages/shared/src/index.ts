@@ -7,6 +7,7 @@ export * from "./dtos/care-assignment.dto.js";
 export * from "./dtos/patient-note.dto.js";
 export * from "./dtos/metric.dto.js";
 export * from "./dtos/meal-plan.dto.js";
+export * from "./dtos/appointment.dto.js";
 export * from "./dtos/portal.dto.js";
 export * from "./dtos/auth.dto.js";
 export * from "./dtos/audit.dto.js";

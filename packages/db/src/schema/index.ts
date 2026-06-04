@@ -12,6 +12,7 @@ export * from "./patient-metrics.js";
 export * from "./meal-plans.js";
 export * from "./audit-log.js";
 export * from "./professional-profiles.js";
+export * from "./scheduling.js";
 
 import { organizations } from "./organizations.js";
 import { locations } from "./locations.js";
@@ -26,6 +27,7 @@ import { patientMetrics } from "./patient-metrics.js";
 import { mealPlans } from "./meal-plans.js";
 import { auditLog } from "./audit-log.js";
 import { professionalProfiles } from "./professional-profiles.js";
+import { availabilityRules, appointments } from "./scheduling.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -42,4 +44,6 @@ export const schema = {
   mealPlans,
   auditLog,
   professionalProfiles,
+  availabilityRules,
+  appointments,
 };
