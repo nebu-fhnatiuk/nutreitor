@@ -31,7 +31,7 @@ export default async function AdminPage({
   if (me.role !== "admin") redirect(roleHome[me.role]);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <p className="text-xs font-medium uppercase tracking-widest text-brand">
         Administración
       </p>

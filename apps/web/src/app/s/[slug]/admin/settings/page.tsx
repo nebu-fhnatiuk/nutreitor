@@ -18,7 +18,7 @@ export default async function SettingsPage({
   const branding = await fetchTenant(slug);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <h1 className="font-serif text-2xl font-semibold tracking-tight">Configuración</h1>
       <p className="mt-1 mb-8 text-sm text-stone-500">
         Branding white-label de la organización.

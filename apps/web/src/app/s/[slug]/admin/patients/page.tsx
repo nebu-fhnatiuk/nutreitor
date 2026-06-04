@@ -16,7 +16,7 @@ export default async function AdminPatientsPage({
   if (me.role !== "admin") redirect(roleHome[me.role]);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <h1 className="font-serif text-2xl font-semibold tracking-tight">Pacientes</h1>
       <p className="mt-1 mb-8 text-sm text-stone-500">
         Todos los pacientes de {me.org.name}. Podés crear, asignar profesionales y
