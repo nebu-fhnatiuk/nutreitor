@@ -30,6 +30,30 @@ body {
   );
 }
 
+/* ── Landing de producto (dirección "editorial cálido") ─────────────────────
+ * Grano de papel sutil: ruido SVG fijo, alfa muy bajo, para que el crema no se
+ * sienta plano (textura, no decoración chillona). */
+.paper-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+/* Wash cálido del hero: verde nutrición arriba-izq + arcilla insinuada arriba-der. */
+.hero-wash {
+  background-image:
+    radial-gradient(55% 50% at 15% -5%, rgb(16 110 84 / 0.12) 0%, transparent 60%),
+    radial-gradient(45% 45% at 95% 5%, rgb(201 96 58 / 0.09) 0%, transparent 60%);
+}
+
+/* Stagger del reveal en el load (el contenido ya está en el DOM para indexación;
+ * prefers-reduced-motion lo neutraliza abajo). */
+.stagger > * {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.stagger > *:nth-child(3) { animation-delay: 0.14s; }
+.stagger > *:nth-child(4) { animation-delay: 0.21s; }
+.stagger > *:nth-child(5) { animation-delay: 0.28s; }
+
 /* Respeta la preferencia de movimiento reducido (a11y). */
 @media (prefers-reduced-motion: reduce) {
   *,
