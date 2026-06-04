@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
+import { PublicBooking } from "@/components/public/public-booking";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
 
 export const revalidate = 3600;
@@ -52,6 +53,9 @@ export default async function ProfessionalPublicPage({
         affiliation={orgName}
       />
       <ProfessionalView professional={pro} orgName={orgName} backHref="/" />
+      <div id="reservar" className="mx-auto max-w-3xl scroll-mt-8 px-6 pb-16">
+        <PublicBooking slug={slug} profileSlug={professionalSlug} professionalName={pro.fullName} />
+      </div>
     </main>
   );
 }
