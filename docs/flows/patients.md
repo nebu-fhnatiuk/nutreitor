@@ -64,6 +64,28 @@ El save de plan calcula `version = max(version)+1`, marca `superseded` al activo
 inserta el nuevo `active`; el índice único parcial `… WHERE status='active'`
 garantiza un único plan activo por paciente (un choque concurrente da `409`).
 
+### Estructura del plan (multi-estilo)
+
+El `body` del plan es un documento JSONB flexible por estilo de trabajo: layout
+`day` (día-tipo) o `week` (lun-dom), con detalle opcional por item (cantidad,
+unidad, alternativas/intercambios, macros) y `targets` del plan. El profesional
+elige cuánto detalle carga. Bodies legacy (anteriores al `layout`) se normalizan a
+`day` (`normalizeMealPlanBody`, shared) y se migraron en `0021`. Detalle del shape y
+el racional en [`../architecture/data-model.md`](../architecture/data-model.md) y el
+ADR [`../decisions/0009-estructura-plan-multiestilo.md`](../decisions/0009-estructura-plan-multiestilo.md).
+
+## Visibilidad de la ficha clínica hacia el paciente
+
+Por defecto el paciente **no** ve ningún campo clínico en su portal. La ficha lleva
+`clinical_visibility` (jsonb, default `{}`); el profesional/admin habilita campo por
+campo desde la ficha (`PATCH /patients/{id}/clinical-visibility`, capacidad
+`patient:update_clinical_visibility`, scopeado assigned-only e **auditado**:
+`patient.clinical_visibility_updated`). El stripping es **server-side** en
+`getMe` (helper puro `applyClinicalVisibility`): un campo sale al portal sólo si su
+flag es `true`; el front nunca decide. Las `patient_notes` quedan **siempre**
+internas (no se comparten). Ver el ADR
+[`../decisions/0008-visibilidad-campo-ficha-clinica.md`](../decisions/0008-visibilidad-campo-ficha-clinica.md).
+
 ## Portal del paciente
 
 El paciente logueado **no** pasa `patientId`: se resuelve "mi ficha" por
@@ -71,8 +93,9 @@ El paciente logueado **no** pasa `patientId`: se resuelve "mi ficha" por
 parcial `patients_tenant_user_unique` garantiza a lo sumo una ficha por (tenant,
 user). Endpoints (`apps/api/src/modules/portal/`):
 
-- `GET /portal/me` (capacidad `portal:read`): devuelve perfil + sus datos clínicos,
-  nombres de profesionales activos, plan activo y serie de métricas. **No** ve las
-  notas internas del profesional.
+- `GET /portal/me` (capacidad `portal:read`): devuelve perfil + los campos clínicos
+  **habilitados** (ver visibilidad arriba; default ninguno), nombres de profesionales
+  activos, plan activo y serie de métricas. **No** ve las notas internas del
+  profesional.
 - `POST /portal/me/metrics` (capacidad `portal:self_report`): auto-reporte de una
   métrica sobre su propia ficha (queda marcada como originada por el paciente).

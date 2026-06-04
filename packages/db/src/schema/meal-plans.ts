@@ -19,9 +19,27 @@ import { patients } from "./patients.js";
 
 /** Cuerpo del plan como documento (comidas → items). Tipado local para no acoplar
  * el paquete db con shared; shared expone el mismo shape para los DTOs. */
-type MealItem = { text: string; note?: string };
+type Macros = { protein_g?: number; carbs_g?: number; fat_g?: number; kcal?: number };
+type MealAlternative = { text: string; qty?: number; unit?: string };
+type MealItem = {
+  text: string;
+  qty?: number;
+  unit?: string;
+  alternatives?: MealAlternative[];
+  macros?: Macros;
+  note?: string;
+};
 type PlanMeal = { name: string; time?: string; items: MealItem[] };
-type MealPlanBody = { meals: PlanMeal[]; generalNotes?: string };
+type DayPlan = { meals: PlanMeal[] };
+type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+type MealPlanBody =
+  | { layout: "day"; day: DayPlan; targets?: Macros; generalNotes?: string }
+  | {
+      layout: "week";
+      days: Partial<Record<Weekday, DayPlan>>;
+      targets?: Macros;
+      generalNotes?: string;
+    };
 
 export const mealPlanStatus = pgEnum("meal_plan_status", [
   "active",
@@ -53,7 +71,7 @@ export const mealPlans = pgTable(
     body: jsonb("body")
       .$type<MealPlanBody>()
       .notNull()
-      .default(sql`'{"meals":[]}'::jsonb`),
+      .default(sql`'{"layout":"day","day":{"meals":[]}}'::jsonb`),
     ...timestamps,
   },
   (table) => [

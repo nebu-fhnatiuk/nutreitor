@@ -11,7 +11,12 @@ import {
   users,
   type TenantTx,
 } from "@nutreitor/db";
-import type { MealPlanDto, SavePlanDto } from "@nutreitor/shared";
+import {
+  normalizeMealPlanBody,
+  type MealPlanBody,
+  type MealPlanDto,
+  type SavePlanDto,
+} from "@nutreitor/shared";
 import { and, desc, eq, type SQL } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
@@ -177,8 +182,9 @@ export function toPlanDto(row: MealPlanRow, authorName: string): MealPlanDto {
     status: row.status,
     title: row.title,
     startDate: row.startDate,
-    // Blindaje: garantiza `meals` array aunque el JSONB venga sin la clave.
-    body: { meals: row.body?.meals ?? [], generalNotes: row.body?.generalNotes },
+    // Blindaje: normaliza un body legacy (sin `layout`) a `layout: "day"`. Las
+    // filas ya migradas (0021) pasan tal cual; cubre cualquier resabio.
+    body: normalizeMealPlanBody(row.body) as MealPlanBody,
     authorMembershipId: row.authorMembershipId,
     authorName,
     createdAt: row.createdAt.toISOString(),

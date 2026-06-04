@@ -23,12 +23,12 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | |
-| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. |
+| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). |
 | `locations` | Tenant-scoped (RLS) | `tenant_id` | Sede esquelética (referencia). |
 | `care_assignments` | Tenant-scoped (RLS) | `tenant_id` | Paciente↔profesional M:N versionado. |
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
-| `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado (JSONB). |
+| `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
 
@@ -162,6 +162,7 @@ erDiagram
     integer height_cm
     numeric initial_weight_kg
     uuid location_id FK
+    jsonb clinical_visibility "campos clínicos visibles al paciente; {} = ninguno"
     timestamptz archived_at "soft delete"
     timestamptz updated_at
     timestamptz created_at
@@ -223,7 +224,7 @@ erDiagram
     meal_plan_status status "active|superseded|archived"
     text title
     date start_date
-    jsonb body "meals -> items"
+    jsonb body "documento por layout: day|week (ver nota)"
     timestamptz created_at
   }
 
@@ -273,6 +274,28 @@ erDiagram
 - **Preservación de autoría**: `patient_notes`, `patient_metrics` y `meal_plans`
   referencian al `membership` autor con `ON DELETE RESTRICT` (no se puede borrar un
   membership que dejó historia clínica).
+
+## Documentos JSONB
+
+- **`meal_plans.body`** — documento del plan, flexible por estilo de trabajo del
+  profesional. Discriminado por `layout`:
+  - `{ layout: "day", day: { meals }, targets?, generalNotes? }` — día-tipo repetible.
+  - `{ layout: "week", days: { mon: {meals}, … }, targets?, generalNotes? }` — semanal.
+
+  Cada comida tiene `name`, `time?` e `items`; cada item, `text` (siempre) +
+  `qty?`/`unit?`, `alternatives?` (intercambios), `macros?` (P/C/G/kcal) y `note?` —
+  todo opcional. Las macros se cargan por item; los totales por comida/día se
+  **derivan en la UI** (única fuente = items). `targets` (objetivo del plan) sí se
+  guarda. El stripping/normalización de bodies legacy (anteriores al `layout`) lo
+  hace `normalizeMealPlanBody` (shared); la migración `0021` envolvió las filas
+  existentes a `layout: "day"`. Ver el ADR
+  [`../decisions/0009-estructura-plan-multiestilo.md`](../decisions/0009-estructura-plan-multiestilo.md).
+
+- **`patients.clinical_visibility`** — `Record<campo_clínico, boolean>`, default `{}`
+  (todo oculto). Sólo `getMe` del portal lo consume: un campo clínico se expone al
+  paciente únicamente si `clinical_visibility[campo] === true`. El stripping es
+  server-side (helper puro `applyClinicalVisibility`); el front nunca decide. Ver el
+  ADR [`../decisions/0008-visibilidad-campo-ficha-clinica.md`](../decisions/0008-visibilidad-campo-ficha-clinica.md).
 
 ## Historia
 
