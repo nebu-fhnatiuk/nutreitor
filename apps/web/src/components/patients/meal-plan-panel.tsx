@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  normalizeMealPlanBody,
   weekdays,
   type DayPlan,
   type Macros,
@@ -194,7 +195,10 @@ export function MealPlanPanel({
 
 export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boolean }) {
   const start = fmtDate(plan.startDate);
-  const groups = daysOf(plan.body);
+  // Blindaje: normaliza por las dudas (body legacy o mal formado) antes de render.
+  // La API ya normaliza, pero el read-path no debe romper ante cualquier shape.
+  const body = normalizeMealPlanBody(plan.body) as MealPlanBody;
+  const groups = daysOf(body);
   const empty = groups.every((g) => g.meals.length === 0);
   return (
     <div>
@@ -213,7 +217,7 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
           v{plan.version} · {plan.status === "active" ? "activo" : plan.status === "archived" ? "archivado" : "anterior"}
         </span>
         <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">
-          {plan.body.layout === "week" ? "semanal" : "día tipo"}
+          {body.layout === "week" ? "semanal" : "día tipo"}
         </span>
         <span className="text-xs text-stone-400">
           {start ? `desde ${start} · ` : ""}
@@ -221,10 +225,10 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
         </span>
       </div>
 
-      {plan.body.targets && (
+      {body.targets && (
         <p className="mt-2 text-xs text-stone-500">
           <span className="uppercase tracking-widest text-stone-400">Objetivo</span>{" "}
-          {macroLine(plan.body.targets)}
+          {macroLine(body.targets)}
         </p>
       )}
 
@@ -282,27 +286,165 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
   );
 }
 
-// ── Editor (layout día-tipo) ────────────────────────────────────────────────
+// ── Editor (día-tipo o semanal) ─────────────────────────────────────────────
+
+const WEEKDAY_SHORT: Record<Weekday, string> = {
+  mon: "Lun",
+  tue: "Mar",
+  wed: "Mié",
+  thu: "Jue",
+  fri: "Vie",
+  sat: "Sáb",
+  sun: "Dom",
+};
 
 function emptyMeal(): PlanMeal {
   return { name: "", items: [{ text: "" }] };
-}
-
-/** Comidas iniciales del editor: día-tipo directo; si el plan era semanal, toma
- * el primer día con comidas (el editor de semana llega en A2). */
-function initialMeals(plan: MealPlanDto | null): PlanMeal[] {
-  if (!plan) return [emptyMeal()];
-  const body = plan.body;
-  const meals =
-    body.layout === "week"
-      ? (weekdays.map((d) => body.days[d]).find((day) => day && day.meals.length > 0)?.meals ?? [])
-      : body.day.meals;
-  return meals.length > 0 ? meals.map(cloneMeal) : [emptyMeal()];
 }
 const cloneMeal = (m: PlanMeal): PlanMeal => ({
   ...m,
   items: m.items.map((it) => ({ ...it, alternatives: it.alternatives?.map((a) => ({ ...a })) })),
 });
+const cloneMeals = (ms: PlanMeal[]): PlanMeal[] => ms.map(cloneMeal);
+const emptyWeek = (): Record<Weekday, PlanMeal[]> =>
+  Object.fromEntries(weekdays.map((d) => [d, [] as PlanMeal[]])) as Record<Weekday, PlanMeal[]>;
+
+/** Estado inicial del editor desde el plan (o vacío). Mantiene AMBOS modos
+ * poblados para que alternar layout no pierda lo cargado en la sesión. */
+function initialEditorState(plan: MealPlanDto | null): {
+  layout: "day" | "week";
+  dayMeals: PlanMeal[];
+  week: Record<Weekday, PlanMeal[]>;
+} {
+  if (!plan) return { layout: "day", dayMeals: [emptyMeal()], week: emptyWeek() };
+  const body = normalizeMealPlanBody(plan.body) as MealPlanBody;
+  if (body.layout === "week") {
+    const week = emptyWeek();
+    for (const d of weekdays) if (body.days[d]) week[d] = cloneMeals(body.days[d]!.meals);
+    const seed = weekdays.map((d) => week[d]).find((m) => m.length > 0) ?? [];
+    return {
+      layout: "week",
+      dayMeals: seed.length ? cloneMeals(seed) : [emptyMeal()],
+      week,
+    };
+  }
+  const meals = body.day.meals.length ? cloneMeals(body.day.meals) : [emptyMeal()];
+  return { layout: "day", dayMeals: meals, week: emptyWeek() };
+}
+
+/** Selector de día de la semana. Marca con un punto los días que ya tienen carga. */
+function WeekdayTabs({
+  active,
+  week,
+  onSelect,
+}: {
+  active: Weekday;
+  week: Record<Weekday, PlanMeal[]>;
+  onSelect: (d: Weekday) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {weekdays.map((d) => {
+        const has = (week[d] ?? []).some(
+          (m) => m.name.trim() || m.items.some((it) => it.text.trim()),
+        );
+        const on = d === active;
+        return (
+          <button
+            key={d}
+            type="button"
+            onClick={() => onSelect(d)}
+            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+              on ? "bg-brand text-brand-fg" : "border border-stone-200 text-stone-600 hover:border-stone-300"
+            }`}
+          >
+            {WEEKDAY_SHORT[d]}
+            {has && (
+              <span
+                className={`ml-1.5 inline-block h-1.5 w-1.5 rounded-full ${on ? "bg-brand-fg" : "bg-brand"}`}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Editor de la lista de comidas de UN día. Reusado por el modo día y por cada
+ * día del modo semana (recibe/emite el array completo). */
+function MealsEditor({
+  meals,
+  onChange,
+}: {
+  meals: PlanMeal[];
+  onChange: (m: PlanMeal[]) => void;
+}) {
+  const updateMeal = (i: number, patch: Partial<PlanMeal>) =>
+    onChange(meals.map((m, j) => (j === i ? { ...m, ...patch } : m)));
+  const updateItem = (mi: number, ii: number, patch: Partial<MealItem>) =>
+    onChange(
+      meals.map((m, j) =>
+        j === mi
+          ? { ...m, items: m.items.map((it, k) => (k === ii ? { ...it, ...patch } : it)) }
+          : m,
+      ),
+    );
+  return (
+    <div className="space-y-3">
+      {meals.map((meal, mi) => (
+        <div key={mi} className="rounded-xl border border-stone-200 p-3">
+          <div className="mb-2 flex gap-2">
+            <input
+              value={meal.name}
+              onChange={(e) => updateMeal(mi, { name: e.target.value })}
+              placeholder="Comida (ej. Desayuno)"
+              className={inputCls}
+            />
+            <input
+              value={meal.time ?? ""}
+              onChange={(e) => updateMeal(mi, { time: e.target.value })}
+              placeholder="Hora"
+              className={`${narrowCls} w-24`}
+            />
+            <button
+              type="button"
+              onClick={() => onChange(meals.filter((_, j) => j !== mi))}
+              className="shrink-0 rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
+              aria-label="Quitar comida"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-2 pl-1">
+            {meal.items.map((it, ii) => (
+              <ItemEditor
+                key={ii}
+                item={it}
+                onChange={(patch) => updateItem(mi, ii, patch)}
+                onRemove={() => updateMeal(mi, { items: meal.items.filter((_, k) => k !== ii) })}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => updateMeal(mi, { items: [...meal.items, { text: "" }] })}
+              className="text-xs text-stone-500 transition hover:text-brand"
+            >
+              + Agregar item
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...meals, emptyMeal()])}
+        className="rounded-lg border border-dashed border-stone-300 px-4 py-2 text-sm text-stone-500 transition hover:border-brand/50 hover:text-stone-700"
+      >
+        + Agregar comida
+      </button>
+    </div>
+  );
+}
 
 function PlanEditor({
   initial,
@@ -317,27 +459,36 @@ function PlanEditor({
   onSaved: () => void;
   onError: (e: string) => void;
 }) {
-  // El editor sólo escribe layout "day". Editar un plan semanal acá colapsaría la
-  // semana a un día y perdería el resto: hasta el editor semanal (A2) se bloquea.
-  const isWeek = initial?.body.layout === "week";
+  const [model] = useState(() => initialEditorState(initial));
+  const [layout, setLayout] = useState<"day" | "week">(model.layout);
   const [title, setTitle] = useState(initial?.title ?? "Plan alimentario");
   const [startDate, setStartDate] = useState(initial?.startDate ?? "");
-  const [meals, setMeals] = useState<PlanMeal[]>(() => initialMeals(initial));
+  const [dayMeals, setDayMeals] = useState<PlanMeal[]>(model.dayMeals);
+  const [week, setWeek] = useState<Record<Weekday, PlanMeal[]>>(model.week);
+  const [activeDay, setActiveDay] = useState<Weekday>("mon");
   const [targets, setTargets] = useState<Macros>(initial?.body.targets ?? {});
   const [generalNotes, setGeneralNotes] = useState(initial?.body.generalNotes ?? "");
   const [busy, setBusy] = useState(false);
 
-  function updateMeal(i: number, patch: Partial<PlanMeal>) {
-    setMeals((m) => m.map((meal, j) => (j === i ? { ...meal, ...patch } : meal)));
-  }
-  function updateItem(mi: number, ii: number, patch: Partial<MealItem>) {
-    setMeals((m) =>
-      m.map((meal, j) =>
-        j === mi
-          ? { ...meal, items: meal.items.map((it, k) => (k === ii ? { ...it, ...patch } : it)) }
-          : meal,
-      ),
+  /** Copia las comidas del día activo a los 7 días (atajo para armar la semana). */
+  function copyDayToAll() {
+    const src = week[activeDay] ?? [];
+    setWeek(
+      Object.fromEntries(weekdays.map((d) => [d, cloneMeals(src)])) as Record<Weekday, PlanMeal[]>,
     );
+  }
+
+  const hasContent = (ms: PlanMeal[]) =>
+    ms.some((m) => m.name.trim() || m.items.some((it) => it.text.trim()));
+
+  /** Cambia de layout. Al pasar a semana con la semana vacía, siembra el lunes con
+   * lo cargado en el día-tipo (transición no destructiva, en vez de empezar de cero). */
+  function chooseLayout(next: "day" | "week") {
+    if (next === "week" && !weekdays.some((d) => hasContent(week[d] ?? [])) && hasContent(dayMeals)) {
+      setWeek({ ...emptyWeek(), mon: cloneMeals(dayMeals) });
+      setActiveDay("mon");
+    }
+    setLayout(next);
   }
 
   async function submit(e: React.FormEvent) {
@@ -345,13 +496,20 @@ function PlanEditor({
     setBusy(true);
     onError("");
     try {
-      const day: DayPlan = { meals: meals.map(cleanMeal).filter(nonEmptyMeal) };
-      const body: MealPlanBody = {
-        layout: "day",
-        day,
-        ...(hasMacros(targets) ? { targets: cleanMacros(targets)! } : {}),
-        ...(generalNotes.trim() ? { generalNotes: generalNotes.trim() } : {}),
-      };
+      const targetsClean = hasMacros(targets) ? { targets: cleanMacros(targets)! } : {};
+      const notesClean = generalNotes.trim() ? { generalNotes: generalNotes.trim() } : {};
+      let body: MealPlanBody;
+      if (layout === "day") {
+        const day: DayPlan = { meals: dayMeals.map(cleanMeal).filter(nonEmptyMeal) };
+        body = { layout: "day", day, ...targetsClean, ...notesClean };
+      } else {
+        const days: Partial<Record<Weekday, DayPlan>> = {};
+        for (const d of weekdays) {
+          const cleaned = (week[d] ?? []).map(cleanMeal).filter(nonEmptyMeal);
+          if (cleaned.length) days[d] = { meals: cleaned };
+        }
+        body = { layout: "week", days, ...targetsClean, ...notesClean };
+      }
       await api(`patients/${patientId}/plans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -367,25 +525,6 @@ function PlanEditor({
     } finally {
       setBusy(false);
     }
-  }
-
-  if (isWeek) {
-    return (
-      <div className="space-y-4">
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Este plan es <strong>semanal</strong>. El editor semanal todavía no está
-          disponible; editarlo acá perdería los días de la semana. Por ahora se puede
-          ver y archivar, pero no revisar.
-        </p>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg px-4 py-2.5 text-sm text-stone-500 transition hover:bg-stone-100"
-        >
-          Volver
-        </button>
-      </div>
-    );
   }
 
   return (
@@ -411,60 +550,47 @@ function PlanEditor({
         <MacrosInputs value={targets} onChange={setTargets} />
       </fieldset>
 
-      <div className="space-y-3">
-        {meals.map((meal, mi) => (
-          <div key={mi} className="rounded-xl border border-stone-200 p-3">
-            <div className="mb-2 flex gap-2">
-              <input
-                value={meal.name}
-                onChange={(e) => updateMeal(mi, { name: e.target.value })}
-                placeholder="Comida (ej. Desayuno)"
-                className={inputCls}
-              />
-              <input
-                value={meal.time ?? ""}
-                onChange={(e) => updateMeal(mi, { time: e.target.value })}
-                placeholder="Hora"
-                className={`${narrowCls} w-24`}
-              />
-              <button
-                type="button"
-                onClick={() => setMeals((m) => m.filter((_, j) => j !== mi))}
-                className="shrink-0 rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
-                aria-label="Quitar comida"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-2 pl-1">
-              {meal.items.map((it, ii) => (
-                <ItemEditor
-                  key={ii}
-                  item={it}
-                  onChange={(patch) => updateItem(mi, ii, patch)}
-                  onRemove={() =>
-                    updateMeal(mi, { items: meal.items.filter((_, k) => k !== ii) })
-                  }
-                />
-              ))}
-              <button
-                type="button"
-                onClick={() => updateMeal(mi, { items: [...meal.items, { text: "" }] })}
-                className="text-xs text-stone-500 transition hover:text-brand"
-              >
-                + Agregar item
-              </button>
-            </div>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => setMeals((m) => [...m, emptyMeal()])}
-          className="rounded-lg border border-dashed border-stone-300 px-4 py-2 text-sm text-stone-500 transition hover:border-brand/50 hover:text-stone-700"
-        >
-          + Agregar comida
-        </button>
+      <div>
+        <span className="mb-2 block text-xs text-stone-500">¿Cómo organizás el plan?</span>
+        <div className="inline-flex rounded-lg border border-stone-200 bg-white p-0.5 text-sm">
+          {(["day", "week"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => chooseLayout(l)}
+              className={`rounded-md px-3 py-1.5 transition ${
+                layout === l ? "bg-brand text-brand-fg" : "text-stone-500 hover:text-stone-800"
+              }`}
+            >
+              {l === "day" ? "Día tipo" : "Semana"}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {layout === "day" ? (
+        <MealsEditor meals={dayMeals} onChange={setDayMeals} />
+      ) : (
+        <div className="space-y-3">
+          <WeekdayTabs active={activeDay} week={week} onSelect={setActiveDay} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-stone-500">
+              Editando <strong className="text-stone-700">{WEEKDAY_LABEL[activeDay]}</strong>
+            </p>
+            <button
+              type="button"
+              onClick={copyDayToAll}
+              className="text-xs text-stone-500 transition hover:text-brand"
+            >
+              Copiar este día a toda la semana
+            </button>
+          </div>
+          <MealsEditor
+            meals={week[activeDay] ?? []}
+            onChange={(m) => setWeek({ ...week, [activeDay]: m })}
+          />
+        </div>
+      )}
 
       <label className="block">
         <span className="mb-1 block text-xs text-stone-500">Notas generales (opcional)</span>
