@@ -1,16 +1,21 @@
 import { Module } from "@nestjs/common";
 
+import { AuthModule } from "../../core/auth/auth.module.js";
+import { PortalSchedulingController } from "./portal-scheduling.controller.js";
+import { SchedulingController } from "./scheduling.controller.js";
+import { SchedulingService } from "./scheduling.service.js";
+
 /**
- * Agendamiento de citas. Placeholder modular (etapa 2 del recorrido).
+ * Agendamiento (motor propio, etapa 2 del recorrido). Disponibilidad semanal del
+ * profesional + citas tenant-scoped bajo RLS; slots derivados en el huso del
+ * profesional (DST por Luxon). No-overlap forzado por la DB (EXCLUDE gist).
  *
- * DECISIÓN DE ARQUITECTURA PENDIENTE (a presentar con trade-offs antes de
- * implementar): Cal.com self-hosted vs motor de scheduling propio.
- *   - Cal.com self-hosted: time-to-market, manejo de husos/DST/buffers ya
- *     resuelto, pero acopla un sistema externo y su modelo de datos al multi-tenant.
- *   - Motor propio: control total del modelo (tenant_id/region nativos, RLS),
- *     a costa de reimplementar husos horarios, DST por país y disponibilidad.
- *
- * Invariante ya fijado: storage en UTC, conversión en presentación, DST por país.
+ * Invariante: UTC en storage, conversión en presentación, DST por país. La
+ * decisión motor-propio-vs-Cal.com queda registrada como ADR en docs/decisions.
  */
-@Module({})
+@Module({
+  imports: [AuthModule],
+  controllers: [SchedulingController, PortalSchedulingController],
+  providers: [SchedulingService],
+})
 export class SchedulingModule {}
