@@ -49,8 +49,15 @@ export function generateSlots(opts: {
     for (; day <= last; day = day.plus({ days: 1 })) {
       if (day.weekday !== rule.weekday) continue;
       for (let m = rule.startMinute; m + rule.slotMinutes <= rule.endMinute; m += rule.slotMinutes) {
-        const startLocal = day.set({ hour: Math.floor(m / 60), minute: m % 60 });
-        if (!startLocal.isValid) continue; // hora inexistente (gap de DST)
+        const h = Math.floor(m / 60);
+        const min = m % 60;
+        const startLocal = day.set({ hour: h, minute: min });
+        // Gap de spring-forward: Luxon NO marca inválida una hora inexistente, la
+        // "forwardea" a una válida. La detectamos comparando el wall-clock pedido;
+        // si no coincide, ese horario no existe ese día → se descarta.
+        if (!startLocal.isValid || startLocal.hour !== h || startLocal.minute !== min) {
+          continue;
+        }
         const endLocal = startLocal.plus({ minutes: rule.slotMinutes });
         const s = startLocal.toMillis();
         const e = endLocal.toMillis();
@@ -69,4 +76,9 @@ export function generateSlots(opts: {
     startsAt: new Date(s).toISOString(),
     endsAt: new Date(e).toISOString(),
   }));
+}
+
+/** ¿`tz` es un huso IANA válido? (valida disponibilidad antes de guardarla). */
+export function isValidTimezone(tz: string): boolean {
+  return DateTime.local().setZone(tz).isValid;
 }

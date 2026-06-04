@@ -88,4 +88,26 @@ describe("generateSlots", () => {
     expect(slotAt("2026-07-06")).toBe("2026-07-06T13:00:00.000Z");
     expect(slotAt("2026-01-05")).toBe("2026-01-05T14:00:00.000Z");
   });
+
+  it("descarta el horario inexistente del gap de spring-forward (DST)", () => {
+    const NY = "America/New_York";
+    // 2026-03-08: a las 02:00 el reloj salta a 03:00 (las 02:xx no existen).
+    const day = DateTime.fromISO("2026-03-08T00:00:00", { zone: NY });
+    const range = { from: day.toJSDate(), to: day.plus({ days: 1 }).toJSDate(), now: day.toJSDate() };
+    // Ventana 02:00–02:30: cae en el hueco → 0 slots (sin esto, Luxon la
+    // "forwardearía" a 03:30 y ofrecería un slot fantasma).
+    const gap = generateSlots({
+      rules: [{ timezone: NY, weekday: day.weekday, startMinute: 120, endMinute: 150, slotMinutes: 30 }],
+      busy: [],
+      ...range,
+    });
+    expect(gap).toEqual([]);
+    // Ventana 03:00–03:30: existe (post-gap) → 1 slot.
+    const ok = generateSlots({
+      rules: [{ timezone: NY, weekday: day.weekday, startMinute: 180, endMinute: 210, slotMinutes: 30 }],
+      busy: [],
+      ...range,
+    });
+    expect(ok.length).toBe(1);
+  });
 });
