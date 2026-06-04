@@ -124,7 +124,7 @@ function ClinicalCard({
   clinical: NonNullable<PortalMeDto["profile"]["clinical"]>;
   goal: string | null;
 }) {
-  const rows: [string, string | null][] = [
+  const allRows: [string, string | null][] = [
     ["Objetivo", goal],
     ["Motivo de consulta", clinical.reasonForConsult],
     ["Antecedentes médicos", clinical.medicalHistory],
@@ -133,6 +133,10 @@ function ClinicalCard({
     ["Patologías diagnosticadas", clinical.diagnosedConditions],
     ["Antecedentes familiares", clinical.familyHistory],
   ];
+  // Sólo lo que el paciente tiene permitido ver (el resto llega null por la
+  // visibilidad por campo). Si no hay nada, no mostramos una pared de "—".
+  const rows = allRows.filter(([, value]) => value);
+  if (rows.length === 0) return null;
   return (
     <section className={card}>
       <h2 className={h2}>Tus datos de salud</h2>
@@ -140,9 +144,7 @@ function ClinicalCard({
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt className="text-xs text-stone-400">{label}</dt>
-            <dd className="mt-0.5 whitespace-pre-line text-sm text-stone-800">
-              {value || <span className="text-stone-300">—</span>}
-            </dd>
+            <dd className="mt-0.5 whitespace-pre-line text-sm text-stone-800">{value}</dd>
           </div>
         ))}
       </dl>

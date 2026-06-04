@@ -430,8 +430,11 @@ function CtaFinal() {
           con todo en un solo lugar.
         </p>
         <div className="mt-9 flex justify-center">
+          {/* DEUDA (prod): destino temporal de dev. En producción esto va a un
+              formulario / inbox de captación real (CRM, Typeform, etc.), no a un
+              mail personal. Ver ADR 0010 (CTA hacia "solicitar acceso"). */}
           <a
-            href="mailto:hola@nutreitor.com?subject=Quiero%20probar%20Nutreitor"
+            href="mailto:flopi.hnatiuk@gmail.com?subject=Quiero%20probar%20Nutreitor&body=Hola%2C%20me%20interesa%20probar%20Nutreitor."
             className="rounded-full bg-clay px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             Solicitar acceso
