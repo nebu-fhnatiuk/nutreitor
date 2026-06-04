@@ -13,7 +13,7 @@ import {
   type UpdateClinicalVisibilityDto,
   type UpdatePatientDto,
 } from "@nutreitor/shared";
-import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
@@ -244,12 +244,13 @@ export class PatientsService {
     return this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, id, access);
+      const { user } = getAuth();
+      // No acoplar la respuesta a la capacidad de update: el bloque clínico se
+      // expone sólo si la sesión tiene read_clinical (igual que getOne/update).
+      const canClinical = hasCapability(user.role, "patient:read_clinical");
 
       const [existing] = await tx
-        .select({
-          archivedAt: patients.archivedAt,
-          clinicalVisibility: patients.clinicalVisibility,
-        })
+        .select({ archivedAt: patients.archivedAt })
         .from(patients)
         .where(eq(patients.id, id))
         .limit(1);
@@ -258,11 +259,14 @@ export class PatientsService {
         throw new ConflictException("El paciente está archivado.");
       }
 
-      // Merge: el dto trae un subconjunto de campos; no piso los no enviados.
-      const next = { ...existing.clinicalVisibility, ...dto };
+      // Merge ATÓMICO en la DB (jsonb `||`): no piso los campos no enviados y
+      // evito el lost-update de un read-modify-write ante toggles concurrentes.
       const [row] = await tx
         .update(patients)
-        .set({ clinicalVisibility: next, updatedAt: new Date() })
+        .set({
+          clinicalVisibility: sql`${patients.clinicalVisibility} || ${JSON.stringify(dto)}::jsonb`,
+          updatedAt: new Date(),
+        })
         .where(eq(patients.id, id))
         .returning();
       await this.audit.recordForSession(tx, {
@@ -276,8 +280,7 @@ export class PatientsService {
         this.assignments.listInTx(tx, id),
         this.notes.listNotes(tx, id),
       ]);
-      // El caller ya pasó CapabilityGuard de read_clinical-equivalente; exponé full.
-      return toDetailDto(row!, true, assignments, notes);
+      return toDetailDto(row!, canClinical, assignments, notes);
     });
   }
 

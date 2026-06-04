@@ -283,28 +283,38 @@ export async function runSeed(connectionString: string): Promise<void> {
           title: "Plan de recomposición",
           startDate: "2026-03-01",
           body: {
-            meals: [
-              {
-                name: "Desayuno",
-                time: "08:00",
-                items: [
-                  { text: "Avena con frutas", note: "60 g de avena" },
-                  { text: "Café con bebida vegetal" },
-                ],
-              },
-              {
-                name: "Almuerzo",
-                time: "13:00",
-                items: [
-                  { text: "Pechuga de pollo", note: "150 g" },
-                  { text: "Arroz integral + vegetales" },
-                ],
-              },
-              {
-                name: "Merienda",
-                items: [{ text: "Yogur sin lactosa + frutos secos" }],
-              },
-            ],
+            layout: "day",
+            day: {
+              meals: [
+                {
+                  name: "Desayuno",
+                  time: "08:00",
+                  items: [
+                    {
+                      text: "Avena con frutas",
+                      qty: 60,
+                      unit: "g",
+                      macros: { protein_g: 8, carbs_g: 40, fat_g: 6, kcal: 250 },
+                      alternatives: [{ text: "Pan integral con queso untable", qty: 2, unit: "reb" }],
+                    },
+                    { text: "Café con bebida vegetal" },
+                  ],
+                },
+                {
+                  name: "Almuerzo",
+                  time: "13:00",
+                  items: [
+                    { text: "Pechuga de pollo", qty: 150, unit: "g" },
+                    { text: "Arroz integral + vegetales" },
+                  ],
+                },
+                {
+                  name: "Merienda",
+                  items: [{ text: "Yogur sin lactosa + frutos secos" }],
+                },
+              ],
+            },
+            targets: { protein_g: 130, carbs_g: 200, fat_g: 60, kcal: 1900 },
             generalNotes: "Tomar 2 L de agua por día. Evitar ultraprocesados.",
           },
         });
