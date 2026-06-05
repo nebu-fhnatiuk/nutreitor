@@ -99,6 +99,15 @@ flowchart TB
   migraciones como job separado; secrets desde AWS Secrets Manager / SSM. Ver las
   "Notas para producción" del [README](../../README.md).
 
+## Evolución a servicios
+
+La API es un **modular monolith** a propósito: la arquitectura objetivo es orientada
+a servicios, alcanzada **incrementalmente** (extraer un bounded context cuando hay un
+disparador real), no de un big-bang. Los módulos, los DTOs de `shared`, el
+`tenant_id`/`region` por tabla y el servicio de agentes ya reservado son las costuras
+para esa extracción. Reglas, disparadores y orden en el ADR
+[`../decisions/0012-modular-monolith-evolucion-a-servicios.md`](../decisions/0012-modular-monolith-evolucion-a-servicios.md).
+
 ## Fuera de alcance (con el lugar reservado)
 
 - **Agentes (CHEF/NUTRI/PSICO)**: `apps/api/src/agents/` es un slot vacío. Vivirán
