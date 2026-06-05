@@ -36,8 +36,12 @@ hospitales) con aislamiento de datos fuerte.
    **pública** (lead → cita desde la vidriera, sin login). Agenda en `/pro/agenda`.
 10. **Landing de producto** (host raíz, dirección "editorial cálido") que vende la
     plataforma al nutricionista independiente.
-
-Todavía NO hay agentes (ver "Fuera de alcance").
+11. **Agentes de IA** (`apps/agents`, servicio Python separado — ver ADR 0013): **NUTRI**
+    (asiste sobre la evolución/ajuste del plan) y **CHEF** (traduce el plan activo a
+    recetas respetando preferencias/restricciones/alergias). El gateway Nest valida
+    sesión + acceso al paciente y reenvía con un **contexto de tenant firmado** (HMAC+TTL);
+    el servicio lee bajo **RLS** con rol propio. En dev corre un **provider stub** (sin IA
+    real ni PHI a la nube hasta firmar el BAA). UI: dock flotante en la ficha del paciente.
 
 ---
 
@@ -275,9 +279,11 @@ producción). Nunca se commitean secrets reales.
 
 ## Fuera de alcance (con el lugar reservado)
 
-- **Agentes (CHEF/NUTRI/PSICO)**: `apps/api/src/agents/` es un slot vacío. Vivirán
-  en un servicio Python separado que consume el mismo Postgres y las mismas RLS
-  policies. Ver `apps/api/src/agents/README.md`.
+- **Agentes — lo que falta**: NUTRI y CHEF ya viven en `apps/agents` (servicio Python,
+  ver arriba y ADR 0013). Queda fuera por ahora: **provider Anthropic real** bajo BAA
+  (hoy provider **stub**) con prompt caching, **PSICO** (detección de crisis +
+  escalamiento humano + consentimiento), y hardening (rate-limit + tope de costo por
+  tenant, pool de conexiones, CI del toolchain Python).
 - **Agendamiento — deuda del MVP**: el motor ya está (Sprint 3, motor propio; ver el
   ADR `docs/decisions/0011`). Queda fuera por ahora: sync con Google/Outlook Calendar,
   **recordatorios** (necesitan cron/worker — sólo hay confirmación al reservar), email

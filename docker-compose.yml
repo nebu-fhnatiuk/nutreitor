@@ -133,6 +133,11 @@ services:
       # Host 8088 → contenedor 8000 (la API le habla por la red interna agents:8000;
       # 8088 es sólo para debugging directo desde el host).
       - "8088:8000"
+    # Dev: montamos el código y corremos uvicorn con --reload (paridad con api/web).
+    # El código no se hornea en la imagen para iterar sin rebuild.
+    volumes:
+      - ./apps/agents/app:/app/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 volumes:
   pgdata:

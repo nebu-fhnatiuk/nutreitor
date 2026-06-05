@@ -13,7 +13,7 @@ import {
 
 import { api } from "@/lib/api";
 import { MealPlanPanel } from "./meal-plan-panel";
-import { NutriAssistant } from "./nutri-assistant";
+import { AssistantDock } from "./assistant-dock";
 import { MemberSelect } from "./member-select";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -203,7 +203,7 @@ export function PatientDetail({
 
       <MetricsPanel patientId={p.id} canRecord={canRecord} />
 
-      {canUseAgent && <NutriAssistant patientId={p.id} />}
+      {canUseAgent && <AssistantDock patientId={p.id} />}
     </div>
   );
 }
