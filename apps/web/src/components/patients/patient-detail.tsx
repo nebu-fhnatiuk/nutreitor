@@ -13,6 +13,7 @@ import {
 
 import { api } from "@/lib/api";
 import { MealPlanPanel } from "./meal-plan-panel";
+import { NutriAssistant } from "./nutri-assistant";
 import { MemberSelect } from "./member-select";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -67,6 +68,7 @@ export function PatientDetail({
   canWritePlan,
   canInvite,
   canEditVisibility,
+  canUseAgent,
 }: {
   id: string;
   basePath: string;
@@ -77,6 +79,7 @@ export function PatientDetail({
   canWritePlan: boolean;
   canInvite: boolean;
   canEditVisibility: boolean;
+  canUseAgent: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -199,6 +202,8 @@ export function PatientDetail({
       <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />
 
       <MetricsPanel patientId={p.id} canRecord={canRecord} />
+
+      {canUseAgent && <NutriAssistant patientId={p.id} />}
     </div>
   );
 }
