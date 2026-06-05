@@ -280,10 +280,12 @@ producción). Nunca se commitean secrets reales.
 ## Fuera de alcance (con el lugar reservado)
 
 - **Agentes — lo que falta**: NUTRI y CHEF ya viven en `apps/agents` (servicio Python,
-  ver arriba y ADR 0013). Queda fuera por ahora: **provider Anthropic real** bajo BAA
-  (hoy provider **stub**) con prompt caching, **PSICO** (detección de crisis +
-  escalamiento humano + consentimiento), y hardening (rate-limit + tope de costo por
-  tenant, pool de conexiones, CI del toolchain Python).
+  ver arriba y ADRs 0013/0014). El provider real (**Claude vía AWS Bedrock**, con prompt
+  caching) y el **tope de costo/rate-limit por tenant** ya están **construidos** —
+  detrás de `INFERENCE_PROVIDER` (default **stub**). Queda fuera por ahora: **activar**
+  Bedrock (gate legal: BAA AWS + consentimiento; en AR rige la Ley 25.326), pool de
+  conexiones + CI del toolchain Python, override de tope por tenant, y **PSICO**
+  (crisis + escalamiento humano + consentimiento).
 - **Agendamiento — deuda del MVP**: el motor ya está (Sprint 3, motor propio; ver el
   ADR `docs/decisions/0011`). Queda fuera por ahora: sync con Google/Outlook Calendar,
   **recordatorios** (necesitan cron/worker — sólo hay confirmación al reservar), email

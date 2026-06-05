@@ -62,10 +62,27 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
 
 ## Provider de inferencia
 
-Detrás de `INFERENCE_PROVIDER`. En dev/tests el provider es **stub**: ejercita todo
-el pipeline (firma, RLS, contexto, persistencia, audit) **sin API key ni PHI a la
-nube**. El provider real (Anthropic, con prompt caching) se enchufa **cuando esté
-firmado el BAA** — es un gate legal, no técnico.
+Detrás de `INFERENCE_PROVIDER` (`inference.py`):
+
+- **`stub`** (default): respuesta determinística para dev/tests, **sin API key ni PHI
+  a la nube**. Ejercita todo el pipeline (firma, RLS, contexto, historial,
+  persistencia, audit, tope) y **estima tokens** (~4 chars/token) para que el tope sea
+  probable end-to-end.
+- **`bedrock`**: Claude vía **AWS Bedrock** (Converse API), con **prompt caching** del
+  bloque estable (system + contexto del paciente), system prompt **por agente** y
+  tokens reales en el audit. El PHI no sale de la cuenta AWS — ver
+  [ADR 0014](../decisions/0014-inferencia-bedrock-y-controles-de-costo.md).
+
+El provider real queda **detrás del flag** hasta cerrar el lado legal (BAA de AWS +
+**consentimiento** del paciente; en AR aplica la **Ley 25.326**, no HIPAA, y hay
+**transferencia internacional** porque Bedrock/Claude vive en US).
+
+## Tope de costo / abuso (por tenant)
+
+El **gateway** corta *antes* de egresar: si el tenant superó el **rate por minuto**
+(`AGENTS_RATELIMIT_PER_MIN`) o el **tope mensual de tokens**
+(`AGENTS_MONTHLY_TOKEN_CAP`, 0 = sin límite), responde **429** y no sale nada. El uso
+se deriva del audit `agent_runs` (input+output tokens) leído bajo RLS.
 
 ## Autorización y UI
 
@@ -75,6 +92,7 @@ firmado el BAA** — es un gate legal, no técnico.
 
 ## Pendiente
 
-PSICO (detección de crisis + escalamiento humano + consentimiento), provider real
-bajo BAA, y hardening (rate-limit + tope de costo por tenant, pool de conexiones, CI
-del toolchain Python).
+**Activar** el provider `bedrock` (gate legal: BAA AWS + consentimiento), pool de
+conexiones en el servicio Python + CI del toolchain, override de tope **por tenant**
+(hoy global por env), y **PSICO** (detección de crisis + escalamiento humano +
+consentimiento, con guardrails más duros).

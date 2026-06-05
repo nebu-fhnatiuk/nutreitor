@@ -20,10 +20,10 @@ from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from .context import verify_agent_context
+from .inference import INFERENCE_PROVIDER, infer
 
 DATABASE_AGENTS_URL = os.environ["DATABASE_AGENTS_URL"]
 AGENTS_SHARED_SECRET = os.environ["AGENTS_SHARED_SECRET"]
-INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "stub")
 
 app = FastAPI(title="nutreitor-agents")
 
@@ -57,18 +57,22 @@ def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) 
                     (ctx.tenant_id, ),
                 )
 
-                clinical = _load_clinical_context(cur, body.patientId)
-                reply = _infer(body.agent, body.message, clinical)
-                latency_ms = int((time.monotonic() - started) * 1000)
-
+                # Conversación primero: así cargamos el historial del hilo como
+                # contexto de la inferencia (continuidad de la charla).
                 conversation_id = _ensure_conversation(
                     cur, ctx, body.agent, body.patientId, body.conversationId
                 )
-                _insert_message(cur, ctx, conversation_id, "user", body.message)
-                _insert_message(cur, ctx, conversation_id, "assistant", reply)
-                _insert_run(cur, ctx, conversation_id, body.agent, latency_ms)
+                history = _load_history(cur, conversation_id)
+                clinical = _load_clinical_context(cur, body.patientId)
 
-    return {"conversationId": conversation_id, "reply": reply, "status": "ok"}
+                result = infer(body.agent, body.message, clinical, history)
+                latency_ms = int((time.monotonic() - started) * 1000)
+
+                _insert_message(cur, ctx, conversation_id, "user", body.message)
+                _insert_message(cur, ctx, conversation_id, "assistant", result.reply)
+                _insert_run(cur, ctx, conversation_id, body.agent, result, latency_ms)
+
+    return {"conversationId": conversation_id, "reply": result.reply, "status": "ok"}
 
 
 # ── lectura del contexto clínico (bajo RLS) ─────────────────────────────────────
@@ -110,86 +114,17 @@ def _load_clinical_context(cur, patient_id: str | None) -> dict:
     return ctx
 
 
-# ── inferencia ──────────────────────────────────────────────────────────────────
+# ── historial del hilo (bajo RLS) ───────────────────────────────────────────────
 
-def _infer(agent: str, message: str, clinical: dict) -> str:
-    if INFERENCE_PROVIDER == "stub":
-        if agent == "chef":
-            return _chef_reply(message, clinical)
-        return _nutri_reply(agent, message, clinical)
-    # Provider real (Anthropic, bajo BAA) — se implementa cuando el BAA esté firmado.
-    raise HTTPException(status_code=503, detail=f"Provider '{INFERENCE_PROVIDER}' no implementado.")
-
-
-def _stub_footer() -> str:
-    return "(Respuesta de DEV/stub: sin IA real hasta firmar el BAA.)"
-
-
-def _nutri_reply(agent: str, message: str, clinical: dict) -> str:
-    bits: list[str] = []
-    if clinical.get("full_name"):
-        line = f"Paciente {clinical['full_name']}"
-        if clinical.get("goal"):
-            line += f" · objetivo: {clinical['goal']}"
-        bits.append(line)
-    if clinical.get("plan"):
-        bits.append(f"Plan activo: «{clinical['plan']['title']}» (v{clinical['plan']['version']})")
-    metrics = clinical.get("metrics") or []
-    if metrics and metrics[0].get("weight_kg") is not None:
-        bits.append(f"Último peso: {metrics[0]['weight_kg']} kg ({metrics[0]['date']})")
-    contexto = " · ".join(bits) if bits else "Sin contexto de paciente."
-    return (
-        f"[{agent.upper()} · borrador, revisá antes de aplicar]\n{contexto}\n\n"
-        f"Sobre tu consulta: «{message}» — sugerencia preliminar: revisá la adherencia y la "
-        f"evolución reciente y ajustá porciones/macros en consecuencia.\n\n"
-        f"{_stub_footer()}"
+def _load_history(cur, conversation_id: str) -> list[dict]:
+    """Mensajes previos de la conversación, en orden cronológico. La ventana real la
+    acota el provider; acá traemos hasta 20 para tener margen."""
+    cur.execute(
+        "select role, content from agent_messages "
+        "where conversation_id = %s order by created_at asc limit 20",
+        (conversation_id, ),
     )
-
-
-def _plan_meal_names(body: dict | None) -> list[str]:
-    """Nombres de comidas del plan activo. Soporta layout `day` y `week` (primer día
-    cargado). Defensivo ante bodies degenerados/legacy."""
-    if not isinstance(body, dict):
-        return []
-    if body.get("layout") == "week":
-        days = body.get("days") or {}
-        day = next((d for d in days.values() if isinstance(d, dict)), {})
-    else:
-        day = body.get("day") or {}
-    meals = day.get("meals") if isinstance(day, dict) else None
-    if not isinstance(meals, list):
-        return []
-    return [m["name"] for m in meals if isinstance(m, dict) and m.get("name")]
-
-
-def _chef_reply(message: str, clinical: dict) -> str:
-    """CHEF: traduce el plan activo a ideas de recetas, respetando preferencias,
-    restricciones y alergias. Scopeado al mismo paciente que NUTRI."""
-    bits: list[str] = []
-    if clinical.get("full_name"):
-        bits.append(f"Paciente {clinical['full_name']}")
-    plan = clinical.get("plan")
-    if plan:
-        meals = _plan_meal_names(plan.get("body"))
-        comidas = (", ".join(meals)) if meals else "sin comidas cargadas"
-        bits.append(f"Plan «{plan['title']}» (v{plan['version']}) · comidas: {comidas}")
-    else:
-        bits.append("Sin plan activo: las ideas serán generales.")
-    restricciones: list[str] = []
-    if clinical.get("dietary_preferences"):
-        restricciones.append(f"preferencias/restricciones: {clinical['dietary_preferences']}")
-    if clinical.get("allergies"):
-        restricciones.append(f"alergias: {clinical['allergies']}")
-    if restricciones:
-        bits.append("A respetar — " + " · ".join(restricciones))
-    contexto = "\n".join(bits)
-    return (
-        f"[CHEF · borrador, revisá antes de aplicar]\n{contexto}\n\n"
-        f"Sobre tu pedido: «{message}» — idea preliminar: armá preparaciones simples para cada "
-        f"comida del plan, manteniendo porciones y macros objetivo y evitando todo lo listado en "
-        f"alergias/restricciones.\n\n"
-        f"{_stub_footer()}"
-    )
+    return [{"role": r[0], "content": r[1]} for r in cur.fetchall()]
 
 
 # ── persistencia ────────────────────────────────────────────────────────────────
@@ -216,9 +151,14 @@ def _insert_message(cur, ctx, conversation_id: str, role: str, content: str) -> 
     )
 
 
-def _insert_run(cur, ctx, conversation_id: str, agent: str, latency_ms: int) -> None:
+def _insert_run(cur, ctx, conversation_id: str, agent: str, result, latency_ms: int) -> None:
     cur.execute(
-        "insert into agent_runs (tenant_id, region, conversation_id, agent, model, latency_ms, status) "
-        "values (%s, %s, %s, %s, %s, %s, 'ok')",
-        (ctx.tenant_id, ctx.region, conversation_id, agent, f"{INFERENCE_PROVIDER}:{agent}", latency_ms),
+        "insert into agent_runs "
+        "(tenant_id, region, conversation_id, agent, model, input_tokens, output_tokens, "
+        " latency_ms, status) "
+        "values (%s, %s, %s, %s, %s, %s, %s, %s, 'ok')",
+        (
+            ctx.tenant_id, ctx.region, conversation_id, agent, result.model,
+            result.input_tokens, result.output_tokens, latency_ms,
+        ),
     )

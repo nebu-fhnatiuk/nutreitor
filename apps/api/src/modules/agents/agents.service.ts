@@ -1,4 +1,6 @@
 import {
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   ServiceUnavailableException,
@@ -13,6 +15,7 @@ import {
   assertCanAccessPatient,
   resolvePatientAccess,
 } from "../patients/patient-access.js";
+import { checkAgentBudget, loadAgentUsage } from "./agent-budget.js";
 
 /**
  * Gateway hacia el servicio de agentes (Python). NO ejecuta inferencia: valida la
@@ -35,6 +38,22 @@ export class AgentsService {
         const access = await resolvePatientAccess(tx);
         await assertCanAccessPatient(tx, dto.patientId!, access);
       });
+    }
+
+    // Tope de costo/abuso por tenant: si se pasó del rate o del cap mensual, cortamos
+    // ACÁ — no firmamos contexto ni egresamos al servicio de inferencia.
+    const usage = await this.tenantDb.run((tx) => loadAgentUsage(tx));
+    const verdict = checkAgentBudget(usage, {
+      ratePerMin: this.env.AGENTS_RATELIMIT_PER_MIN,
+      monthlyTokenCap: this.env.AGENTS_MONTHLY_TOKEN_CAP,
+    });
+    if (!verdict.ok) {
+      throw new HttpException(
+        verdict.reason === "rate"
+          ? "Demasiadas consultas al asistente en este momento. Probá en un minuto."
+          : "Se alcanzó el tope mensual de uso del asistente para esta organización.",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     const ctx = getTenantContext();

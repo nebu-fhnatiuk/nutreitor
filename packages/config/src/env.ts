@@ -54,6 +54,10 @@ export const apiEnvSchema = z
     AGENTS_SERVICE_URL: z.string().url().default("http://agents:8000"),
     AGENTS_SHARED_SECRET: z.string().min(16).default("dev-agents-shared-secret-change-me"),
     AGENTS_CONTEXT_TTL_MS: z.coerce.number().int().positive().default(60_000),
+    // Control de costo/abuso por tenant (se evalúa en el gateway antes de egresar).
+    // 0 = sin límite. El tope mensual se mide sobre el audit `agent_runs`.
+    AGENTS_RATELIMIT_PER_MIN: z.coerce.number().int().nonnegative().default(30),
+    AGENTS_MONTHLY_TOKEN_CAP: z.coerce.number().int().nonnegative().default(0),
   })
   .merge(databaseEnvSchema)
   .merge(authEnvSchema);
