@@ -48,6 +48,12 @@ export const apiEnvSchema = z
     // reemplaza por el slug de la org. En prod: https://{slug}.nutreitor.com
     WEB_ORIGIN_TEMPLATE: z.string().default("http://{slug}.localhost:3000"),
     INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
+    // Servicio de agentes (Python). El gateway Nest le reenvía con un contexto de
+    // tenant FIRMADO (HMAC). Defaults de dev para que la API booteé aunque el
+    // servicio no esté arriba; en prod se inyectan por Secrets Manager.
+    AGENTS_SERVICE_URL: z.string().url().default("http://agents:8000"),
+    AGENTS_SHARED_SECRET: z.string().min(16).default("dev-agents-shared-secret-change-me"),
+    AGENTS_CONTEXT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   })
   .merge(databaseEnvSchema)
   .merge(authEnvSchema);

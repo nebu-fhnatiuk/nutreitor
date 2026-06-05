@@ -15,6 +15,7 @@ import { PublicModule } from "./modules/public/public.module.js";
 import { ProfessionalsModule } from "./modules/professionals/professionals.module.js";
 import { PortalModule } from "./modules/portal/portal.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
+import { AgentsModule } from "./modules/agents/agents.module.js";
 
 /**
  * Raíz de la API.
@@ -44,6 +45,7 @@ import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
     ProfessionalsModule,
     PortalModule,
     SchedulingModule,
+    AgentsModule,
   ],
 })
 export class AppModule {}
