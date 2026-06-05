@@ -6,9 +6,11 @@ import type { AgentChatResponse } from "@nutreitor/shared";
 import { api } from "@/lib/api";
 
 type Msg = { role: "user" | "assistant"; content: string };
-type AgentKey = "nutri" | "chef";
+type AgentKey = "nutri";
 type Thread = { messages: Msg[]; conversationId?: string };
 
+// NUTRI es el único agente del lado del PROFESIONAL. CHEF y PSICO miran al paciente
+// y viven en el portal (ver ADR 0015 y components/portal/portal-assistant.tsx).
 const AGENTS: {
   key: AgentKey;
   label: string;
@@ -22,14 +24,6 @@ const AGENTS: {
     blurb: "Asiste sobre la evolución del paciente e ideas de ajuste del plan.",
     placeholder: "Ej.: ¿cómo viene la evolución y qué ajusto?",
     suggestions: ["¿Cómo viene la evolución?", "¿Qué ajusto del plan actual?"],
-  },
-  {
-    key: "chef",
-    label: "CHEF",
-    blurb:
-      "Traduce el plan activo a recetas concretas, respetando preferencias, restricciones y alergias.",
-    placeholder: "Ej.: dame recetas para el almuerzo del plan",
-    suggestions: ["Recetas para el plan de esta semana", "Ideas de desayuno sin lácteos"],
   },
 ];
 
@@ -48,7 +42,6 @@ export function AssistantDock({ patientId }: { patientId: string }) {
   const [agent, setAgent] = useState<AgentKey>("nutri");
   const [threads, setThreads] = useState<Record<AgentKey, Thread>>({
     nutri: { messages: [] },
-    chef: { messages: [] },
   });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -146,8 +139,8 @@ export function AssistantDock({ patientId }: { patientId: string }) {
               </button>
             </header>
 
-            {/* Tabs por agente */}
-            <div className="flex gap-1 border-b border-stone-200 px-3 pt-3">
+            {/* Tabs por agente (se ocultan si hay uno solo) */}
+            <div className={AGENTS.length > 1 ? "flex gap-1 border-b border-stone-200 px-3 pt-3" : "hidden"}>
               {AGENTS.map((a) => {
                 const active = a.key === agent;
                 return (

@@ -1,53 +1,58 @@
-# Flujo: agentes de IA (NUTRI / CHEF)
+# Flujo: agentes de IA (NUTRI / CHEF / PSICO)
 
-Asistentes que ayudan al **profesional** sobre un paciente. Viven en un **servicio
-Python separado** (`apps/agents`) — la decisión de sacarlos del monolito y su
-contrato están en el ADR
+Asistentes que viven en un **servicio Python separado** (`apps/agents`) — la decisión
+de sacarlos del monolito y su contrato están en el ADR
 [`../decisions/0013-agentes-servicio-ia.md`](../decisions/0013-agentes-servicio-ia.md)
 (seam de servicios: [`0012`](../decisions/0012-modular-monolith-evolucion-a-servicios.md)).
-El front nunca habla directo con el servicio: pasa por el **gateway** Nest, que
-valida sesión + acceso al paciente y reenvía con un **contexto de tenant firmado**.
+El front nunca habla directo con el servicio: pasa por el **gateway** Nest, que valida
+sesión + acceso y reenvía con un **contexto de tenant firmado**.
 
-Hoy hay dos agentes:
+Hay **dos caras** (ver ADR [`0015`](../decisions/0015-agentes-del-paciente-psico-supervisado.md)):
 
+**Lado profesional** (`agent:use`, `POST /agents/chat`):
 - **NUTRI** — asiste sobre la **evolución** del paciente e ideas de **ajuste del plan**.
-- **CHEF** — traduce el **plan activo** a **recetas** concretas, respetando
-  preferencias, restricciones y **alergias**.
+  Su output es un **borrador** que el profesional revisa; nunca se aplica solo.
 
-Ambos producen un **borrador** que el profesional revisa: nunca se aplica solo.
+**Lado paciente** (`portal:agent`, `POST /portal/agents/chat`, sobre la PROPIA ficha):
+- **CHEF** — traduce el **plan activo** a **recetas**, respetando preferencias,
+  restricciones y **alergias**.
+- **PSICO** — acompañamiento emocional. **Supervisado**: requiere profesional asignado,
+  las charlas le quedan visibles, y tiene **guardrail de crisis**.
 
-Modelo (`agent_conversations`, `agent_messages`, `agent_runs`) y los GRANT del rol
-`nutreitor_agents` en
+Ambos lados requieren **consentimiento** del paciente (ver más abajo).
+
+Modelo (`agent_conversations`, `agent_messages`, `agent_runs`, `agent_consents`) y los
+GRANT del rol `nutreitor_agents` en
 [`../architecture/data-model.md`](../architecture/data-model.md).
 
 ## De punta a punta
 
 ```mermaid
 flowchart TD
-  subgraph web["Web (dock flotante en la ficha)"]
-    A["el pro elige NUTRI o CHEF y escribe"] --> B["POST /agents/chat<br/>agent, patientId, conversationId?, message"]
-  end
-  B --> G{"Gateway Nest (capability agent:use)"}
-  G --> H["scoping assigned-only: el paciente debe ser accesible<br/>admin = todos, profesional = sólo asignados"]
-  H -->|no| H0["404 — no accesible"]
-  H -->|sí| S["firma contexto HMAC+TTL<br/>tenantId, region, userId, role, exp"]
-  S --> P["POST agents:8000/chat (header x-agent-context)"]
-  P --> V{"servicio Python verifica la firma"}
-  V -->|inválida o vencida| V0["401 — fail-closed, no abre tx"]
-  V -->|ok| T["abre tx como nutreitor_agents (sin BYPASSRLS)<br/>SET LOCAL app.current_tenant_id"]
-  T --> C["lee el contexto clínico bajo RLS<br/>(ficha, plan activo, evolución)"]
-  C --> I["inferencia: provider stub en dev<br/>real Anthropic bajo BAA"]
-  I --> W["persiste conversación + mensajes + run (audit)"]
-  W --> R["responde conversationId + reply"]
+  A["pro (NUTRI) o paciente (CHEF/PSICO) escribe"] --> B{"Gateway Nest"}
+  B --> G1["pro: capability agent:use + scoping assigned-only<br/>paciente: capability portal:agent + resuelve SU ficha"]
+  G1 --> CO{"consentimiento del paciente vigente"}
+  CO -->|falta| CO0["403 — aceptar primero"]
+  CO -->|ok| PS{"PSICO y sin profesional asignado"}
+  PS -->|sí| PS0["403 — PSICO necesita profesional"]
+  PS -->|no| BUD{"tope de costo por tenant"}
+  BUD -->|excedido| BUD0["429"]
+  BUD -->|ok| S["firma contexto HMAC+TTL y reenvía"]
+  S --> V{"servicio Python verifica la firma"}
+  V -->|inválida| V0["401 — fail-closed"]
+  V -->|ok| CR{"PSICO y detección de crisis"}
+  CR -->|sí| CRR["status=crisis: contención + recursos de emergencia"]
+  CR -->|no| T["tx como nutreitor_agents bajo RLS<br/>lee contexto + infiere (stub | bedrock)"]
+  CRR --> W["persiste conversación + mensajes + run (audit)"]
+  T --> W
+  W --> R["responde conversationId + reply (+ crisis)"]
 ```
 
-- **Defensa en profundidad**: el gateway ya chequea el acceso al paciente *antes* de
-  salir del proceso; el servicio igual opera bajo **RLS** con un rol propio
-  (equivalente a `nutreitor_app`, sin BYPASSRLS), así un bug del gateway no alcanza
-  para cruzar tenants. Sin contexto firmado válido y vigente **no hay tenant** y el
-  servicio no abre nada.
-- **Hilo**: cada `(agente, paciente)` mantiene su conversación; el front reusa el
-  `conversationId` para continuar. En el dock, NUTRI y CHEF tienen hilos separados.
+- **Defensa en profundidad**: el gateway chequea acceso/consentimiento/tope *antes* de
+  salir del proceso; el servicio igual opera bajo **RLS** con un rol propio (sin
+  BYPASSRLS). Sin contexto firmado válido **no hay tenant** y no abre nada.
+- **Hilo**: cada conversación se continúa con su `conversationId`. El paciente nunca
+  manda un `patientId`: el gateway resuelve "mi ficha" por la sesión.
 
 ## Contexto clínico por agente
 
@@ -59,6 +64,21 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
 - **CHEF**: además del paciente y el plan, **lee el cuerpo del plan** (`body` jsonb,
   layouts `day`/`week`) para derivar las **comidas**, más `dietary_preferences` y
   `allergies` para respetarlas en las recetas.
+- **PSICO**: el contexto del paciente; el foco está en la conversación, no en datos.
+
+## Consentimiento, crisis y supervisión (lado paciente)
+
+- **Consentimiento** (opt-in): antes del primer uso, el paciente acepta un
+  consentimiento informado (no es terapia / no es emergencia / su profesional puede
+  ver las charlas). Se registra en `agent_consents` (versión + fecha). El gateway lo
+  exige (`GET/POST /portal/agents/consent`).
+- **Crisis (PSICO)**: una heurística **PRE-inferencia** (palabras clave es-AR) detecta
+  señales de autolesión/suicidio antes de llamar a ningún provider. En crisis no se
+  sigue la charla: se responde con **contención + recursos de emergencia** (AR: 135 /
+  0800-345-1435 / 911 / SAME 107) y el run queda con `status = 'crisis'`.
+- **Supervisión**: el profesional asignado ve las charlas del paciente
+  (`GET /agents/conversations`), con las de crisis **marcadas**. La notificación activa
+  (email/push) queda pendiente; hoy se asienta y se hace visible en la ficha.
 
 ## Provider de inferencia
 
@@ -86,13 +106,16 @@ se deriva del audit `agent_runs` (input+output tokens) leído bajo RLS.
 
 ## Autorización y UI
 
-- Capacidad **`agent:use`** (admin + profesional; el paciente no la tiene).
-- UI: **dock flotante** ("✨ Asistentes") siempre visible en la ficha del paciente,
-  con tabs **NUTRI / CHEF**. Cada respuesta se marca como **borrador · revisá vos**.
+- **`agent:use`** (admin + profesional) → NUTRI + supervisión de charlas del paciente.
+- **`portal:agent`** (paciente) → CHEF + PSICO sobre la propia ficha.
+- UI profesional: **dock flotante** ("✨ Asistentes") en la ficha con **NUTRI**
+  (borrador · revisá vos) + sección **"Charlas con asistentes"** (supervisión, con flag
+  de crisis). UI paciente: dock en el portal con **CHEF / PSICO**, pantalla de
+  consentimiento previa, y la respuesta de crisis resaltada con recursos.
 
 ## Pendiente
 
 **Activar** el provider `bedrock` (gate legal: BAA AWS + consentimiento), pool de
 conexiones en el servicio Python + CI del toolchain, override de tope **por tenant**
-(hoy global por env), y **PSICO** (detección de crisis + escalamiento humano +
-consentimiento, con guardrails más duros).
+(hoy global por env), **notificación activa** de crisis al profesional (necesita
+worker), y recursos de emergencia **configurables por región** (hoy AR hardcodeado).

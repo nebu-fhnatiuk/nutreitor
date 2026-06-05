@@ -36,12 +36,16 @@ hospitales) con aislamiento de datos fuerte.
    **pública** (lead → cita desde la vidriera, sin login). Agenda en `/pro/agenda`.
 10. **Landing de producto** (host raíz, dirección "editorial cálido") que vende la
     plataforma al nutricionista independiente.
-11. **Agentes de IA** (`apps/agents`, servicio Python separado — ver ADR 0013): **NUTRI**
-    (asiste sobre la evolución/ajuste del plan) y **CHEF** (traduce el plan activo a
-    recetas respetando preferencias/restricciones/alergias). El gateway Nest valida
-    sesión + acceso al paciente y reenvía con un **contexto de tenant firmado** (HMAC+TTL);
-    el servicio lee bajo **RLS** con rol propio. En dev corre un **provider stub** (sin IA
-    real ni PHI a la nube hasta firmar el BAA). UI: dock flotante en la ficha del paciente.
+11. **Agentes de IA** (`apps/agents`, servicio Python separado — ver ADRs 0013–0015).
+    Dos caras: el **profesional** usa **NUTRI** (evolución/ajuste del plan, output =
+    borrador a revisar); el **paciente**, en su portal, usa **CHEF** (recetas de su plan,
+    respetando restricciones/alergias) y **PSICO** (acompañamiento emocional,
+    **supervisado**: requiere profesional asignado, charlas visibles para él y
+    **guardrail de crisis** con recursos de emergencia). Requieren **consentimiento** del
+    paciente. El gateway Nest valida sesión + acceso y reenvía con un **contexto de tenant
+    firmado** (HMAC+TTL); el servicio lee bajo **RLS** con rol propio. Provider real
+    (Claude vía **AWS Bedrock**) + **tope de costo por tenant** ya construidos, detrás de
+    `INFERENCE_PROVIDER` (default **stub**: sin IA real ni PHI a la nube).
 
 ---
 
@@ -279,13 +283,13 @@ producción). Nunca se commitean secrets reales.
 
 ## Fuera de alcance (con el lugar reservado)
 
-- **Agentes — lo que falta**: NUTRI y CHEF ya viven en `apps/agents` (servicio Python,
-  ver arriba y ADRs 0013/0014). El provider real (**Claude vía AWS Bedrock**, con prompt
-  caching) y el **tope de costo/rate-limit por tenant** ya están **construidos** —
-  detrás de `INFERENCE_PROVIDER` (default **stub**). Queda fuera por ahora: **activar**
-  Bedrock (gate legal: BAA AWS + consentimiento; en AR rige la Ley 25.326), pool de
-  conexiones + CI del toolchain Python, override de tope por tenant, y **PSICO**
-  (crisis + escalamiento humano + consentimiento).
+- **Agentes — lo que falta**: NUTRI, CHEF y PSICO ya viven en `apps/agents` (ver arriba
+  y ADRs 0013–0015), con provider real (**Claude vía AWS Bedrock**) + **tope de costo por
+  tenant** construidos detrás de `INFERENCE_PROVIDER` (default **stub**). Queda fuera por
+  ahora: **activar** Bedrock (gate legal: BAA AWS + consentimiento; en AR rige la Ley
+  25.326), **notificación activa** de crisis al profesional (necesita worker), recursos de
+  emergencia configurables por región (hoy AR), pool de conexiones + CI del toolchain
+  Python, y override de tope por tenant.
 - **Agendamiento — deuda del MVP**: el motor ya está (Sprint 3, motor propio; ver el
   ADR `docs/decisions/0011`). Queda fuera por ahora: sync con Google/Outlook Calendar,
   **recordatorios** (necesitan cron/worker — sólo hay confirmación al reservar), email

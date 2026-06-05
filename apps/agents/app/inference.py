@@ -32,6 +32,10 @@ class InferenceResult:
     input_tokens: int | None
     output_tokens: int | None
     model: str
+    # ok | crisis (guardrail PSICO) | error. Se persiste en agent_runs.status y la
+    # crisis se le notifica al profesional asignado.
+    status: str = "ok"
+    crisis: bool = False
 
 
 # ── system prompts por agente ──────────────────────────────────────────────────
@@ -56,7 +60,61 @@ _CHEF_SYSTEM = (
     "español rioplatense."
 )
 
-_SYSTEM_BY_AGENT = {"nutri": _NUTRI_SYSTEM, "chef": _CHEF_SYSTEM}
+_PSICO_SYSTEM = (
+    "Sos PSICO, un asistente de ACOMPAÑAMIENTO emocional para el PACIENTE en su "
+    "relación con la comida y el tratamiento. NO sos terapia ni un servicio de "
+    "emergencia, y NO reemplazás a un profesional. Reglas IRRENUNCIABLES: no "
+    "diagnostiques ni indiques medicación; ofrecé escucha, psicoeducación y técnicas "
+    "simples de regulación; si detectás riesgo (autolesión, suicidio, daño a terceros) "
+    "NO sigas como si nada: validá, sugerí buscar ayuda inmediata y derivá a recursos "
+    "de emergencia y a su profesional. Hablás con la persona en primera persona, en "
+    "español rioplatense, con calidez y sin tecnicismos. Recordale que su profesional "
+    "puede ver estas conversaciones."
+)
+
+_SYSTEM_BY_AGENT = {"nutri": _NUTRI_SYSTEM, "chef": _CHEF_SYSTEM, "psico": _PSICO_SYSTEM}
+
+# Detección de crisis (red de seguridad PRE-inferencia, vale para todo provider).
+# Heurística por palabras clave en es-AR: deliberadamente sensible (preferimos un
+# falso positivo —mostrar recursos de más— a dejar pasar una crisis real). El
+# provider real puede sumar un clasificador, pero este corte va SIEMPRE primero.
+_CRISIS_PATTERNS = (
+    "suicid", "matarme", "me quiero morir", "no quiero vivir", "no quiero seguir",
+    "quitarme la vida", "terminar con todo", "lastimarme", "hacerme daño",
+    "hacerme dano", "autolesion", "cortarme", "no aguanto mas", "no aguanto más",
+)
+
+# Recursos de emergencia (Argentina). Configurables a futuro por región del tenant.
+_CRISIS_RESOURCES_AR = (
+    "Centro de Asistencia al Suicida — Línea 135 (CABA/GBA) o 0800-345-1435 (todo el país)",
+    "Emergencias: 911 · Emergencias médicas SAME: 107",
+    "Salud mental (Ministerio de Salud): 0800-222-1002, opción 4",
+)
+
+
+def _detect_crisis(message: str) -> bool:
+    low = message.lower()
+    return any(p in low for p in _CRISIS_PATTERNS)
+
+
+def _crisis_result() -> InferenceResult:
+    recursos = "\n".join(f"• {r}" for r in _CRISIS_RESOURCES_AR)
+    reply = (
+        "Lo que estás sintiendo importa y no tenés que atravesarlo solo/a. No soy un "
+        "servicio de emergencia, pero quiero que estés a salvo ahora mismo. Si pensás "
+        "en hacerte daño o estás en peligro, comunicate ya con:\n\n"
+        f"{recursos}\n\n"
+        "Avisé a tu profesional para que pueda acompañarte. Si podés, contale a alguien "
+        "de confianza lo que te pasa. Estoy acá para escucharte."
+    )
+    return InferenceResult(
+        reply=reply,
+        input_tokens=None,
+        output_tokens=None,
+        model="guardrail:crisis",
+        status="crisis",
+        crisis=True,
+    )
 
 
 def _clinical_block(clinical: dict) -> str:
@@ -95,6 +153,9 @@ def _clinical_block(clinical: dict) -> str:
 def infer(agent: str, message: str, clinical: dict, history: list[dict]) -> InferenceResult:
     """Punto único de inferencia. `history` = mensajes previos del hilo
     [{role, content}], en orden cronológico."""
+    # Guardrail PSICO: la crisis se corta ANTES de inferir (vale para todo provider).
+    if agent == "psico" and _detect_crisis(message):
+        return _crisis_result()
     if INFERENCE_PROVIDER == "stub":
         return _stub(agent, message, clinical)
     if INFERENCE_PROVIDER == "bedrock":
@@ -114,10 +175,17 @@ def _stub(agent: str, message: str, clinical: dict) -> InferenceResult:
     block = _clinical_block(clinical)
     if agent == "chef":
         body = (
-            f"[CHEF · borrador, revisá antes de aplicar]\n{block}\n\n"
-            f"Sobre tu pedido: «{message}» — idea preliminar: armá preparaciones simples "
-            f"para cada comida del plan, manteniendo porciones y macros objetivo y "
-            f"evitando todo lo listado en alergias/restricciones."
+            f"[CHEF]\nTu plan: {block}\n\n"
+            f"Sobre tu pedido: «{message}» — idea: con los alimentos de tu plan podés armar "
+            f"preparaciones simples respetando tus porciones y evitando lo que no te cae bien. "
+            f"Si algo no te cierra, consultalo con tu profesional."
+        )
+    elif agent == "psico":
+        body = (
+            "[PSICO]\nGracias por compartir cómo te sentís. No soy terapia ni un servicio de "
+            f"emergencia, pero estoy para escucharte. Sobre lo que me contás («{message}»): "
+            "probá registrar qué situaciones disparan eso y hablalo con tu profesional, que "
+            "puede ver estas charlas y acompañarte mejor."
         )
     else:
         body = (

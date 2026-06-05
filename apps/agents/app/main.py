@@ -72,7 +72,13 @@ def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) 
                 _insert_message(cur, ctx, conversation_id, "assistant", result.reply)
                 _insert_run(cur, ctx, conversation_id, body.agent, result, latency_ms)
 
-    return {"conversationId": conversation_id, "reply": result.reply, "status": "ok"}
+    return {
+        "conversationId": conversation_id,
+        "reply": result.reply,
+        # La crisis viaja como `blocked` + flag para que la UI muestre recursos.
+        "status": "blocked" if result.crisis else "ok",
+        "crisis": result.crisis,
+    }
 
 
 # ── lectura del contexto clínico (bajo RLS) ─────────────────────────────────────
@@ -156,9 +162,9 @@ def _insert_run(cur, ctx, conversation_id: str, agent: str, result, latency_ms: 
         "insert into agent_runs "
         "(tenant_id, region, conversation_id, agent, model, input_tokens, output_tokens, "
         " latency_ms, status) "
-        "values (%s, %s, %s, %s, %s, %s, %s, %s, 'ok')",
+        "values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (
             ctx.tenant_id, ctx.region, conversation_id, agent, result.model,
-            result.input_tokens, result.output_tokens, latency_ms,
+            result.input_tokens, result.output_tokens, latency_ms, result.status,
         ),
     )
