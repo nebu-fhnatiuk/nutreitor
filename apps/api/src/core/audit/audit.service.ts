@@ -30,6 +30,8 @@ export type AuditAction =
   | "appointment.rescheduled"
   | "org.branding_updated"
   | "org.public_profile_updated"
+  | "module.installed"
+  | "module.uninstalled"
   | "roster.updated"
   | "professional.profile_updated";
 

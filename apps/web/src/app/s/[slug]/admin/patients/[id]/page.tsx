@@ -25,7 +25,7 @@ export default async function AdminPatientPage({
         canRecord
         canWritePlan
         canEditVisibility
-        canUseAgent
+        canUseAgent={me.modules.includes("agents")}
         canAssign
         canInvite
       />

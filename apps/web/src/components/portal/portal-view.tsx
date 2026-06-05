@@ -118,7 +118,9 @@ export function PortalView() {
 
       {me.profile.clinical && <ClinicalCard clinical={me.profile.clinical} goal={me.profile.goal} />}
 
-      <PortalAssistant />
+      {me.modules.includes("agents") && (
+        <PortalAssistant hasAssignedProfessional={me.hasAssignedProfessional} />
+      )}
     </div>
   );
 }

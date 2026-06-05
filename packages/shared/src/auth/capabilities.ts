@@ -32,6 +32,7 @@ export const capabilities = [
   "portal:book",
   "portal:agent",
   "org:read",
+  "org:manage_modules",
   "org:update_branding",
   "org:update_public_profile",
   "professional:update_own_profile",

@@ -37,6 +37,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `agent_messages` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Mensajes user/assistant de un hilo. |
 | `agent_runs` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Audit por llamada (modelo, tokens, latencia, `status`: ok/crisis/error). Base del tope de costo y del flag de crisis. |
 | `agent_consents` | Tenant-scoped (RLS) | `tenant_id` | Consentimiento del paciente para asistentes del portal (versión + fecha). |
+| `org_modules` | Tenant-scoped (RLS) | `tenant_id` | Complementos instalables por org (entitlements). Una fila por `(tenant, module)`; `status` active/inactive, `plan`, `terms_version`. Gatea features vía `ModuleGuard`. |
 
 > `users` es la **única** tabla global. Todo lo demás está aislado por tenant.
 >
@@ -98,6 +99,7 @@ erDiagram
   organizations ||--o{ agent_messages         : "scopes"
   organizations ||--o{ agent_runs             : "scopes"
   organizations ||--o{ agent_consents         : "scopes"
+  organizations ||--o{ org_modules            : "installs"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -356,6 +358,19 @@ erDiagram
     uuid patient_id FK
     text version
     timestamptz accepted_at
+  }
+
+  org_modules {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    text module "ej. 'agents'"
+    text status "active|inactive"
+    text plan
+    text terms_version
+    uuid installed_by_membership_id
+    timestamptz installed_at
+    timestamptz uninstalled_at
   }
 ```
 

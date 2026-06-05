@@ -36,7 +36,10 @@ hospitales) con aislamiento de datos fuerte.
    **pública** (lead → cita desde la vidriera, sin login). Agenda en `/pro/agenda`.
 10. **Landing de producto** (host raíz, dirección "editorial cálido") que vende la
     plataforma al nutricionista independiente.
-11. **Agentes de IA** (`apps/agents`, servicio Python separado — ver ADRs 0013–0015).
+11. **Agentes de IA** (`apps/agents`, servicio Python separado — ver ADRs 0013–0016).
+    Es un **complemento instalable por organización** (`org_modules`, apagado por
+    default; el admin lo instala en *Configuración → Complementos* aceptando plan +
+    términos; `ModuleGuard` corta con 403 si no está activo — ver ADR 0016).
     Dos caras: el **profesional** usa **NUTRI** (evolución/ajuste del plan, output =
     borrador a revisar); el **paciente**, en su portal, usa **CHEF** (recetas de su plan,
     respetando restricciones/alergias) y **PSICO** (acompañamiento emocional,
