@@ -13,6 +13,7 @@ export * from "./meal-plans.js";
 export * from "./audit-log.js";
 export * from "./professional-profiles.js";
 export * from "./scheduling.js";
+export * from "./agents.js";
 
 import { organizations } from "./organizations.js";
 import { locations } from "./locations.js";
@@ -28,6 +29,7 @@ import { mealPlans } from "./meal-plans.js";
 import { auditLog } from "./audit-log.js";
 import { professionalProfiles } from "./professional-profiles.js";
 import { availabilityRules, appointments } from "./scheduling.js";
+import { agentConversations, agentMessages, agentRuns } from "./agents.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -46,4 +48,7 @@ export const schema = {
   professionalProfiles,
   availabilityRules,
   appointments,
+  agentConversations,
+  agentMessages,
+  agentRuns,
 };

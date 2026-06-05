@@ -26,6 +26,7 @@ export const capabilities = [
   "plan:write",
   "appointment:read",
   "appointment:write",
+  "agent:use",
   "portal:read",
   "portal:self_report",
   "portal:book",
@@ -54,6 +55,7 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     "plan:write",
     "appointment:read",
     "appointment:write",
+    "agent:use",
     "org:read",
     "professional:update_own_profile",
     // NO `patient:create` ni `patient:assign`: el ALTA y la asignación son del
