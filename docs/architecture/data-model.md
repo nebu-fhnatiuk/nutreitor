@@ -33,8 +33,16 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
 | `availability_rules` | Tenant-scoped (RLS) | `tenant_id` | Disponibilidad semanal por `membership`, con huso IANA. |
 | `appointments` | Tenant-scoped (RLS) | `tenant_id` | Citas; `starts_at`/`ends_at` UTC. No-overlap por profesional vía `EXCLUDE gist`. Sin DELETE (se cancela). |
+| `agent_conversations` | Tenant-scoped (RLS) | `tenant_id` | Hilo de un agente (NUTRI/CHEF/PSICO), opcionalmente sobre un paciente. |
+| `agent_messages` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Mensajes user/assistant de un hilo. |
+| `agent_runs` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Audit por llamada (modelo, tokens, latencia, `status`: ok/crisis/error). Base del tope de costo y del flag de crisis. |
+| `agent_consents` | Tenant-scoped (RLS) | `tenant_id` | Consentimiento del paciente para asistentes del portal (versión + fecha). |
 
 > `users` es la **única** tabla global. Todo lo demás está aislado por tenant.
+>
+> Las tablas `agent_*` las escribe el **servicio Python** con un rol propio
+> `nutreitor_agents` (sin `BYPASSRLS`, igual que `nutreitor_app`), bajo las mismas
+> policies de RLS. Ver flujo [`../flows/agents.md`](../flows/agents.md) y ADRs 0013–0015.
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
 > demás tablas referencian su `id` como `tenant_id` / `organization_id`.
 
@@ -86,6 +94,10 @@ erDiagram
   organizations ||--o{ availability_rules      : "scopes"
   organizations ||--o{ appointments            : "scopes"
   organizations ||--o{ audit_log              : "scopes (RESTRICT)"
+  organizations ||--o{ agent_conversations    : "scopes"
+  organizations ||--o{ agent_messages         : "scopes"
+  organizations ||--o{ agent_runs             : "scopes"
+  organizations ||--o{ agent_consents         : "scopes"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -106,6 +118,10 @@ erDiagram
   patients ||--o{ patient_metrics  : "has"
   patients ||--o{ meal_plans       : "has"
   patients ||--o{ appointments     : "books"
+  patients ||--o{ agent_conversations : "subject of"
+  patients ||--o{ agent_consents      : "consents"
+
+  agent_conversations ||--o{ agent_messages : "contains"
   patients |o--o{ invitations      : "links (SET NULL)"
 
   locations |o--o{ patients         : "based at (SET NULL)"
@@ -297,6 +313,49 @@ erDiagram
     uuid target_id
     jsonb metadata
     timestamptz created_at "append-only"
+  }
+
+  agent_conversations {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    agent_kind agent "nutri|chef|psico"
+    uuid patient_id FK "nullable; SET NULL"
+    uuid created_by_membership_id
+    timestamptz created_at
+  }
+
+  agent_messages {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid conversation_id FK
+    agent_message_role role "user|assistant"
+    text content
+    timestamptz created_at "append-only"
+  }
+
+  agent_runs {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid conversation_id
+    agent_kind agent
+    text model
+    integer input_tokens
+    integer output_tokens
+    integer latency_ms
+    text status "ok|crisis|error; append-only"
+    timestamptz created_at
+  }
+
+  agent_consents {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid patient_id FK
+    text version
+    timestamptz accepted_at
   }
 ```
 

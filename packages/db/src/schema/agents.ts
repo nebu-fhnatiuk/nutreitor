@@ -7,6 +7,7 @@ import {
   integer,
   index,
   foreignKey,
+  timestamp,
 } from "drizzle-orm/pg-core";
 
 import { tenantColumns, timestamps } from "./_shared.js";
@@ -98,6 +99,39 @@ export const agentRuns = pgTable(
   ],
 );
 
+/**
+ * Consentimiento del paciente para los asistentes del portal (CHEF/PSICO). Dato
+ * sensible (Ley 25.326): se exige antes del primer uso y se registra para auditoría.
+ * Ver migración 0024 y ADR 0015.
+ */
+export const agentConsents = pgTable(
+  "agent_consents",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    ...tenantColumns,
+    patientId: uuid("patient_id").notNull(),
+    /** Versión del texto aceptado (permite re-consentir si cambia). */
+    version: text("version").notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    index("agent_consents_patient_idx").on(table.patientId, table.acceptedAt),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organizations.id],
+      name: "agent_consents_tenant_id_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.patientId],
+      foreignColumns: [patients.id],
+      name: "agent_consents_patient_id_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export type AgentConversation = typeof agentConversations.$inferSelect;
 export type AgentMessage = typeof agentMessages.$inferSelect;
 export type AgentRun = typeof agentRuns.$inferSelect;
+export type AgentConsent = typeof agentConsents.$inferSelect;

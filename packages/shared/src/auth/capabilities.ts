@@ -30,6 +30,7 @@ export const capabilities = [
   "portal:read",
   "portal:self_report",
   "portal:book",
+  "portal:agent",
   "org:read",
   "org:update_branding",
   "org:update_public_profile",
@@ -66,7 +67,7 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
   ],
   // El paciente opera SÓLO su portal (su propia entidad), nunca el panel de
   // gestión. El portal resuelve "mi paciente" por userId (además de RLS de tenant).
-  patient: ["org:read", "portal:read", "portal:self_report", "portal:book"],
+  patient: ["org:read", "portal:read", "portal:self_report", "portal:book", "portal:agent"],
 };
 
 /** Capacidades de un rol (defensivo ante un rol desconocido). */

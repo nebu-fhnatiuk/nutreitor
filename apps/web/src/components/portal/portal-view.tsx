@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { PlanView } from "@/components/patients/meal-plan-panel";
 import { PortalAppointments } from "./portal-appointments";
+import { PortalAssistant } from "./portal-assistant";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -116,6 +117,8 @@ export function PortalView() {
       </section>
 
       {me.profile.clinical && <ClinicalCard clinical={me.profile.clinical} goal={me.profile.goal} />}
+
+      <PortalAssistant />
     </div>
   );
 }

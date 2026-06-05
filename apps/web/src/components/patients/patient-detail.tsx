@@ -14,6 +14,7 @@ import {
 import { api } from "@/lib/api";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
+import { AgentConversations } from "./agent-conversations";
 import { MemberSelect } from "./member-select";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -202,6 +203,8 @@ export function PatientDetail({
       <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />
 
       <MetricsPanel patientId={p.id} canRecord={canRecord} />
+
+      {canUseAgent && <AgentConversations patientId={p.id} />}
 
       {canUseAgent && <AssistantDock patientId={p.id} />}
     </div>
