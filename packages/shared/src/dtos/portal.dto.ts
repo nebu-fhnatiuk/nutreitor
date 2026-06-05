@@ -26,4 +26,8 @@ export interface PortalMeDto {
   metrics: PatientMetricDto[];
   /** La sesión puede auto-reportar mediciones. */
   canSelfReport: boolean;
+  /** Módulos ACTIVOS de la org (ej. "agents"); la UI del portal gatea features. */
+  modules: string[];
+  /** El paciente tiene un profesional asignado activo (habilita PSICO supervisado). */
+  hasAssignedProfessional: boolean;
 }

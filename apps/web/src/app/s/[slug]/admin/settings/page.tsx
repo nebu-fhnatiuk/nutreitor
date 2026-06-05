@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { BrandingForm } from "@/components/branding-form";
+import { ModulesManager } from "@/components/admin/modules-manager";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe, fetchTenant } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -24,6 +25,12 @@ export default async function SettingsPage({
         Branding white-label de la organización.
       </p>
       <BrandingForm initial={branding} />
+
+      <h2 className="mt-12 font-serif text-xl font-semibold tracking-tight">Complementos</h2>
+      <p className="mt-1 mb-6 text-sm text-stone-500">
+        Funcionalidades opcionales que podés instalar para tu organización.
+      </p>
+      <ModulesManager />
     </WorkspaceShell>
   );
 }

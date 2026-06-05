@@ -11,8 +11,10 @@ import {
 } from "@nutreitor/shared";
 
 import { CapabilityGuard } from "../../core/auth/capability.guard.js";
+import { ModuleGuard } from "../../core/auth/module.guard.js";
 import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
+import { RequireModule } from "../../core/auth/require-module.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AgentsService } from "./agents.service.js";
 
@@ -22,7 +24,8 @@ import { AgentsService } from "./agents.service.js";
  * (CHEF/PSICO). El scoping fino y la firma del contexto los hace el service.
  */
 @Controller("agents")
-@UseGuards(JwtAuthGuard, CapabilityGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard, ModuleGuard)
+@RequireModule("agents")
 export class AgentsController {
   constructor(private readonly agents: AgentsService) {}
 
@@ -58,7 +61,8 @@ export class AgentsController {
  * Requiere consentimiento; PSICO además requiere profesional asignado (supervisado).
  */
 @Controller("portal/agents")
-@UseGuards(JwtAuthGuard, CapabilityGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard, ModuleGuard)
+@RequireModule("agents")
 export class PortalAgentsController {
   constructor(private readonly agents: AgentsService) {}
 

@@ -25,6 +25,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { APP_ENV, type ApiEnv } from "../config/app-config.module.js";
 import { generateToken, hashToken } from "../crypto/tokens.js";
 import { AdminDbService } from "../database/admin-db.service.js";
+import { TenantDbService } from "../database/tenant-db.service.js";
+import { loadActiveModuleKeys } from "../../modules/organizations/active-modules.js";
 import { TenantResolverService } from "./tenant-resolver.service.js";
 
 export interface AccessPayload {
@@ -82,6 +84,7 @@ export class AuthService {
     private readonly admin: AdminDbService,
     private readonly tenantResolver: TenantResolverService,
     private readonly jwt: JwtService,
+    private readonly tenantDb: TenantDbService,
     @Inject(APP_ENV) private readonly env: ApiEnv,
   ) {}
 
@@ -232,7 +235,11 @@ export class AuthService {
   ): Promise<MeResponse> {
     const user = await this.getUserById(userId);
     if (!user) throw invalid();
-    return { user, org, role, capabilities: capabilitiesForRole(role) };
+    // Módulos activos de la org (entitlements): la UI gatea features con esto; el
+    // corte real lo hace el ModuleGuard en el servidor. `runAs` con el tenant
+    // EXPLÍCITO: buildMe corre también en login, cuando todavía no hay ALS.
+    const modules = await this.tenantDb.runAs(org.id, (tx) => loadActiveModuleKeys(tx));
+    return { user, org, role, capabilities: capabilitiesForRole(role), modules };
   }
 
   /**
@@ -305,6 +312,9 @@ export class AuthService {
       },
     );
 
+    // Módulos activos de la org (tenant explícito: este flujo corre sin ALS).
+    const modules = await this.tenantDb.runAs(org.id, (tx) => loadActiveModuleKeys(tx));
+
     return {
       accessToken,
       refreshToken,
@@ -313,6 +323,7 @@ export class AuthService {
         org,
         role,
         capabilities: capabilitiesForRole(role),
+        modules,
         redirect: roleHome[role],
       },
     };

@@ -41,6 +41,8 @@ export interface MeResponse {
   role: MembershipRole;
   /** Capacidades del rol en este tenant; la UI gatea acciones con esto. */
   capabilities: Capability[];
+  /** Módulos/complementos ACTIVOS de la org (ej. "agents"); la UI gatea features. */
+  modules: string[];
 }
 
 /** /auth/login agrega la ruta de destino por rol. */

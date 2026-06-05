@@ -42,7 +42,14 @@ const inputCls =
  * PSICO (la respuesta de contención se resalta con recursos de emergencia). El back
  * resuelve "mi ficha"; PSICO sólo se habilita con profesional asignado.
  */
-export function PortalAssistant() {
+export function PortalAssistant({
+  hasAssignedProfessional,
+}: {
+  hasAssignedProfessional: boolean;
+}) {
+  // PSICO es supervisado: sólo se ofrece si hay profesional asignado (el back igual
+  // lo exige). CHEF está siempre.
+  const agents = hasAssignedProfessional ? AGENTS : AGENTS.filter((a) => a.key !== "psico");
   const [open, setOpen] = useState(false);
   const [consent, setConsent] = useState<AgentConsentDto | null>(null);
   const [agent, setAgent] = useState<AgentKey>("chef");
@@ -162,7 +169,7 @@ export function PortalAssistant() {
             ) : (
               <>
                 <div className="flex gap-1 border-b border-stone-200 px-3 pt-3">
-                  {AGENTS.map((a) => {
+                  {agents.map((a) => {
                     const active = a.key === agent;
                     return (
                       <button

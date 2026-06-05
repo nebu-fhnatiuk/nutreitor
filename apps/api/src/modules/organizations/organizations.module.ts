@@ -4,6 +4,8 @@ import { AuthModule } from "../../core/auth/auth.module.js";
 import { BrandingController } from "./branding.controller.js";
 import { OrganizationsController } from "./organizations.controller.js";
 import { OrganizationsService } from "./organizations.service.js";
+import { OrgModulesController } from "./org-modules.controller.js";
+import { OrgModulesService } from "./org-modules.service.js";
 import { OrgPublicProfileController } from "./public-profile.controller.js";
 
 @Module({
@@ -12,7 +14,8 @@ import { OrgPublicProfileController } from "./public-profile.controller.js";
     OrganizationsController,
     BrandingController,
     OrgPublicProfileController,
+    OrgModulesController,
   ],
-  providers: [OrganizationsService],
+  providers: [OrganizationsService, OrgModulesService],
 })
 export class OrganizationsModule {}

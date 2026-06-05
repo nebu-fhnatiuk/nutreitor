@@ -21,6 +21,12 @@ Hay **dos caras** (ver ADR [`0015`](../decisions/0015-agentes-del-paciente-psico
 
 Ambos lados requieren **consentimiento** del paciente (ver más abajo).
 
+> **Complemento instalable**: los agentes son un módulo **apagado por default**. La org
+> debe **instalarlo** (admin → Configuración → Complementos: plan + términos) para que
+> cualquiera de estos endpoints funcione. El `ModuleGuard` corta con **403** si el
+> módulo `agents` no está activo — además de la capability del rol. Ver
+> [ADR 0016](../decisions/0016-modulos-instalables-por-organizacion.md).
+
 Modelo (`agent_conversations`, `agent_messages`, `agent_runs`, `agent_consents`) y los
 GRANT del rol `nutreitor_agents` en
 [`../architecture/data-model.md`](../architecture/data-model.md).
@@ -106,6 +112,8 @@ se deriva del audit `agent_runs` (input+output tokens) leído bajo RLS.
 
 ## Autorización y UI
 
+- **Módulo `agents` instalado** (entitlement por org, ADR 0016) — condición previa a
+  todo lo de abajo; sin él, 403 en el back y los docks no aparecen en la UI.
 - **`agent:use`** (admin + profesional) → NUTRI + supervisión de charlas del paciente.
 - **`portal:agent`** (paciente) → CHEF + PSICO sobre la propia ficha.
 - UI profesional: **dock flotante** ("✨ Asistentes") en la ficha con **NUTRI**

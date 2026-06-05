@@ -25,6 +25,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
+import { loadActiveModuleKeys } from "../organizations/active-modules.js";
 import { toPlanDto } from "../patients/meal-plans.service.js";
 import { numStr, toMetricDto } from "../patients/metrics.service.js";
 import { resolvePatientAccess } from "../patients/patient-access.js";
@@ -115,6 +116,8 @@ export class PortalService {
           toMetricDto(r.metric, r.name, r.role),
         ),
         canSelfReport: hasCapability(user.role, "portal:self_report"),
+        modules: await loadActiveModuleKeys(tx),
+        hasAssignedProfessional: profRows.length > 0,
       } satisfies PortalMeDto;
     });
   }
