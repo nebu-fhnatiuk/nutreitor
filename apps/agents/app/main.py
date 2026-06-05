@@ -77,20 +77,29 @@ def _load_clinical_context(cur, patient_id: str | None) -> dict:
     if not patient_id:
         return {}
     cur.execute(
-        "select full_name, goal, reason_for_consult from patients where id = %s limit 1",
+        "select full_name, goal, reason_for_consult, dietary_preferences, allergies "
+        "from patients where id = %s limit 1",
         (patient_id, ),
     )
     p = cur.fetchone()
     if not p:
         return {}
-    ctx: dict = {"full_name": p[0], "goal": p[1], "reason": p[2]}
+    ctx: dict = {
+        "full_name": p[0],
+        "goal": p[1],
+        "reason": p[2],
+        "dietary_preferences": p[3],
+        "allergies": p[4],
+    }
+    # Plan activo: título/versión para NUTRI; body (jsonb) para que CHEF derive recetas.
     cur.execute(
-        "select title, version from meal_plans where patient_id = %s and status = 'active' limit 1",
+        "select title, version, body from meal_plans "
+        "where patient_id = %s and status = 'active' limit 1",
         (patient_id, ),
     )
     plan = cur.fetchone()
     if plan:
-        ctx["plan"] = {"title": plan[0], "version": plan[1]}
+        ctx["plan"] = {"title": plan[0], "version": plan[1], "body": plan[2]}
     cur.execute(
         "select measured_at, weight_kg from patient_metrics "
         "where patient_id = %s order by measured_at desc limit 3",
@@ -105,12 +114,18 @@ def _load_clinical_context(cur, patient_id: str | None) -> dict:
 
 def _infer(agent: str, message: str, clinical: dict) -> str:
     if INFERENCE_PROVIDER == "stub":
-        return _stub_reply(agent, message, clinical)
+        if agent == "chef":
+            return _chef_reply(message, clinical)
+        return _nutri_reply(agent, message, clinical)
     # Provider real (Anthropic, bajo BAA) — se implementa cuando el BAA esté firmado.
     raise HTTPException(status_code=503, detail=f"Provider '{INFERENCE_PROVIDER}' no implementado.")
 
 
-def _stub_reply(agent: str, message: str, clinical: dict) -> str:
+def _stub_footer() -> str:
+    return "(Respuesta de DEV/stub: sin IA real hasta firmar el BAA.)"
+
+
+def _nutri_reply(agent: str, message: str, clinical: dict) -> str:
     bits: list[str] = []
     if clinical.get("full_name"):
         line = f"Paciente {clinical['full_name']}"
@@ -127,7 +142,53 @@ def _stub_reply(agent: str, message: str, clinical: dict) -> str:
         f"[{agent.upper()} · borrador, revisá antes de aplicar]\n{contexto}\n\n"
         f"Sobre tu consulta: «{message}» — sugerencia preliminar: revisá la adherencia y la "
         f"evolución reciente y ajustá porciones/macros en consecuencia.\n\n"
-        f"(Respuesta de DEV/stub: sin IA real hasta firmar el BAA.)"
+        f"{_stub_footer()}"
+    )
+
+
+def _plan_meal_names(body: dict | None) -> list[str]:
+    """Nombres de comidas del plan activo. Soporta layout `day` y `week` (primer día
+    cargado). Defensivo ante bodies degenerados/legacy."""
+    if not isinstance(body, dict):
+        return []
+    if body.get("layout") == "week":
+        days = body.get("days") or {}
+        day = next((d for d in days.values() if isinstance(d, dict)), {})
+    else:
+        day = body.get("day") or {}
+    meals = day.get("meals") if isinstance(day, dict) else None
+    if not isinstance(meals, list):
+        return []
+    return [m["name"] for m in meals if isinstance(m, dict) and m.get("name")]
+
+
+def _chef_reply(message: str, clinical: dict) -> str:
+    """CHEF: traduce el plan activo a ideas de recetas, respetando preferencias,
+    restricciones y alergias. Scopeado al mismo paciente que NUTRI."""
+    bits: list[str] = []
+    if clinical.get("full_name"):
+        bits.append(f"Paciente {clinical['full_name']}")
+    plan = clinical.get("plan")
+    if plan:
+        meals = _plan_meal_names(plan.get("body"))
+        comidas = (", ".join(meals)) if meals else "sin comidas cargadas"
+        bits.append(f"Plan «{plan['title']}» (v{plan['version']}) · comidas: {comidas}")
+    else:
+        bits.append("Sin plan activo: las ideas serán generales.")
+    restricciones: list[str] = []
+    if clinical.get("dietary_preferences"):
+        restricciones.append(f"preferencias/restricciones: {clinical['dietary_preferences']}")
+    if clinical.get("allergies"):
+        restricciones.append(f"alergias: {clinical['allergies']}")
+    if restricciones:
+        bits.append("A respetar — " + " · ".join(restricciones))
+    contexto = "\n".join(bits)
+    return (
+        f"[CHEF · borrador, revisá antes de aplicar]\n{contexto}\n\n"
+        f"Sobre tu pedido: «{message}» — idea preliminar: armá preparaciones simples para cada "
+        f"comida del plan, manteniendo porciones y macros objetivo y evitando todo lo listado en "
+        f"alergias/restricciones.\n\n"
+        f"{_stub_footer()}"
     )
 
 
@@ -159,5 +220,5 @@ def _insert_run(cur, ctx, conversation_id: str, agent: str, latency_ms: int) -> 
     cur.execute(
         "insert into agent_runs (tenant_id, region, conversation_id, agent, model, latency_ms, status) "
         "values (%s, %s, %s, %s, %s, %s, 'ok')",
-        (ctx.tenant_id, ctx.region, conversation_id, agent, f"{INFERENCE_PROVIDER}:nutri", latency_ms),
+        (ctx.tenant_id, ctx.region, conversation_id, agent, f"{INFERENCE_PROVIDER}:{agent}", latency_ms),
     )
