@@ -57,6 +57,10 @@ flowchart TD
 - **Defensa en profundidad**: el gateway chequea acceso/consentimiento/tope *antes* de
   salir del proceso; el servicio igual opera bajo **RLS** con un rol propio (sin
   BYPASSRLS). Sin contexto firmado válido **no hay tenant** y no abre nada.
+- **Rotación del secreto de firma** (dual-secret, sin downtime): ambos lados leen una
+  lista `AGENTS_SHARED_SECRETS` (primero=primary, se firma con ése; el resto se aceptan
+  al verificar). Procedimiento de rotación en el
+  [ADR 0013](../decisions/0013-agentes-servicio-ia.md#rotación-del-secreto-de-firma-dual-secret-sin-downtime).
 - **Hilo**: cada conversación se continúa con su `conversationId`. El paciente nunca
   manda un `patientId`: el gateway resuelve "mi ficha" por la sesión.
 

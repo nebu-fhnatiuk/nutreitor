@@ -3,6 +3,11 @@
 Espejo EXACTO del firmante TS (`apps/api/src/core/security/agent-context.ts`):
 token = `<base64url(payload JSON)>.<base64url(hmac)>`, sin padding. Sin firma
 válida y vigente no hay tenant (fail-closed) → el servicio no abre nada.
+
+ROTACIÓN (dual-secret): el gateway firma con el primary, pero acá se aceptan VARIOS
+secretos activos (primary + secondary) para no romper tokens en vuelo durante una
+rotación. El token es válido si su firma matchea CUALQUIERA; cada intento usa
+`compare_digest` (tiempo constante). Ver ADR 0013.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ import hashlib
 import hmac
 import json
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -33,14 +39,20 @@ def _hmac_b64url(body: str, secret: str) -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
-def verify_agent_context(token: str, secret: str, now_ms: int | None = None) -> AgentContext | None:
+def verify_agent_context(
+    token: str,
+    secrets: str | Sequence[str],
+    now_ms: int | None = None,
+) -> AgentContext | None:
+    # `secrets`: un secreto o la lista de activos (primary + secondary). Token válido
+    # si matchea cualquiera; `compare_digest` (tiempo constante) en cada intento.
+    secret_list = [secrets] if isinstance(secrets, str) else list(secrets)
     now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
     dot = token.find(".")
     if dot <= 0:
         return None
     body, sig = token[:dot], token[dot + 1 :]
-    expected = _hmac_b64url(body, secret)
-    if not hmac.compare_digest(sig, expected):
+    if not any(hmac.compare_digest(sig, _hmac_b64url(body, s)) for s in secret_list):
         return None
     try:
         data = json.loads(_b64url_decode(body))

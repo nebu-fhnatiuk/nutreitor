@@ -54,6 +54,9 @@ services:
       # servicio `agents`). El gateway Nest firma el contexto de tenant con esto.
       AGENTS_SERVICE_URL: http://agents:8000
       AGENTS_SHARED_SECRET: dev-agents-shared-secret-change-me
+      # Rotación dual-secret (opcional): lista por comas, primero=primary (se firma con
+      # ése). Mismo valor en `agents`. Ej.: AGENTS_SHARED_SECRETS: nuevo,viejo. Ver ADR 0013.
+      # AGENTS_SHARED_SECRETS: dev-agents-shared-secret-change-me
       # Tope de costo/abuso por tenant (0 = sin límite). En dev el rate está activo;
       # el tope mensual de tokens queda en 0 para no chocar con el seed/pruebas.
       AGENTS_RATELIMIT_PER_MIN: 30
@@ -132,6 +135,8 @@ services:
     environment:
       DATABASE_AGENTS_URL: postgresql://nutreitor_agents:agents_dev_pwd@db:5432/nutreitor
       AGENTS_SHARED_SECRET: dev-agents-shared-secret-change-me
+      # Rotación dual-secret (opcional, mismo valor que la API). Ver ADR 0013.
+      # AGENTS_SHARED_SECRETS: dev-agents-shared-secret-change-me
       # `stub` = sin IA real ni PHI a la nube (default seguro). Para activar Claude por
       # AWS Bedrock: INFERENCE_PROVIDER=bedrock + credenciales AWS (cadena estándar:
       # vars AWS_* o rol IAM) + BEDROCK_MODEL_ID/AWS_REGION. Ver ADR 0014.

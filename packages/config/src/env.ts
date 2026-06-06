@@ -53,6 +53,11 @@ export const apiEnvSchema = z
     // servicio no esté arriba; en prod se inyectan por Secrets Manager.
     AGENTS_SERVICE_URL: z.string().url().default("http://agents:8000"),
     AGENTS_SHARED_SECRET: z.string().min(16).default("dev-agents-shared-secret-change-me"),
+    // Rotación sin downtime (dual-secret): lista separada por comas, el PRIMERO es el
+    // primary (con el que se firma) y el resto son secondary (sólo se aceptan al
+    // verificar). Si está vacío, se usa `AGENTS_SHARED_SECRET` (compat). El servicio
+    // Python lee la MISMA lista (`AGENTS_SHARED_SECRETS`). Ver ADR 0013.
+    AGENTS_SHARED_SECRETS: z.string().optional(),
     AGENTS_CONTEXT_TTL_MS: z.coerce.number().int().positive().default(60_000),
     // Control de costo/abuso por tenant (se evalúa en el gateway antes de egresar).
     // 0 = sin límite. El tope mensual se mide sobre el audit `agent_runs`.

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { signAgentContext, verifyAgentContext } from "../src/core/security/agent-context.js";
+import {
+  parseAgentSecrets,
+  signAgentContext,
+  verifyAgentContext,
+} from "../src/core/security/agent-context.js";
 
 /**
  * Contexto firmado gateway → servicio de agentes. Es la barrera que reemplaza al
@@ -51,5 +55,36 @@ describe("agent-context (HMAC + TTL)", () => {
   it("forma inválida → null", () => {
     expect(verifyAgentContext("sin-punto", SECRET, NOW)).toBeNull();
     expect(verifyAgentContext(".x", SECRET, NOW)).toBeNull();
+  });
+});
+
+describe("agent-context: rotación dual-secret", () => {
+  const PRIMARY = "secreto-primary-nuevo";
+  const SECONDARY = "secreto-secondary-viejo";
+  const RETIRED = "secreto-ya-retirado";
+  const active = [PRIMARY, SECONDARY] as const;
+
+  it("token firmado con el primary verifica contra la lista activa", () => {
+    const token = signAgentContext(base, PRIMARY, 60_000, NOW);
+    expect(verifyAgentContext(token, active, NOW + 1_000)).toMatchObject(base);
+  });
+
+  it("token firmado con un secondary vigente verifica contra la lista activa", () => {
+    // Lo en vuelo durante una rotación: firmado con el viejo, que sigue como secondary.
+    const token = signAgentContext(base, SECONDARY, 60_000, NOW);
+    expect(verifyAgentContext(token, active, NOW + 1_000)).toMatchObject(base);
+  });
+
+  it("token firmado con un secreto YA RETIRADO (fuera de la lista) → null", () => {
+    const token = signAgentContext(base, RETIRED, 60_000, NOW);
+    expect(verifyAgentContext(token, active, NOW + 1_000)).toBeNull();
+  });
+
+  it("parseAgentSecrets: lista CSV → primary primero; vacío → cae al single", () => {
+    expect(parseAgentSecrets(" a , b ,c ", "x")).toEqual(["a", "b", "c"]);
+    expect(parseAgentSecrets("", "solo")).toEqual(["solo"]);
+    expect(parseAgentSecrets(undefined, "solo")).toEqual(["solo"]);
+    // Sin lista NI single válido → vacío (fail-closed: firmar/verificar fallará).
+    expect(parseAgentSecrets("", "")).toEqual([]);
   });
 });

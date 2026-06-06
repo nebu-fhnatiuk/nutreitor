@@ -38,6 +38,25 @@ Decisiones de producto tomadas (con la dueña):
 El **token de contexto firmado** es el contrato reusable de extracción de servicios
 (ADR 0012): el mismo mecanismo servirá para los próximos servicios.
 
+#### Rotación del secreto de firma (dual-secret, sin downtime)
+
+El HMAC usa un secreto compartido. Para rotarlo **sin tirar ni una request en vuelo**
+(el gateway ya firmó pero el servicio todavía no verificó) se soportan **varios
+secretos activos**: ambos lados leen una lista (`AGENTS_SHARED_SECRETS`, separada por
+comas; el **primero es el primary**, el resto **secondary**), con fallback al
+`AGENTS_SHARED_SECRET` single. El gateway **firma siempre con el primary**; el servicio
+**acepta cualquiera** de la lista (cada intento con comparación en tiempo constante).
+Fail-closed: sin ningún secreto, el servicio no arranca.
+
+**Procedimiento de rotación** (`S_old` vigente → `S_new`):
+1. **Agregar** `S_new` como secondary en AMBOS lados: gateway y servicio con
+   `AGENTS_SHARED_SECRETS = S_old,S_new` (sigue firmando con `S_old`). Desplegar.
+2. **Promover** `S_new` a primary: `AGENTS_SHARED_SECRETS = S_new,S_old`. Ahora se
+   firma con `S_new`; los tokens viejos (firmados con `S_old`) **siguen aceptándose**.
+3. **Esperar** una ventana **mayor al TTL del token** (`AGENTS_CONTEXT_TTL_MS`, def.
+   60 s) para que no quede ningún token en vuelo firmado con `S_old`.
+4. **Retirar** `S_old`: `AGENTS_SHARED_SECRETS = S_new`. Desplegar. Rotación completa.
+
 ### Inferencia
 
 - **Claude** (modelo más capaz disponible) con **prompt caching** (system + contexto
