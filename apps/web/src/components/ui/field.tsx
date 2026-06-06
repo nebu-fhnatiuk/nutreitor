@@ -8,21 +8,30 @@ import type {
 import { cn } from "./cn";
 
 /**
- * Estilo único de campo de formulario. Antes este string se reimplementaba en ~18
- * pantallas. `w-full` por defecto; se puede sobrescribir con `className` (ej. el
- * input del chat usa `flex-1`).
+ * Estilo único de campo de formulario (sin ancho). Antes este string se
+ * reimplementaba en ~18 pantallas.
  */
 export const fieldClass =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none " +
+  "rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none " +
   "placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20 " +
   "disabled:cursor-not-allowed disabled:opacity-50";
 
+/**
+ * Ancho por defecto `w-full`, salvo que el caller pase su propio ancho (`w-64`,
+ * `w-16`, `w-auto`, `flex-1`…). Evita el conflicto donde `w-full` ganaba por orden de
+ * CSS sobre el override (sin necesidad de tailwind-merge).
+ */
+function fieldWith(className?: string): string {
+  const hasWidth = className ? /(^|\s)(w-|flex-1)/.test(className) : false;
+  return cn(fieldClass, !hasWidth && "w-full", className);
+}
+
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn(fieldClass, className)} {...rest} />;
+  return <input className={fieldWith(className)} {...rest} />;
 }
 
 export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn(fieldClass, className)} {...rest} />;
+  return <textarea className={fieldWith(className)} {...rest} />;
 }
 
 export function Select({
@@ -31,7 +40,7 @@ export function Select({
   ...rest
 }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(fieldClass, className)} {...rest}>
+    <select className={fieldWith(className)} {...rest}>
       {children}
     </select>
   );

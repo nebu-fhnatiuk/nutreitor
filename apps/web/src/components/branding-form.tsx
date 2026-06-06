@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { BrandingDto } from "@nutreitor/shared";
 
+import { Alert, Button, Input } from "@/components/ui";
+
 /** Editor de branding white-label (acotado): nombre visible, color, logo. */
 export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
   const [displayName, setDisplayName] = useState(initial?.displayName ?? "");
@@ -43,11 +45,10 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
     <form onSubmit={submit} className="max-w-lg space-y-5">
       <div>
         <label className="mb-1 block text-sm text-stone-500">Nombre visible</label>
-        <input
+        <Input
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Nombre que ven los pacientes"
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
       <div>
@@ -70,24 +71,19 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
       </div>
       <div>
         <label className="mb-1 block text-sm text-stone-500">URL del logo (opcional)</label>
-        <input
+        <Input
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="https://…/logo.png"
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
-      {err && <p className="text-sm text-red-700">{err}</p>}
+      {err && <Alert>{err}</Alert>}
       {msg && <p className="text-sm text-brand">{msg}</p>}
 
-      <button
-        type="submit"
-        disabled={busy}
-        className="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={busy}>
         {busy ? "Guardando…" : "Guardar cambios"}
-      </button>
+      </Button>
     </form>
   );
 }

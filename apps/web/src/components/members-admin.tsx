@@ -9,6 +9,8 @@ import {
   type MembershipRole,
 } from "@nutreitor/shared";
 
+import { Alert, Button, Input, Select } from "@/components/ui";
+
 const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Admin",
   professional: "Profesional",
@@ -68,11 +70,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
         </p>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
       {can("member:invite") && (
         <InviteForm onInvited={() => load(search)} onError={setError} />
@@ -129,14 +127,14 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
           <h2 className="text-xs font-medium uppercase tracking-widest text-stone-500">
             Miembros{loading && <span className="ml-2 text-stone-400">cargando…</span>}
           </h2>
-          <input
+          <Input
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               void load(e.target.value);
             }}
             placeholder="Buscar por nombre o email"
-            className="w-64 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="w-64"
           />
         </div>
         <div className="overflow-hidden rounded-xl border border-stone-200">
@@ -257,32 +255,27 @@ function InviteForm({
     <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-4">
       <div className="flex-1">
         <label className="mb-1 block text-xs text-stone-500">Invitar por email</label>
-        <input
+        <Input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="persona@email.com"
-          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
-      <select
+      <Select
         value={role}
         onChange={(e) => setRole(e.target.value as MembershipRole)}
-        className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm"
+        className="w-auto"
       >
         {membershipRoles.map((r) => (
           <option key={r} value={r}>
             {ROLE_LABEL[r]}
           </option>
         ))}
-      </select>
-      <button
-        type="submit"
-        disabled={busy || !email.trim()}
-        className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-40"
-      >
+      </Select>
+      <Button type="submit" disabled={busy || !email.trim()}>
         {busy ? "Invitando…" : "Invitar"}
-      </button>
+      </Button>
     </form>
   );
 }

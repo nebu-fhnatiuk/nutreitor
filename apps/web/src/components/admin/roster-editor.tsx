@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { RosterAdminEntry } from "@nutreitor/shared";
 
+import { Button, EmptyState, Input } from "@/components/ui";
+
 /**
  * Curaduría del roster público (admin): presencia, orden y especialidad por
  * profesional. El contenido y la visibilidad por campo los edita cada profesional;
@@ -11,9 +13,7 @@ import type { RosterAdminEntry } from "@nutreitor/shared";
 export function RosterEditor({ initial }: { initial: RosterAdminEntry[] }) {
   if (initial.length === 0) {
     return (
-      <p className="text-sm text-stone-500">
-        Todavía no hay profesionales con perfil en la organización.
-      </p>
+      <EmptyState>Todavía no hay profesionales con perfil en la organización.</EmptyState>
     );
   }
   return (
@@ -83,30 +83,26 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
 
         <label className="flex items-center gap-2 text-sm text-stone-500">
           Orden
-          <input
+          <Input
             type="number"
             min={0}
             value={order}
             onChange={(e) => setOrder(e.target.value)}
-            className="w-16 rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="w-16"
           />
         </label>
 
-        <input
+        <Input
           value={specialty}
           onChange={(e) => setSpecialty(e.target.value)}
           placeholder="Especialidad"
           maxLength={120}
-          className="w-44 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="w-44"
         />
 
-        <button
-          onClick={save}
-          disabled={busy}
-          className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-        >
+        <Button size="sm" onClick={save} disabled={busy}>
           {busy ? "…" : "Guardar"}
-        </button>
+        </Button>
       </div>
 
       {hiddenForEmpty && (
