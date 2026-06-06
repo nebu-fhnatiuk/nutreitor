@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 import {
   bookAppointmentSchema,
+  rescheduleAppointmentSchema,
   type AppointmentDto,
   type BookAppointmentDto,
+  type RescheduleAppointmentDto,
   type SlotDto,
 } from "@nutreitor/shared";
 
@@ -40,6 +42,15 @@ export class PortalSchedulingController {
     @Body(new ZodValidationPipe(bookAppointmentSchema)) dto: BookAppointmentDto,
   ): Promise<AppointmentDto> {
     return this.scheduling.bookAsPatient(dto);
+  }
+
+  @Post("appointments/:id/reschedule")
+  @RequireCapability("portal:book")
+  reschedule(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(rescheduleAppointmentSchema)) dto: RescheduleAppointmentDto,
+  ): Promise<AppointmentDto> {
+    return this.scheduling.rescheduleAsPatient(id, dto);
   }
 
   @Post("appointments/:id/cancel")

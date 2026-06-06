@@ -45,6 +45,15 @@ flowchart TD
   nivel GRANT). Reprogramar = cancela la actual y reserva la nueva **en una sola
   transacción** (`run()` es transaccional: si la nueva choca, se revierte la
   cancelación). Auditadas (`appointment.cancelled` / `appointment.rescheduled`).
+- **Reprogramación del paciente** (portal, `POST portal/appointments/:id/reschedule`,
+  capability `portal:book`): el paciente reprograma una cita **propia** a otro horario
+  disponible **de su mismo profesional** (no elige profesional). El acceso se valida por
+  la **rama paciente** (`requireAccessibleAppointment(..., "patient")` → 404 si la cita
+  no es suya) y el nuevo slot se resuelve contra el `membershipId` **de la cita**.
+  Profesional y paciente comparten el **núcleo** `rescheduleCore` (resolver slot +
+  cancelar + insertar + audit); sólo cambia la validación de acceso y el `via` del audit
+  (`metadata: { from, via }`). Mismos cortes: 404 (ajena), 400 (horario no disponible),
+  409 (no `booked`, o carrera contra el `EXCLUDE`).
 
 ## Reserva pública (lead → cita)
 
