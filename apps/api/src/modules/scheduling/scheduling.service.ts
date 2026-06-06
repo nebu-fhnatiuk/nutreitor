@@ -218,31 +218,61 @@ export class SchedulingService {
   async reschedule(id: string, dto: RescheduleAppointmentDto): Promise<AppointmentDto> {
     return this.tenantDb.run(async (tx) => {
       const appt = await this.requireAccessibleAppointment(tx, id, "professional");
-      if (appt.status !== "booked") {
-        throw new ConflictException("Sólo se reprograma una cita reservada.");
-      }
-      // Liberar el slot actual ANTES de validar el nuevo (si no, el EXCLUDE choca
-      // consigo mismo cuando el nuevo solapa al viejo del mismo profesional).
-      await tx.update(appointments).set({ status: "cancelled" }).where(eq(appointments.id, id));
-      const slot = await this.resolveSlot(tx, appt.membershipId, dto.startsAt);
-      const newId = await this.insertAppointment(tx, {
-        tenantId: appt.tenantId,
-        region: appt.region,
-        patientId: appt.patientId,
-        membershipId: appt.membershipId,
-        slot,
-        bookedVia: appt.bookedVia,
-        createdByMembershipId: appt.createdByMembershipId,
-        notes: appt.notes ?? undefined,
-      });
-      await this.audit.recordForSession(tx, {
-        action: "appointment.rescheduled",
-        targetType: "appointment",
-        targetId: newId,
-        metadata: { from: id },
-      });
-      return this.toDto(tx, newId);
+      return this.rescheduleCore(tx, appt, dto, "professional");
     });
+  }
+
+  /**
+   * Reprograma del lado PACIENTE (portal): a otro horario disponible de SU profesional
+   * asignado (el de esa cita), en un solo paso. Sólo sobre citas propias (acceso por la
+   * rama "patient" → 404 si no es suya). El paciente NO elige profesional: se reprograma
+   * con el mismo membership de la cita.
+   */
+  async rescheduleAsPatient(id: string, dto: RescheduleAppointmentDto): Promise<AppointmentDto> {
+    return this.tenantDb.run(async (tx) => {
+      const appt = await this.requireAccessibleAppointment(tx, id, "patient");
+      return this.rescheduleCore(tx, appt, dto, "patient");
+    });
+  }
+
+  /**
+   * Núcleo de reprogramación compartido por profesional y paciente. La validación de
+   * ACCESO la hace el caller (rama pro vs paciente); acá: estado booked + liberar el
+   * slot actual + resolver el nuevo contra el MISMO profesional de la cita + insertar +
+   * audit. `via` deja trazado quién reprogramó (el origen `bookedVia` se conserva).
+   */
+  private async rescheduleCore(
+    tx: TenantTx,
+    appt: AppointmentRow,
+    dto: RescheduleAppointmentDto,
+    via: "professional" | "patient",
+  ): Promise<AppointmentDto> {
+    if (appt.status !== "booked") {
+      throw new ConflictException("Sólo se reprograma una cita reservada.");
+    }
+    // Liberar el slot actual ANTES de validar el nuevo (si no, el EXCLUDE choca
+    // consigo mismo cuando el nuevo solapa al viejo del mismo profesional).
+    await tx.update(appointments).set({ status: "cancelled" }).where(eq(appointments.id, appt.id));
+    // El nuevo slot SIEMPRE es del profesional de la cita (appt.membershipId): el
+    // paciente reprograma con quien ya tenía, no elige otro.
+    const slot = await this.resolveSlot(tx, appt.membershipId, dto.startsAt);
+    const newId = await this.insertAppointment(tx, {
+      tenantId: appt.tenantId,
+      region: appt.region,
+      patientId: appt.patientId,
+      membershipId: appt.membershipId,
+      slot,
+      bookedVia: appt.bookedVia,
+      createdByMembershipId: appt.createdByMembershipId,
+      notes: appt.notes ?? undefined,
+    });
+    await this.audit.recordForSession(tx, {
+      action: "appointment.rescheduled",
+      targetType: "appointment",
+      targetId: newId,
+      metadata: { from: appt.id, via },
+    });
+    return this.toDto(tx, newId);
   }
 
   // ── Público (reserva desde la vidriera, lead → cita) ───────────────────────

@@ -6,6 +6,7 @@ import type { AppointmentDto } from "@nutreitor/shared";
 import { api } from "@/lib/api";
 import { AppointmentsList } from "@/components/scheduling/appointments-list";
 import { SlotPicker } from "@/components/scheduling/slot-picker";
+import { fmtDateTime } from "@/lib/datetime";
 
 const card = "rounded-2xl border border-stone-200 bg-white p-5 shadow-sm";
 const h2 = "text-xs font-semibold uppercase tracking-widest text-stone-400";
@@ -15,6 +16,7 @@ export function PortalAppointments() {
   const [appts, setAppts] = useState<AppointmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [rescheduling, setRescheduling] = useState<AppointmentDto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -46,6 +48,23 @@ export function PortalAppointments() {
     setError(null);
     try {
       await api(`portal/appointments/${id}/cancel`, { method: "POST" });
+      void load();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  // Reprograma con el MISMO profesional (los slots salen de `portal/slots`); un solo paso.
+  async function doReschedule(startsAt: string) {
+    if (!rescheduling) return;
+    setError(null);
+    try {
+      await api(`portal/appointments/${rescheduling.id}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startsAt }),
+      });
+      setRescheduling(null);
       void load();
     } catch (e) {
       setError(String(e));
@@ -92,7 +111,36 @@ export function PortalAppointments() {
       ) : loading ? (
         <p className="text-sm text-stone-400">Cargando…</p>
       ) : (
-        <AppointmentsList items={upcoming} perspective="patient" onCancel={cancel} />
+        <AppointmentsList
+          items={upcoming}
+          perspective="patient"
+          onCancel={cancel}
+          onReschedule={setRescheduling}
+        />
+      )}
+
+      {rescheduling && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-stone-900/30 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-serif text-lg font-medium text-stone-900">Reprogramar turno</h3>
+                <p className="text-sm text-stone-500">
+                  Con {rescheduling.professionalName} · actual: {fmtDateTime(rescheduling.startsAt)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRescheduling(null)}
+                aria-label="Cerrar"
+                className="rounded-lg px-2 text-stone-400 transition hover:text-stone-700"
+              >
+                ✕
+              </button>
+            </div>
+            <SlotPicker path="portal/slots" onPick={doReschedule} />
+          </div>
+        </div>
       )}
     </section>
   );
