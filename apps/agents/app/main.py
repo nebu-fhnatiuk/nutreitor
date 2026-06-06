@@ -23,7 +23,27 @@ from .context import verify_agent_context
 from .inference import INFERENCE_PROVIDER, infer
 
 DATABASE_AGENTS_URL = os.environ["DATABASE_AGENTS_URL"]
-AGENTS_SHARED_SECRET = os.environ["AGENTS_SHARED_SECRET"]
+
+
+def _load_agent_secrets() -> list[str]:
+    """Secretos activos para verificar el contexto (rotación dual-secret). Se lee la
+    lista `AGENTS_SHARED_SECRETS` (separada por comas; primero=primary) y, si está
+    vacía, se cae a `AGENTS_SHARED_SECRET`. Fail-closed: sin ningún secreto, el
+    servicio NO arranca."""
+    raw = os.environ.get("AGENTS_SHARED_SECRETS", "")
+    secrets = [s.strip() for s in raw.split(",") if s.strip()]
+    if not secrets:
+        single = os.environ.get("AGENTS_SHARED_SECRET", "").strip()
+        secrets = [single] if single else []
+    if not secrets:
+        raise RuntimeError(
+            "Falta el secreto de firma de contexto: configurá AGENTS_SHARED_SECRETS "
+            "(o AGENTS_SHARED_SECRET). Sin secreto, el servicio no puede verificar (fail-closed)."
+        )
+    return secrets
+
+
+AGENTS_SHARED_SECRETS = _load_agent_secrets()
 # Tope de uso por tenant — DEFENSA EN PROFUNDIDAD: el gateway TS ya corta antes de
 # reenviar; esto vuelve a chequear acá por si el servicio se alcanzara sin pasar por el
 # gateway. Mismos nombres de env que el gateway. 0 = sin límite.
@@ -47,7 +67,7 @@ def health() -> dict:
 
 @app.post("/chat")
 def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) -> dict:
-    ctx = verify_agent_context(x_agent_context or "", AGENTS_SHARED_SECRET)
+    ctx = verify_agent_context(x_agent_context or "", AGENTS_SHARED_SECRETS)
     if ctx is None:
         # Sin contexto firmado válido y vigente, no hay tenant (fail-closed).
         raise HTTPException(status_code=401, detail="Contexto inválido.")

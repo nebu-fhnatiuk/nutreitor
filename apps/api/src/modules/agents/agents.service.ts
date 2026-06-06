@@ -29,7 +29,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import { APP_ENV, type ApiEnv } from "../../core/config/app-config.module.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
-import { signAgentContext } from "../../core/security/agent-context.js";
+import { parseAgentSecrets, signAgentContext } from "../../core/security/agent-context.js";
 import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
 import {
   assertCanAccessPatient,
@@ -276,9 +276,14 @@ export class AgentsService {
   }): Promise<AgentChatResponse> {
     const ctx = getTenantContext();
     const { user } = getAuth();
+    // Se firma SIEMPRE con el primary (primer secreto de la lista de rotación).
+    const primary = parseAgentSecrets(
+      this.env.AGENTS_SHARED_SECRETS,
+      this.env.AGENTS_SHARED_SECRET,
+    )[0]!;
     const token = signAgentContext(
       { tenantId: ctx.tenantId, region: ctx.region, userId: user.id, role: user.role },
-      this.env.AGENTS_SHARED_SECRET,
+      primary,
       this.env.AGENTS_CONTEXT_TTL_MS,
     );
 
