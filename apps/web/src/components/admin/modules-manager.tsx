@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MODULE_CATALOG, type ModuleKey, type OrgModuleStateDto } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
-
-const card = "rounded-2xl border border-stone-200 bg-white p-5 shadow-sm";
+import { Alert, Button, Card, Loading, Select } from "@/components/ui";
 
 /**
  * Complementos instalables de la organización (ADR 0016). El admin instala
@@ -28,10 +27,8 @@ export function ModulesManager() {
     void load();
   }, [load]);
 
-  if (error) {
-    return <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</div>;
-  }
-  if (!modules) return <p className="text-sm text-stone-400">Cargando complementos…</p>;
+  if (error) return <Alert>{error}</Alert>;
+  if (!modules) return <Loading label="Cargando complementos…" />;
 
   return (
     <div className="space-y-4">
@@ -75,7 +72,7 @@ function ModuleCard({
   }
 
   return (
-    <section className={card}>
+    <Card>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -101,13 +98,15 @@ function ModuleCard({
               <> · desde {new Date(state.installedAt).toLocaleDateString("es-AR")}</>
             )}
           </p>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={busy}
             onClick={() => void run(`organizations/current/modules/${state.key}/uninstall`)}
-            className="mt-3 rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-red-300 hover:text-red-600 disabled:opacity-50"
+            className="mt-3 hover:border-red-300 hover:text-red-600"
           >
             {busy ? "Desinstalando…" : "Desinstalar"}
-          </button>
+          </Button>
           <p className="mt-2 text-xs text-stone-400">
             Desinstalar deshabilita el complemento; las conversaciones y consentimientos se conservan.
           </p>
@@ -121,17 +120,13 @@ function ModuleCard({
           </ul>
           <label className="block max-w-xs">
             <span className="mb-1 block text-xs text-stone-500">Plan</span>
-            <select
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-            >
+            <Select value={plan} onChange={(e) => setPlan(e.target.value)}>
               {catalog.plans.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} — {p.priceText}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="flex items-start gap-2 text-sm text-stone-600">
             <input
@@ -142,7 +137,7 @@ function ModuleCard({
             />
             <span>Acepto los términos del complemento (versión {catalog.termsVersion}).</span>
           </label>
-          <button
+          <Button
             disabled={busy || !accepted || !plan}
             onClick={() =>
               void run(`organizations/current/modules/${state.key}/install`, {
@@ -150,12 +145,11 @@ function ModuleCard({
                 acceptTerms: true,
               })
             }
-            className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
           >
             {busy ? "Instalando…" : "Instalar complemento"}
-          </button>
+          </Button>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
