@@ -138,6 +138,9 @@ services:
       INFERENCE_PROVIDER: stub
       BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-20250514-v1:0
       AWS_REGION: us-east-1
+      # Tope de uso por tenant (defensa en profundidad; mismos valores que la API).
+      AGENTS_RATELIMIT_PER_MIN: 30
+      AGENTS_MONTHLY_TOKEN_CAP: 0
     ports:
       # Host 8088 → contenedor 8000 (la API le habla por la red interna agents:8000;
       # 8088 es sólo para debugging directo desde el host).

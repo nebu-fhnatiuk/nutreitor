@@ -62,8 +62,14 @@ El **token de contexto firmado** es el contrato reusable de extracción de servi
 - **PSICO** (fase final): detección de crisis → el bot **nunca resuelve solo**,
   muestra recursos y **escala al profesional**; requiere **consentimiento** del
   paciente.
-- **Audit** de cada interacción; **rate-limit + tope de costo por tenant**;
+- **Audit** de cada interacción; **rate-limit + tope de costo por tenant** (en el
+  gateway **y** en el servicio Python, defensa en profundidad);
   disclaimers ("no reemplaza atención profesional").
+- **Minimización de datos por agente** (allow-list): cada agente recibe sólo los campos
+  que necesita, no el contexto crudo completo. PSICO = contexto mínimo. Detalle y
+  "a ratificar" en el ADR [`0015`](./0015-agentes-del-paciente-psico-supervisado.md).
+- **Crisis (PSICO) en doble capa** (input del paciente + output del modelo), heurística
+  normalizada; ver `0015`. (Endurecimiento 2026-06-05.)
 
 ### Fases
 

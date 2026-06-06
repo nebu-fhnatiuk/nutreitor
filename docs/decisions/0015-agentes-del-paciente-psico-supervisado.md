@@ -44,17 +44,39 @@ del portal).
 - El gateway exige el consentimiento vigente antes de habilitar cualquier chat del
   portal.
 
-### Guardrail de crisis (PSICO)
+### Guardrail de crisis (PSICO) — DOBLE CAPA
 
-- **Detección PRE-inferencia**: antes de llamar a cualquier provider, una heurística
-  (palabras clave es-AR, deliberadamente sensible) detecta señales de crisis
-  (autolesión/suicidio). Vale para stub y para el provider real.
-- En crisis NO se sigue la charla normal: se responde con un mensaje de **contención +
-  recursos de emergencia** (AR: 135 / 0800-345-1435 / 911 / SAME 107) y se marca el
-  run como `status = 'crisis'`.
+- **Capa 1 — input del paciente (PRE-inferencia)**: antes de llamar a cualquier
+  provider, una heurística es-AR detecta señales de crisis (autolesión/suicidio).
+- **Capa 2 — output del modelo**: la MISMA heurística se aplica a la respuesta generada
+  antes de devolverla; si el texto del modelo toca temas de riesgo, no se devuelve y se
+  dispara el guardrail. (Endurecimiento 2026-06-05: antes sólo se evaluaba el input.)
+- La heurística es **deliberadamente sensible** (preferimos falso positivo) y trabaja
+  **normalizada** (minúsculas + sin acentos) para no escaparse por tildes/variantes
+  ("no doy más", "hacerme daño", etc.). El corte heurístico va **SIEMPRE primero**;
+  queda un **gancho** (`_model_crisis_classifier`, hoy no-op) para sumar, con Bedrock
+  activo, un clasificador del propio modelo como segunda señal.
+- En crisis NO se sigue la charla normal: se responde con **contención + recursos de
+  emergencia** (AR: 135 / 0800-345-1435 / 911 / SAME 107) y el run queda
+  `status = 'crisis'`.
 - El profesional asignado ve la conversación **marcada como crisis** en la ficha. (La
   notificación *activa* —email/push— queda pendiente: hoy no hay worker; se asienta y
   se hace visible.)
+
+### Minimización de datos por agente (allow-list)
+
+Cada agente recibe **sólo** los campos del contexto clínico que necesita para su
+función (no el dict crudo completo) — principio de minimización, defendible bajo Ley
+25.326:
+
+- **NUTRI** (profesional): nombre, objetivo, motivo, plan (título/versión), métricas.
+- **CHEF** (recetas): nombre, preferencias/restricciones, alergias, plan (con `body`).
+- **PSICO** (habla con el paciente): **contexto MÍNIMO** — sólo nombre y objetivo
+  general. **NO** alergias, **NO** plan, **NO** métricas, **NO** motivo de consulta.
+
+> **A RATIFICAR (decisión clínica de Matías): qué contexto recibe PSICO.** Se
+> implementó el **default mínimo**; si se ratifica distinto, cambiar la allow-list en
+> `apps/agents/app/main.py` (`_AGENT_CONTEXT_FIELDS`) y este ADR.
 
 ## Consecuencias
 
