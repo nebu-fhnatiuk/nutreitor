@@ -80,7 +80,10 @@ Por defecto el paciente **no** ve ningún campo clínico en su portal. La ficha 
 `clinical_visibility` (jsonb, default `{}`); el profesional/admin habilita campo por
 campo desde la ficha (`PATCH /patients/{id}/clinical-visibility`, capacidad
 `patient:update_clinical_visibility`, scopeado assigned-only e **auditado**:
-`patient.clinical_visibility_updated`). El stripping es **server-side** en
+`patient.clinical_visibility_updated`). En la UI pro, el panel **"Visible para el
+paciente"** (en la ficha, sólo si la sesión puede editar visibilidad) muestra un
+**toggle por campo** con su estado actual y un conteo en vivo; cada cambio manda sólo
+ese campo (merge JSONB). El stripping es **server-side** en
 `getMe` (helper puro `applyClinicalVisibility`): un campo sale al portal sólo si su
 flag es `true`; el front nunca decide. Las `patient_notes` quedan **siempre**
 internas (no se comparten). Ver el ADR
