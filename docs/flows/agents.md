@@ -70,7 +70,11 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
 - **CHEF**: además del paciente y el plan, **lee el cuerpo del plan** (`body` jsonb,
   layouts `day`/`week`) para derivar las **comidas**, más `dietary_preferences` y
   `allergies` para respetarlas en las recetas.
-- **PSICO**: el contexto del paciente; el foco está en la conversación, no en datos.
+- **PSICO**: contexto **MÍNIMO** (sólo nombre + objetivo general). NO recibe plan,
+  alergias, métricas ni motivo crudo (minimización de datos; "a ratificar" en ADR 0015).
+
+Cada agente declara una **allow-list** de campos (`_AGENT_CONTEXT_FIELDS` en el
+servicio): no se le inyecta el contexto crudo completo, sólo lo que su función necesita.
 
 ## Consentimiento, crisis y supervisión (lado paciente)
 
@@ -78,10 +82,12 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
   consentimiento informado (no es terapia / no es emergencia / su profesional puede
   ver las charlas). Se registra en `agent_consents` (versión + fecha). El gateway lo
   exige (`GET/POST /portal/agents/consent`).
-- **Crisis (PSICO)**: una heurística **PRE-inferencia** (palabras clave es-AR) detecta
-  señales de autolesión/suicidio antes de llamar a ningún provider. En crisis no se
-  sigue la charla: se responde con **contención + recursos de emergencia** (AR: 135 /
-  0800-345-1435 / 911 / SAME 107) y el run queda con `status = 'crisis'`.
+- **Crisis (PSICO) — doble capa**: una heurística normalizada (sin acentos/variantes)
+  evalúa el **input del paciente** *antes* de inferir y también el **output del modelo**
+  *antes* de devolverlo. En crisis no se sigue la charla: **contención + recursos de
+  emergencia** (AR: 135 / 0800-345-1435 / 911 / SAME 107) y el run queda
+  `status = 'crisis'`. El corte heurístico va primero; queda un gancho para sumar un
+  clasificador del modelo con Bedrock activo.
 - **Supervisión**: el profesional asignado ve las charlas del paciente
   (`GET /agents/conversations`), con las de crisis **marcadas**. La notificación activa
   (email/push) queda pendiente; hoy se asienta y se hace visible en la ficha.

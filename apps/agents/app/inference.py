@@ -13,8 +13,12 @@ así el caller persiste el audit igual sin saber qué provider corrió.
 
 from __future__ import annotations
 
+import logging
 import os
+import unicodedata
 from dataclasses import dataclass
+
+logger = logging.getLogger("nutreitor.agents.inference")
 
 INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "stub")
 BEDROCK_MODEL_ID = os.environ.get(
@@ -74,15 +78,28 @@ _PSICO_SYSTEM = (
 
 _SYSTEM_BY_AGENT = {"nutri": _NUTRI_SYSTEM, "chef": _CHEF_SYSTEM, "psico": _PSICO_SYSTEM}
 
-# Detección de crisis (red de seguridad PRE-inferencia, vale para todo provider).
-# Heurística por palabras clave en es-AR: deliberadamente sensible (preferimos un
-# falso positivo —mostrar recursos de más— a dejar pasar una crisis real). El
-# provider real puede sumar un clasificador, pero este corte va SIEMPRE primero.
+# Detección de crisis (red de seguridad heurística, vale para todo provider).
+# Deliberadamente SENSIBLE: preferimos un falso positivo —mostrar recursos de más— a
+# dejar pasar una crisis real. Se evalúa en DOS capas (input del paciente y output del
+# modelo); el corte heurístico va SIEMPRE primero. Cuando Bedrock esté activo, acá se
+# puede sumar un clasificador del propio modelo como segunda capa (ver gancho en
+# `_model_crisis_classifier`). Patrones escritos SIN tildes: se comparan normalizados
+# (minúsculas + sin acentos), así "daño/dano", "más/mas", etc. caen igual.
 _CRISIS_PATTERNS = (
-    "suicid", "matarme", "me quiero morir", "no quiero vivir", "no quiero seguir",
-    "quitarme la vida", "terminar con todo", "lastimarme", "hacerme daño",
-    "hacerme dano", "autolesion", "cortarme", "no aguanto mas", "no aguanto más",
+    "suicid", "matarme", "me quiero morir", "quiero morir", "no quiero vivir",
+    "no quiero seguir", "no quiero estar", "quitarme la vida", "terminar con todo",
+    "terminar con mi vida", "acabar con todo", "acabar con mi vida", "lastimarme",
+    "hacerme dano", "hacerme mal", "autolesion", "autolastim", "cortarme",
+    "no aguanto mas", "no doy mas", "desaparecer", "dejar de existir",
+    "mejor no estar", "no vale la pena vivir", "no vale la pena seguir",
+    "estoy en peligro", "ya no quiero", "me quiero ir para siempre",
 )
+
+
+def _normalize(text: str) -> str:
+    """minúsculas + sin acentos, para que la heurística no se escape por tildes."""
+    nfkd = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 # Recursos de emergencia (Argentina). Configurables a futuro por región del tenant.
 _CRISIS_RESOURCES_AR = (
@@ -92,9 +109,16 @@ _CRISIS_RESOURCES_AR = (
 )
 
 
-def _detect_crisis(message: str) -> bool:
-    low = message.lower()
-    return any(p in low for p in _CRISIS_PATTERNS)
+def _detect_crisis(text: str) -> bool:
+    norm = _normalize(text)
+    return any(p in norm for p in _CRISIS_PATTERNS)
+
+
+def _model_crisis_classifier(text: str) -> bool:
+    """Gancho (no implementado) para una segunda capa de detección con el propio
+    modelo, cuando Bedrock esté activo. El corte heurístico de `_detect_crisis` va
+    SIEMPRE primero; esto sólo sumaría recall. Hoy es no-op."""
+    return False
 
 
 def _crisis_result() -> InferenceResult:
@@ -153,14 +177,23 @@ def _clinical_block(clinical: dict) -> str:
 def infer(agent: str, message: str, clinical: dict, history: list[dict]) -> InferenceResult:
     """Punto único de inferencia. `history` = mensajes previos del hilo
     [{role, content}], en orden cronológico."""
-    # Guardrail PSICO: la crisis se corta ANTES de inferir (vale para todo provider).
-    if agent == "psico" and _detect_crisis(message):
+    # Capa 1 (PSICO): la crisis en el INPUT del paciente se corta ANTES de inferir.
+    # Vale para todo provider; el corte heurístico va siempre primero.
+    if agent == "psico" and (_detect_crisis(message) or _model_crisis_classifier(message)):
         return _crisis_result()
+
     if INFERENCE_PROVIDER == "stub":
-        return _stub(agent, message, clinical)
-    if INFERENCE_PROVIDER == "bedrock":
-        return _bedrock(agent, message, clinical, history)
-    raise RuntimeError(f"INFERENCE_PROVIDER desconocido: {INFERENCE_PROVIDER}")
+        result = _stub(agent, message, clinical)
+    elif INFERENCE_PROVIDER == "bedrock":
+        result = _bedrock(agent, message, clinical, history)
+    else:
+        raise RuntimeError(f"INFERENCE_PROVIDER desconocido: {INFERENCE_PROVIDER}")
+
+    # Capa 2 (PSICO): si la PROPIA respuesta del modelo toca temas de riesgo, no la
+    # devolvemos: aplicamos el mismo guardrail (recursos + marca de crisis).
+    if agent == "psico" and (_detect_crisis(result.reply) or _model_crisis_classifier(result.reply)):
+        return _crisis_result()
+    return result
 
 
 # ── stub (dev/tests) ───────────────────────────────────────────────────────────
@@ -221,14 +254,33 @@ def _bedrock(agent: str, message: str, clinical: dict, history: list[dict]) -> I
     ]
     messages.append({"role": "user", "content": [{"text": message}]})
 
-    client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
-    resp = client.converse(
-        modelId=BEDROCK_MODEL_ID,
-        system=system,
-        messages=messages,
-        inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.3},
-    )
-    reply = resp["output"]["message"]["content"][0]["text"]
+    try:
+        client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+        resp = client.converse(
+            modelId=BEDROCK_MODEL_ID,
+            system=system,
+            messages=messages,
+            inferenceConfig={"maxTokens": MAX_OUTPUT_TOKENS, "temperature": 0.3},
+        )
+        # No accedemos a la cadena cruda: si Bedrock corta por content filter / max_tokens
+        # / stopReason inesperado, puede no venir texto. Extraemos defensivamente.
+        parts = (resp.get("output") or {}).get("message", {}).get("content") or []
+        reply = next((p["text"] for p in parts if isinstance(p, dict) and p.get("text")), None)
+        if not reply:
+            raise ValueError(f"respuesta sin texto (stopReason={resp.get('stopReason')!r})")
+    except Exception as exc:  # noqa: BLE001 — degradamos cualquier fallo del provider
+        logger.warning("bedrock falló para agent=%s: %s", agent, exc)
+        return InferenceResult(
+            reply=(
+                "No pude generar una respuesta en este momento. Probá de nuevo en un rato; "
+                "si sigue, avisale a tu profesional."
+            ),
+            input_tokens=None,
+            output_tokens=None,
+            model=f"bedrock:{BEDROCK_MODEL_ID}",
+            status="error",
+        )
+
     usage = resp.get("usage", {})
     # Sumamos los tokens cacheados al input para el tope (igual se facturan, baratos).
     input_tokens = (

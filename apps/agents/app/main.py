@@ -24,6 +24,11 @@ from .inference import INFERENCE_PROVIDER, infer
 
 DATABASE_AGENTS_URL = os.environ["DATABASE_AGENTS_URL"]
 AGENTS_SHARED_SECRET = os.environ["AGENTS_SHARED_SECRET"]
+# Tope de uso por tenant — DEFENSA EN PROFUNDIDAD: el gateway TS ya corta antes de
+# reenviar; esto vuelve a chequear acá por si el servicio se alcanzara sin pasar por el
+# gateway. Mismos nombres de env que el gateway. 0 = sin límite.
+AGENTS_RATELIMIT_PER_MIN = int(os.environ.get("AGENTS_RATELIMIT_PER_MIN", "30"))
+AGENTS_MONTHLY_TOKEN_CAP = int(os.environ.get("AGENTS_MONTHLY_TOKEN_CAP", "0"))
 
 app = FastAPI(title="nutreitor-agents")
 
@@ -57,13 +62,17 @@ def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) 
                     (ctx.tenant_id, ),
                 )
 
+                # Defensa en profundidad: tope de uso por tenant también acá.
+                _check_budget(cur)
+
                 # Conversación primero: así cargamos el historial del hilo como
                 # contexto de la inferencia (continuidad de la charla).
                 conversation_id = _ensure_conversation(
                     cur, ctx, body.agent, body.patientId, body.conversationId
                 )
                 history = _load_history(cur, conversation_id)
-                clinical = _load_clinical_context(cur, body.patientId)
+                # Contexto clínico MINIMIZADO por agente (allow-list).
+                clinical = _load_clinical_context(cur, body.patientId, body.agent)
 
                 result = infer(body.agent, body.message, clinical, history)
                 latency_ms = int((time.monotonic() - started) * 1000)
@@ -75,48 +84,105 @@ def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) 
     return {
         "conversationId": conversation_id,
         "reply": result.reply,
-        # La crisis viaja como `blocked` + flag para que la UI muestre recursos.
-        "status": "blocked" if result.crisis else "ok",
+        # crisis → `blocked` (la UI muestra recursos); error del provider → `error`.
+        "status": (
+            "blocked" if result.crisis else "error" if result.status == "error" else "ok"
+        ),
         "crisis": result.crisis,
     }
 
 
-# ── lectura del contexto clínico (bajo RLS) ─────────────────────────────────────
+def _check_budget(cur) -> None:
+    """Tope de uso por tenant (defensa en profundidad). Corre bajo RLS: `agent_runs`
+    ya queda scopeado al tenant del contexto. 0 = sin límite."""
+    if AGENTS_RATELIMIT_PER_MIN > 0:
+        cur.execute(
+            "select count(*) from agent_runs where created_at >= now() - interval '1 minute'"
+        )
+        if cur.fetchone()[0] >= AGENTS_RATELIMIT_PER_MIN:
+            raise HTTPException(status_code=429, detail="Límite de uso por minuto alcanzado.")
+    if AGENTS_MONTHLY_TOKEN_CAP > 0:
+        cur.execute(
+            "select coalesce(sum(coalesce(input_tokens, 0) + coalesce(output_tokens, 0)), 0) "
+            "from agent_runs where created_at >= date_trunc('month', now())"
+        )
+        if cur.fetchone()[0] >= AGENTS_MONTHLY_TOKEN_CAP:
+            raise HTTPException(status_code=429, detail="Tope mensual de uso alcanzado.")
 
-def _load_clinical_context(cur, patient_id: str | None) -> dict:
+
+# ── lectura del contexto clínico (bajo RLS) ─────────────────────────────────────
+#
+# MINIMIZACIÓN DE DATOS POR AGENTE (allow-list). Cada agente recibe SÓLO los campos
+# que necesita para su función; nunca el dict crudo completo. Principio de minimización
+# (defendible para Fase 3) y respeto del espíritu de la visibilidad por campo (ADR 0008).
+#
+# >> A RATIFICAR (decisión clínica de Matías): QUÉ CONTEXTO RECIBE PSICO.
+#    Default implementado = MÍNIMO (nombre + objetivo general). PSICO habla con el
+#    PACIENTE y no necesita el plan, las alergias, las métricas ni el motivo crudo para
+#    acompañar emocionalmente. Si se ratifica distinto, cambiar acá y en el ADR 0015.
+#
+# Tokens de campo: full_name | goal | reason | dietary_preferences | allergies
+#                  plan_meta (título+versión) | plan_full (+ body) | metrics
+_AGENT_CONTEXT_FIELDS: dict[str, frozenset[str]] = {
+    # NUTRI asiste al PROFESIONAL: evolución + ajuste del plan.
+    "nutri": frozenset({"full_name", "goal", "reason", "plan_meta", "metrics"}),
+    # CHEF asiste al PROFESIONAL/paciente con recetas: necesita el plan y lo que no puede comer.
+    "chef": frozenset({"full_name", "dietary_preferences", "allergies", "plan_full"}),
+    # PSICO habla con el PACIENTE: contexto MÍNIMO (ver nota "a ratificar").
+    "psico": frozenset({"full_name", "goal"}),
+}
+_DEFAULT_CONTEXT_FIELDS = frozenset({"full_name"})
+
+# field token (de patients) -> columna real
+_PATIENT_COLS = {
+    "full_name": "full_name",
+    "goal": "goal",
+    "reason": "reason_for_consult",
+    "dietary_preferences": "dietary_preferences",
+    "allergies": "allergies",
+}
+
+
+def _load_clinical_context(cur, patient_id: str | None, agent: str) -> dict:
     if not patient_id:
         return {}
-    cur.execute(
-        "select full_name, goal, reason_for_consult, dietary_preferences, allergies "
-        "from patients where id = %s limit 1",
-        (patient_id, ),
-    )
-    p = cur.fetchone()
-    if not p:
-        return {}
-    ctx: dict = {
-        "full_name": p[0],
-        "goal": p[1],
-        "reason": p[2],
-        "dietary_preferences": p[3],
-        "allergies": p[4],
-    }
-    # Plan activo: título/versión para NUTRI; body (jsonb) para que CHEF derive recetas.
-    cur.execute(
-        "select title, version, body from meal_plans "
-        "where patient_id = %s and status = 'active' limit 1",
-        (patient_id, ),
-    )
-    plan = cur.fetchone()
-    if plan:
-        ctx["plan"] = {"title": plan[0], "version": plan[1], "body": plan[2]}
-    cur.execute(
-        "select measured_at, weight_kg from patient_metrics "
-        "where patient_id = %s order by measured_at desc limit 3",
-        (patient_id, ),
-    )
-    ctx["metrics"] = [{"date": str(r[0]), "weight_kg": float(r[1]) if r[1] is not None else None}
-                      for r in cur.fetchall()]
+    fields = _AGENT_CONTEXT_FIELDS.get(agent, _DEFAULT_CONTEXT_FIELDS)
+
+    # 1) Columnas de patients: SOLO las permitidas para este agente (no se leen de más).
+    patient_fields = [f for f in _PATIENT_COLS if f in fields]
+    ctx: dict = {}
+    if patient_fields:
+        cols = ", ".join(_PATIENT_COLS[f] for f in patient_fields)
+        cur.execute(f"select {cols} from patients where id = %s limit 1", (patient_id, ))
+        row = cur.fetchone()
+        if not row:
+            return {}
+        ctx = {f: row[i] for i, f in enumerate(patient_fields)}
+
+    # 2) Plan activo: meta (título+versión) o full (+ body), según el agente.
+    if "plan_full" in fields or "plan_meta" in fields:
+        cur.execute(
+            "select title, version, body from meal_plans "
+            "where patient_id = %s and status = 'active' limit 1",
+            (patient_id, ),
+        )
+        plan = cur.fetchone()
+        if plan:
+            ctx["plan"] = {"title": plan[0], "version": plan[1]}
+            if "plan_full" in fields:
+                ctx["plan"]["body"] = plan[2]
+
+    # 3) Evolución (últimas mediciones) sólo si el agente la necesita.
+    if "metrics" in fields:
+        cur.execute(
+            "select measured_at, weight_kg from patient_metrics "
+            "where patient_id = %s order by measured_at desc limit 3",
+            (patient_id, ),
+        )
+        ctx["metrics"] = [
+            {"date": str(r[0]), "weight_kg": float(r[1]) if r[1] is not None else None}
+            for r in cur.fetchall()
+        ]
     return ctx
 
 
