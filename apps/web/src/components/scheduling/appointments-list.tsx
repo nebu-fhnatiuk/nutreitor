@@ -2,6 +2,7 @@
 
 import type { AppointmentDto, AppointmentStatus } from "@nutreitor/shared";
 
+import { EmptyState, SectionHeading } from "@/components/ui";
 import { fmtDayLong, fmtTime, groupByDay } from "@/lib/datetime";
 
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
@@ -28,15 +29,13 @@ export function AppointmentsList({
   onReschedule?: (appt: AppointmentDto) => void;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-stone-400">No hay turnos.</p>;
+    return <EmptyState>No hay turnos.</EmptyState>;
   }
   return (
     <div className="space-y-4">
       {groupByDay(items).map(([k, day]) => (
         <div key={k}>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-stone-400">
-            {fmtDayLong(day[0]!.startsAt)}
-          </p>
+          <SectionHeading className="mb-1.5">{fmtDayLong(day[0]!.startsAt)}</SectionHeading>
           <ul className="divide-y divide-stone-100 rounded-xl border border-stone-100">
             {day.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">

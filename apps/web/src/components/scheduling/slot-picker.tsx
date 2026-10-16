@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SlotDto } from "@nutreitor/shared";
 
+import { Alert, EmptyState, Loading, SectionHeading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { browserTimezone, fmtDayLong, fmtTime, groupByDay } from "@/lib/datetime";
 
@@ -52,10 +53,9 @@ export function SlotPicker({
     }
   }
 
-  if (loading) return <p className="text-sm text-stone-400">Buscando horarios…</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (slots.length === 0)
-    return <p className="text-sm text-stone-400">No hay horarios disponibles por ahora.</p>;
+  if (loading) return <Loading label="Buscando horarios…" />;
+  if (error) return <Alert>{error}</Alert>;
+  if (slots.length === 0) return <EmptyState>No hay horarios disponibles por ahora.</EmptyState>;
 
   return (
     <div>
@@ -63,9 +63,7 @@ export function SlotPicker({
       <div className="max-h-96 space-y-4 overflow-y-auto pr-1">
         {groupByDay(slots).map(([k, daySlots]) => (
           <div key={k}>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-stone-400">
-              {fmtDayLong(daySlots[0]!.startsAt)}
-            </p>
+            <SectionHeading className="mb-1.5">{fmtDayLong(daySlots[0]!.startsAt)}</SectionHeading>
             <div className="flex flex-wrap gap-1.5">
               {daySlots.map((s) => (
                 <button

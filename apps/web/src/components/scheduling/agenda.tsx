@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppointmentDto } from "@nutreitor/shared";
 
+import { Alert, Card, Loading, Modal, SectionHeading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { fmtDateTime } from "@/lib/datetime";
 import { AppointmentsList } from "./appointments-list";
 import { AvailabilityEditor } from "./availability-editor";
 import { SlotPicker } from "./slot-picker";
-
-const card = "rounded-2xl border border-stone-200 bg-white p-5 shadow-sm";
-const h2 = "mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400";
 
 /** Agenda del profesional: disponibilidad + próximos turnos (cancelar/reprogramar). */
 export function Agenda() {
@@ -67,21 +65,17 @@ export function Agenda() {
         </h1>
       </header>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
-      <section className={card}>
-        <h2 className={h2}>Disponibilidad semanal</h2>
+      <Card>
+        <SectionHeading className="mb-4">Disponibilidad semanal</SectionHeading>
         <AvailabilityEditor />
-      </section>
+      </Card>
 
-      <section className={card}>
-        <h2 className={h2}>Próximos turnos</h2>
+      <Card>
+        <SectionHeading className="mb-4">Próximos turnos</SectionHeading>
         {loading ? (
-          <p className="text-sm text-stone-400">Cargando…</p>
+          <Loading />
         ) : (
           <AppointmentsList
             items={booked}
@@ -90,30 +84,22 @@ export function Agenda() {
             onReschedule={setRescheduling}
           />
         )}
-      </section>
+      </Card>
 
-      {rescheduling && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/30 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-5 shadow-xl">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-serif text-lg font-medium text-stone-900">Reprogramar turno</h3>
-                <p className="text-sm text-stone-500">
-                  {rescheduling.patientName} · actual: {fmtDateTime(rescheduling.startsAt)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRescheduling(null)}
-                className="rounded-lg px-2 text-stone-400 transition hover:text-stone-700"
-              >
-                ✕
-              </button>
-            </div>
+      <Modal
+        open={rescheduling !== null}
+        onClose={() => setRescheduling(null)}
+        title="Reprogramar turno"
+      >
+        {rescheduling && (
+          <>
+            <p className="mb-3 text-sm text-stone-500">
+              {rescheduling.patientName} · actual: {fmtDateTime(rescheduling.startsAt)}
+            </p>
             <SlotPicker path="scheduling/slots" onPick={doReschedule} />
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }
