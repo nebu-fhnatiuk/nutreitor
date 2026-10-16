@@ -23,6 +23,10 @@
     "./migrate": {
       "types": "./dist/migrate.d.ts",
       "default": "./dist/migrate.js"
+    },
+    "./catalog": {
+      "types": "./dist/catalog/build-food-catalog.d.ts",
+      "default": "./dist/catalog/build-food-catalog.js"
     }
   },
   "scripts": {
@@ -31,7 +35,8 @@
     "typecheck": "tsc --noEmit",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "catalog:build": "tsx scripts/build-food-catalog.ts"
   },
   "dependencies": {
     "@nutreitor/config": "workspace:*",
