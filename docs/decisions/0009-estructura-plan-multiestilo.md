@@ -1,6 +1,6 @@
 # 0009 — Estructura multi-estilo del plan alimentario
 
-- **Estado**: aceptada
+- **Estado**: aceptada · A2 (editor semanal) implementado el 2026-06-04
 - **Fecha**: 2026 (vertical clínica — planes + métricas)
 
 ## Contexto
@@ -50,11 +50,19 @@ Cortes de diseño:
   editor adapta su complejidad al estilo.
 - **En contra / costos**: el editor es más complejo (cantidad inline + detalle
   expandible por item + targets); el `body` admite formas variadas (hay que validar
-  con Zod y normalizar). El editor del layout `week` todavía no existe (deuda
-  consciente, A2).
+  con Zod y normalizar). El editor del layout `week` quedó diferido como A2 y se
+  implementó después (ver la actualización al final).
 - **Compatibilidad**: `normalizeMealPlanBody` (shared) envuelve bodies legacy a
   `layout: "day"` (idempotente); la migración `0021` migró las filas existentes y
   actualizó el default. La normalización en runtime queda como blindaje.
 
 Detalle del shape en [`../architecture/data-model.md`](../architecture/data-model.md);
 flujo en [`../flows/patients.md`](../flows/patients.md).
+
+## Actualización (2026-06-04): A2 implementado
+
+El editor del layout `week` (grilla lun-dom) se implementó en el commit `9f6b6cb`
+(PR #16): el profesional elige día-tipo o semanal en el editor. Al pasar a semanal
+con la semana vacía, lo cargado en el día-tipo se siembra en el lunes (transición no
+destructiva), y un atajo copia el día activo a los 7 días. La decisión de arriba no
+cambia; sólo se cierra la deuda que dejaba abierta.
