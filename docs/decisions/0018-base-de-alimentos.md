@@ -77,3 +77,18 @@ inmutable de `meal_plans` (ADR 0009) y lo que el paciente recibió queda tal cua
   que poder crearlas (`rds_superuser` en RDS).
 - **Atribución**: la app debe citar a USDA FoodData Central como fuente de los datos
   nutricionales del catálogo.
+
+## Cómo se carga y se actualiza
+
+- La curación AR vive en `packages/db/catalog/foods-ar.curation.json`: por alimento,
+  nombre local, grupo, la **descripción exacta** en SR Legacy y las medidas caseras.
+- `pnpm --filter @nutreitor/db catalog:build <dir-SR-Legacy-CSV>` cruza la curación
+  con el dataset y genera una **migración SQL** (upsert por `slug`). El catálogo es
+  dato de referencia que también hace falta en producción, así que viaja por el job de
+  migraciones y no por el seed de demo.
+- El generador falla si una descripción no existe (y sugiere las más parecidas), si
+  falta un nutriente obligatorio (kcal, proteínas, carbohidratos, grasas) o si los ids
+  de nutriente del dataset no significan lo esperado.
+- Para sumar o corregir alimentos: editar la curación, regenerar y commitear la
+  migración nueva (`00NN_food_catalog_data_*.sql`); nunca editar a mano una migración
+  ya aplicada.

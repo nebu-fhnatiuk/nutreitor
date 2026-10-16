@@ -22,7 +22,7 @@ export const CORE_NUTRIENTS = {
   fatG: { id: 1004, name: "Total lipid (fat)", unit: "G", required: true },
   carbsG: { id: 1005, name: "Carbohydrate, by difference", unit: "G", required: true },
   fiberG: { id: 1079, name: "Fiber, total dietary", unit: "G", required: false },
-  sugarsG: { id: 2000, name: "Sugars, total including NLEA", unit: "G", required: false },
+  sugarsG: { id: 2000, name: "Sugars, Total", unit: "G", required: false },
   satFatG: { id: 1258, name: "Fatty acids, total saturated", unit: "G", required: false },
   sodiumMg: { id: 1093, name: "Sodium, Na", unit: "MG", required: false },
 } as const;
