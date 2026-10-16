@@ -7,6 +7,7 @@ import type {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
+import { Card, Loading, SectionHeading } from "@/components/ui";
 
 const AGENT_LABEL: Record<string, string> = { nutri: "NUTRI", chef: "CHEF", psico: "PSICO" };
 
@@ -50,10 +51,8 @@ export function AgentConversations({ patientId }: { patientId: string }) {
   if (!list || list.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        Charlas con asistentes
-      </h2>
+    <Card>
+      <SectionHeading className="mb-4">Charlas con asistentes</SectionHeading>
       <ul className="space-y-2">
         {list.map((c) => (
           <li key={c.id} className="rounded-lg border border-stone-100">
@@ -80,7 +79,7 @@ export function AgentConversations({ patientId }: { patientId: string }) {
             {openId === c.id && (
               <div className="space-y-2 border-t border-stone-100 px-3 py-3">
                 {!detail ? (
-                  <p className="text-sm text-stone-400">Cargando…</p>
+                  <Loading />
                 ) : (
                   detail.messages.map((m) => (
                     <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
@@ -102,6 +101,6 @@ export function AgentConversations({ patientId }: { patientId: string }) {
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
