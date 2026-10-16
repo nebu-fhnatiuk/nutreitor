@@ -38,8 +38,13 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `agent_runs` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Audit por llamada (modelo, tokens, latencia, `status`: ok/crisis/error). Base del tope de costo y del flag de crisis. |
 | `agent_consents` | Tenant-scoped (RLS) | `tenant_id` | Consentimiento del paciente para asistentes del portal (versión + fecha). |
 | `org_modules` | Tenant-scoped (RLS) | `tenant_id` | Complementos instalables por org (entitlements). Una fila por `(tenant, module)`; `status` active/inactive, `plan`, `terms_version`. Gatea features vía `ModuleGuard`. |
+| `food_catalog` | **Global (sin RLS), sólo lectura** | — | Catálogo de referencia nutricional: valores por 100 g de USDA FoodData Central (CC0) + curado AR (nombre local, grupo, medidas caseras). Sin tenant ni PHI. El rol app sólo tiene `SELECT`; se carga por seed. Ver ADR 0018. |
+| `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
-> `users` es la **única** tabla global. Todo lo demás está aislado por tenant.
+> Las tablas globales son **dos**: `users` (identidad, ADR 0003) y `food_catalog`
+> (referencia nutricional de sólo lectura, ADR 0018). Todo lo demás está aislado por
+> tenant. El test `rls-catalog.e2e.spec.ts` lo verifica recorriendo el catálogo de
+> Postgres: una tabla global nueva tiene que declararse ahí con su justificación.
 >
 > Las tablas `agent_*` las escribe el **servicio Python** con un rol propio
 > `nutreitor_agents` (sin `BYPASSRLS`, igual que `nutreitor_app`), bajo las mismas
@@ -54,7 +59,9 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 
 - `audit_log`, `patient_notes`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
-- `care_assignments`, `meal_plans`, `appointments`: `SELECT` + `INSERT` + `UPDATE`,
+- `food_catalog`: **sólo `SELECT`** → referencia global; se carga por seed con el
+  owner, el runtime no la puede modificar.
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`: `SELECT` + `INSERT` + `UPDATE`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -100,6 +107,7 @@ erDiagram
   organizations ||--o{ agent_runs             : "scopes"
   organizations ||--o{ agent_consents         : "scopes"
   organizations ||--o{ org_modules            : "installs"
+  organizations ||--o{ tenant_foods           : "owns"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -114,6 +122,7 @@ erDiagram
   memberships ||--o{ meal_plans             : "authors"
   memberships ||--o{ availability_rules      : "defines"
   memberships ||--o{ appointments            : "attends"
+  memberships ||--o{ tenant_foods            : "creates"
 
   patients ||--o{ care_assignments : "cared by"
   patients ||--o{ patient_notes    : "has"
@@ -372,6 +381,40 @@ erDiagram
     timestamptz installed_at
     timestamptz uninstalled_at
   }
+
+  food_catalog {
+    uuid id PK
+    text slug UK "clave estable del curado"
+    text name "nombre AR"
+    text food_group
+    text source "usda"
+    text source_ref "fdc_id"
+    numeric energy_kcal "por 100 g"
+    numeric protein_g
+    numeric carbs_g
+    numeric fat_g
+    numeric fiber_g
+    numeric sugars_g
+    numeric sat_fat_g
+    numeric sodium_mg
+    jsonb portions "medidas caseras"
+    jsonb extra "micronutrientes"
+  }
+
+  tenant_foods {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    text name
+    text food_group
+    numeric energy_kcal "por 100 g"
+    numeric protein_g
+    numeric carbs_g
+    numeric fat_g
+    jsonb portions
+    uuid created_by_membership_id FK
+    timestamptz archived_at "baja lógica"
+  }
 ```
 
 ## Invariantes y restricciones destacadas
@@ -408,6 +451,10 @@ erDiagram
   hace `normalizeMealPlanBody` (shared); la migración `0021` envolvió las filas
   existentes a `layout: "day"`. Ver el ADR
   [`../decisions/0009-estructura-plan-multiestilo.md`](../decisions/0009-estructura-plan-multiestilo.md).
+
+- **`food_catalog.portions` / `tenant_foods.portions`** — medidas caseras del
+  alimento: `[{ label: "1 taza", grams: 160 }]`. El editor del plan las ofrece como
+  alternativa a cargar gramos. `extra` guarda micronutrientes opcionales por 100 g.
 
 - **`patients.clinical_visibility`** — `Record<campo_clínico, boolean>`, default `{}`
   (todo oculto). Sólo `getMe` del portal lo consume: un campo clínico se expone al
