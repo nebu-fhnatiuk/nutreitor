@@ -150,3 +150,16 @@ levanta un Postgres real con 2 tenants y verifica: cada tenant ve sólo lo suyo,
 forzar el id de un paciente ajeno no devuelve nada, insertar con `tenant_id` ajeno
 es rechazado por `WITH CHECK`, y que **sin contexto no se ve nada** (fail-closed).
 En CI corre contra un Postgres service container (no se mockea la DB).
+
+Además, `rls-catalog.e2e.spec.ts` recorre el **catálogo de Postgres** en vez de una
+lista de tablas: toda tabla sobre la que el rol app tiene privilegios tiene que tener
+RLS habilitado y **forzado**, una policy atada a `app.current_tenant_id` en `USING` y
+`WITH CHECK`, devolver 0 filas sin contexto y ninguna fila de otro tenant con
+contexto. Una tabla nueva que se olvide de RLS rompe el CI sin que nadie tenga que
+sumarla al test. Las únicas excepciones son las tablas globales declaradas en el test
+con su justificación (hoy sólo `users`, ver ADR 0003).
+
+Encima de RLS, los `*-authz.e2e.spec.ts` cubren el scoping **de servicio**
+(profesional → sólo pacientes asignados, acceso por id que no cruce de paciente,
+reserva pública acotada a la org del slug), que RLS no puede ver porque es una regla
+dentro del mismo tenant.
