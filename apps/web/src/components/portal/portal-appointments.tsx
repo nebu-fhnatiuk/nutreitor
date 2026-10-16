@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppointmentDto } from "@nutreitor/shared";
 
+import { Alert, Button, Card, Loading, Modal, SectionHeading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { AppointmentsList } from "@/components/scheduling/appointments-list";
 import { SlotPicker } from "@/components/scheduling/slot-picker";
 import { fmtDateTime } from "@/lib/datetime";
-
-const card = "rounded-2xl border border-stone-200 bg-white p-5 shadow-sm";
-const h2 = "text-xs font-semibold uppercase tracking-widest text-stone-400";
 
 /** Turnos del paciente: próximos + reservar (slots de su profesional) + cancelar. */
 export function PortalAppointments() {
@@ -77,39 +75,27 @@ export function PortalAppointments() {
   );
 
   return (
-    <section className={card}>
+    <Card>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className={h2}>Tus turnos</h2>
+        <SectionHeading>Tus turnos</SectionHeading>
         {!booking && (
-          <button
-            type="button"
-            onClick={() => setBooking(true)}
-            className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-brand-fg transition hover:brightness-110"
-          >
+          <Button size="sm" onClick={() => setBooking(true)}>
             Reservar turno
-          </button>
+          </Button>
         )}
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert className="mb-4">{error}</Alert>}
 
       {booking ? (
         <div>
           <SlotPicker path="portal/slots" onPick={book} />
-          <button
-            type="button"
-            onClick={() => setBooking(false)}
-            className="mt-4 rounded-lg px-4 py-2 text-sm text-stone-500 transition hover:bg-stone-100"
-          >
+          <Button variant="ghost" onClick={() => setBooking(false)} className="mt-4">
             Cancelar
-          </button>
+          </Button>
         </div>
       ) : loading ? (
-        <p className="text-sm text-stone-400">Cargando…</p>
+        <Loading />
       ) : (
         <AppointmentsList
           items={upcoming}
@@ -119,29 +105,20 @@ export function PortalAppointments() {
         />
       )}
 
-      {rescheduling && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-stone-900/30 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-serif text-lg font-medium text-stone-900">Reprogramar turno</h3>
-                <p className="text-sm text-stone-500">
-                  Con {rescheduling.professionalName} · actual: {fmtDateTime(rescheduling.startsAt)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRescheduling(null)}
-                aria-label="Cerrar"
-                className="rounded-lg px-2 text-stone-400 transition hover:text-stone-700"
-              >
-                ✕
-              </button>
-            </div>
+      <Modal
+        open={rescheduling !== null}
+        onClose={() => setRescheduling(null)}
+        title="Reprogramar turno"
+      >
+        {rescheduling && (
+          <>
+            <p className="mb-3 text-sm text-stone-500">
+              Con {rescheduling.professionalName} · actual: {fmtDateTime(rescheduling.startsAt)}
+            </p>
             <SlotPicker path="portal/slots" onPick={doReschedule} />
-          </div>
-        </div>
-      )}
-    </section>
+          </>
+        )}
+      </Modal>
+    </Card>
   );
 }
