@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AvailabilityDto, AvailabilityWindow } from "@nutreitor/shared";
 
+import { Alert, Button, EmptyState, Input, Loading, Select } from "@/components/ui";
 import { api } from "@/lib/api";
 import { browserTimezone } from "@/lib/datetime";
 
@@ -16,9 +17,6 @@ const WEEKDAYS: [number, string][] = [
   [7, "Domingo"],
 ];
 const SLOT_OPTIONS = [15, 20, 30, 45, 60, 90];
-
-const inputCls =
-  "rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 const toHM = (min: number) =>
   `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
@@ -81,67 +79,63 @@ export function AvailabilityEditor() {
     }
   }
 
-  if (loading) return <p className="text-sm text-stone-400">Cargando…</p>;
+  if (loading) return <Loading />;
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
       <label className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-stone-500">Zona horaria</span>
-        <input
+        <Input
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
-          className={`${inputCls} w-72`}
+          className="w-72"
           placeholder="America/Argentina/Buenos_Aires"
         />
       </label>
 
       <div className="space-y-2">
         {windows.length === 0 && (
-          <p className="text-sm text-stone-400">Todavía no cargaste horarios de atención.</p>
+          <EmptyState>Todavía no cargaste horarios de atención.</EmptyState>
         )}
         {windows.map((w, i) => (
           <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 p-2.5">
-            <select
+            <Select
               value={w.weekday}
               onChange={(e) => update(i, { weekday: Number(e.target.value) })}
-              className={inputCls}
+              className="w-auto"
             >
               {WEEKDAYS.map(([n, label]) => (
                 <option key={n} value={n}>
                   {label}
                 </option>
               ))}
-            </select>
-            <input
+            </Select>
+            <Input
               type="time"
               value={toHM(w.startMinute)}
               onChange={(e) => update(i, { startMinute: toMin(e.target.value) })}
-              className={inputCls}
+              className="w-auto"
             />
             <span className="text-stone-400">a</span>
-            <input
+            <Input
               type="time"
               value={toHM(w.endMinute)}
               onChange={(e) => update(i, { endMinute: toMin(e.target.value) })}
-              className={inputCls}
+              className="w-auto"
             />
-            <select
+            <Select
               value={w.slotMinutes}
               onChange={(e) => update(i, { slotMinutes: Number(e.target.value) })}
-              className={inputCls}
+              className="w-auto"
             >
               {SLOT_OPTIONS.map((m) => (
                 <option key={m} value={m}>
                   turnos de {m}′
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               type="button"
               onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}
@@ -162,14 +156,9 @@ export function AvailabilityEditor() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={busy}
-          className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-        >
+        <Button onClick={save} disabled={busy}>
           {busy ? "Guardando…" : "Guardar disponibilidad"}
-        </button>
+        </Button>
         {saved && <span className="text-sm text-brand">Guardado ✓</span>}
       </div>
     </div>
