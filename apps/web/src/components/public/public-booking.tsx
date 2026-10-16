@@ -3,12 +3,10 @@
 import { useState } from "react";
 import type { PublicBookingResult } from "@nutreitor/shared";
 
+import { Input } from "@/components/ui";
 import { api } from "@/lib/api";
 import { fmtDateTime } from "@/lib/datetime";
 import { SlotPicker } from "@/components/scheduling/slot-picker";
-
-const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 /**
  * Reserva pública desde la vidriera: el visitante deja sus datos y elige un
@@ -67,26 +65,23 @@ export function PublicBooking({
         Dejá tus datos y elegí un horario disponible con {professionalName}.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <input
+        <Input
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Tu nombre y apellido"
-          className={inputCls}
           autoComplete="name"
         />
-        <input
+        <Input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Tu email"
           type="email"
-          className={inputCls}
           autoComplete="email"
         />
-        <input
+        <Input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Teléfono (opcional)"
-          className={inputCls}
           autoComplete="tel"
         />
       </div>
