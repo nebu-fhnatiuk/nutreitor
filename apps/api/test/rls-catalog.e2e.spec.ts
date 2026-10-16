@@ -22,11 +22,18 @@ function requireEnv(name: string): string {
 }
 
 /**
- * Tablas GLOBALES a propósito (sin RLS). Cada entrada necesita una justificación:
+ * Tablas GLOBALES a propósito (sin RLS). Cada entrada necesita una justificación y
+ * declara si el rol app puede escribirla:
  * - users: identidad global (sólo credencial + nombre, sin PHI); el acceso queda
  *   gateado por `memberships`, que sí está bajo RLS. Ver ADR 0003.
+ * - food_catalog: catálogo de referencia nutricional (USDA + curado AR), sin tenant
+ *   ni PHI. El runtime sólo lo lee; se carga por seed. Ver ADR 0018.
  */
-const GLOBAL_TABLES = new Set(["users"]);
+const GLOBAL_TABLE_RULES: Record<string, { readOnly: boolean }> = {
+  users: { readOnly: false },
+  food_catalog: { readOnly: true },
+};
+const GLOBAL_TABLES = new Set(Object.keys(GLOBAL_TABLE_RULES));
 
 /** Columna que ata la fila al tenant, en orden de preferencia. */
 const TENANT_COLUMNS = ["tenant_id", "organization_id"] as const;
@@ -95,6 +102,18 @@ describe("Catálogo RLS (toda tabla que toca el rol app)", () => {
   it("el catálogo no está vacío y las tablas globales existen", () => {
     expect(tenantTables().length).toBeGreaterThanOrEqual(15);
     for (const g of GLOBAL_TABLES) expect(tables.map((t) => t.name)).toContain(g);
+  });
+
+  it("las tablas globales de solo lectura no son escribibles por el rol app", async () => {
+    const escribibles: string[] = [];
+    for (const [name, rule] of Object.entries(GLOBAL_TABLE_RULES)) {
+      if (!rule.readOnly) continue;
+      const res = await ownerDb.execute(
+        sql`select has_table_privilege('nutreitor_app', ${name}, 'INSERT, UPDATE, DELETE, TRUNCATE') as w`,
+      );
+      if ((res.rows[0] as { w: boolean }).w) escribibles.push(name);
+    }
+    expect(escribibles).toEqual([]);
   });
 
   it("toda tabla no global tiene una columna de tenant", () => {
