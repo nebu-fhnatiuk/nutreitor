@@ -1,5 +1,7 @@
 import type { PublicProfessional } from "@nutreitor/shared";
 
+import { SectionHeading } from "@/components/ui";
+
 import { BookingCta } from "./booking-cta";
 
 /**
@@ -68,9 +70,7 @@ export function ProfessionalView({
         <div className="space-y-10">
           {p.bio && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-                Sobre mí
-              </h2>
+              <SectionHeading>Sobre mí</SectionHeading>
               <p className="mt-3 whitespace-pre-line leading-relaxed text-stone-700">
                 {p.bio}
               </p>
@@ -79,9 +79,7 @@ export function ProfessionalView({
 
           {p.specialties.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-                Especialidades
-              </h2>
+              <SectionHeading>Especialidades</SectionHeading>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {p.specialties.map((s) => (
                   <li
@@ -97,9 +95,7 @@ export function ProfessionalView({
 
           {p.credentials && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-                Formación
-              </h2>
+              <SectionHeading>Formación</SectionHeading>
               <p className="mt-3 whitespace-pre-line leading-relaxed text-stone-700">
                 {p.credentials}
               </p>
@@ -108,9 +104,7 @@ export function ProfessionalView({
 
           {p.services.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-                Servicios
-              </h2>
+              <SectionHeading>Servicios</SectionHeading>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {p.services.map((s, i) => (
                   <div
