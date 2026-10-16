@@ -114,14 +114,16 @@ flowchart TB
 La API es un **modular monolith** a propósito: la arquitectura objetivo es orientada
 a servicios, alcanzada **incrementalmente** (extraer un bounded context cuando hay un
 disparador real), no de un big-bang. Los módulos, los DTOs de `shared`, el
-`tenant_id`/`region` por tabla y el servicio de agentes ya reservado son las costuras
+`tenant_id`/`region` por tabla y el servicio de agentes (ya extraído) son las costuras
 para esa extracción. Reglas, disparadores y orden en el ADR
 [`../decisions/0012-modular-monolith-evolucion-a-servicios.md`](../decisions/0012-modular-monolith-evolucion-a-servicios.md).
 
-## Fuera de alcance (con el lugar reservado)
+## Fuera del monolito
 
-- **Agentes (CHEF/NUTRI/PSICO)**: `apps/api/src/agents/` es un slot vacío. Vivirán
-  en un servicio Python que consume el mismo Postgres bajo las mismas RLS policies.
-- **Agendamiento**: módulo placeholder; antes de implementar se decide Cal.com
-  self-hosted vs motor propio. Invariante fijado: UTC en storage, conversión en
-  presentación, DST por país.
+- **Agentes (CHEF/NUTRI/PSICO)**: servicio Python aparte (`apps/agents`) que consume
+  el mismo Postgres bajo las mismas RLS policies, con un rol propio
+  (`nutreitor_agents`). La API es su gateway (`modules/agents`): firma un contexto de
+  tenant HMAC + TTL y aplica el consentimiento y el tope de costo antes de egresar.
+  Ver [`../flows/agents.md`](../flows/agents.md) y los ADR 0013–0016.
+- **Agendamiento**: motor propio dentro de la API (`modules/scheduling`), no Cal.com.
+  Ver [`../flows/scheduling.md`](../flows/scheduling.md) y el ADR 0011.

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Figtree } from "next/font/google";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { getTenantTheme } from "@/lib/tenant-theme";
 import "./globals.css";
 
 // Hilo conductor tipográfico: display serif editorial + UI sans humanista.
@@ -24,20 +23,11 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  // STUB: el tenant se resolverá por subdominio/host. Acá inyectamos su tema
-  // como CSS variables, que es lo que consume Tailwind (color `brand`).
-  const theme = getTenantTheme();
-
   return (
     <html lang="es-AR" className={`${serif.variable} ${sans.variable}`}>
-      <body
-        style={
-          {
-            "--brand-rgb": theme.brandRgb,
-            "--brand-fg-rgb": theme.brandFgRgb,
-          } as CSSProperties
-        }
-      >
+      {/* El color de marca por defecto vive en globals.css; el del tenant lo
+          sobrescribe app/s/[slug]/layout.tsx con su branding. */}
+      <body>
         {children}
       </body>
     </html>
