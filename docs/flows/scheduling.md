@@ -20,6 +20,12 @@ de spring-forward** (Luxon "forwardea" una hora inexistente, así que se compara
 wall-clock pedido y se descarta si no coincide). El cliente muestra los slots en el
 huso del que mira.
 
+El rango `from`/`to` lo manda el cliente (también en la ruta pública, sin sesión),
+así que el cálculo se acota **siempre** a `[now, now + 180 días]`: sin tope, un
+rango arbitrario (`1970→9999`) hace iterar a `generateSlots` millones de días y
+bloquea el event loop. El mismo tope limita hasta cuándo se puede reservar. Una
+fecha que no parsea es 400.
+
 ## Reserva interna (con sesión)
 
 ```mermaid
@@ -41,6 +47,8 @@ flowchart TD
 
 - **Scoping**: el profesional opera sobre su propia agenda y sólo pacientes que
   tiene **asignados**; el paciente reserva con su profesional con asignación activa.
+  Si tiene varias asignaciones activas (M:N), se toma la **más antigua**, de forma
+  determinística (slots y reserva siempre contra el mismo profesional).
 - **Cancelar / reprogramar**: la cita se *cancela* (no se borra; sin `DELETE` a
   nivel GRANT). Reprogramar = cancela la actual y reserva la nueva **en una sola
   transacción** (`run()` es transaccional: si la nueva choca, se revierte la
