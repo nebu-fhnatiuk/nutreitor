@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  dayMacros,
+  macrosForGrams,
   normalizeMealPlanBody,
+  sumMacros,
+  targetDeviation,
   weekdays,
   type DayPlan,
+  type FoodDto,
+  type FoodRef,
   type Macros,
   type MealItem,
   type MealPlanBody,
@@ -14,6 +20,7 @@ import {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
+import { FoodPicker } from "./food-picker";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -42,23 +49,8 @@ function daysOf(body: MealPlanBody): { key: string; label?: string; meals: PlanM
   return [{ key: "day", meals: body.day.meals }];
 }
 
-/** Suma de macros de una comida. Sólo incluye una clave si AL MENOS un item la
- * trae (evita mostrar "C 0" engañoso cuando el dato no se cargó). Null si ningún
- * item tiene macros. */
-function mealMacros(meal: PlanMeal): Macros | null {
-  const keys = ["protein_g", "carbs_g", "fat_g", "kcal"] as const;
-  const acc: Macros = {};
-  let any = false;
-  for (const it of meal.items) {
-    if (!it.macros) continue;
-    any = true;
-    for (const k of keys) {
-      const v = it.macros[k];
-      if (v != null) acc[k] = (acc[k] ?? 0) + v;
-    }
-  }
-  return any ? acc : null;
-}
+/** Suma de macros de una comida (sólo claves cargadas; null si ningún item). */
+const mealMacros = (meal: PlanMeal): Macros | null => sumMacros(meal.items.map((it) => it.macros));
 
 function macroLine(m: Macros): string {
   const parts: string[] = [];
@@ -257,6 +249,9 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
                       <li key={j} className="text-sm text-stone-700">
                         · {qtyText(it) && <span className="text-stone-500">{qtyText(it)} </span>}
                         {it.text}
+                        {it.food && it.food.portion && (
+                          <span className="text-stone-400"> ({round(it.food.grams)} g)</span>
+                        )}
                         {it.note && <span className="text-stone-400"> — {it.note}</span>}
                         {it.macros && (
                           <span className="ml-1 text-xs text-stone-400">({macroLine(it.macros)})</span>
@@ -272,6 +267,7 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
                 </div>
               );
             })}
+            <DayTotals meals={g.meals} targets={body.targets} />
           </div>
         ))}
         {plan.body.generalNotes && (
@@ -281,8 +277,64 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
             {plan.body.generalNotes}
           </p>
         )}
+        <Attribution groups={groups} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Total del día contra el objetivo del plan. Se marca el desvío de kcal y de cada
+ * macro: ±10% está bien, más que eso se resalta. No se muestra si nada tiene macros.
+ */
+function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) {
+  const total = dayMacros({ meals });
+  if (!total) return null;
+  const keys: [keyof Macros, string, string][] = [
+    ["kcal", "kcal", ""],
+    ["protein_g", "P", " g"],
+    ["carbs_g", "C", " g"],
+    ["fat_g", "G", " g"],
+  ];
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg bg-stone-50 px-3 py-2 text-xs">
+      <span className="font-semibold uppercase tracking-widest text-stone-400">Total del día</span>
+      {keys.map(([k, label, unit]) => {
+        const v = total[k];
+        if (v == null) return null;
+        const dev = targetDeviation(v, targets?.[k]);
+        const off = dev != null && Math.abs(dev) > 10;
+        return (
+          <span key={k} className={off ? "font-medium text-amber-700" : "text-stone-600"}>
+            {label} {round(v)}
+            {unit}
+            {targets?.[k] != null && (
+              <span className="text-stone-400">
+                {" "}
+                / {round(targets[k]!)}
+                {unit}
+                {dev != null && dev !== 0 && ` (${dev > 0 ? "+" : ""}${dev}%)`}
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Cita la fuente de los datos nutricionales si algún item viene de la base. */
+function Attribution({ groups }: { groups: { meals: PlanMeal[] }[] }) {
+  const sources = new Set(
+    groups.flatMap((g) => g.meals.flatMap((m) => m.items.map((it) => it.food?.attribution))),
+  );
+  sources.delete(undefined);
+  sources.delete(null);
+  if (sources.size === 0) return null;
+  return (
+    <p className="text-[11px] text-stone-400">
+      Datos nutricionales: {[...sources].join(", ")}.
+    </p>
   );
 }
 
@@ -569,7 +621,10 @@ function PlanEditor({
       </div>
 
       {layout === "day" ? (
-        <MealsEditor meals={dayMeals} onChange={setDayMeals} />
+        <div className="space-y-3">
+          <MealsEditor meals={dayMeals} onChange={setDayMeals} />
+          <DayTotals meals={dayMeals} targets={cleanMacros(targets)} />
+        </div>
       ) : (
         <div className="space-y-3">
           <WeekdayTabs active={activeDay} week={week} onSelect={setActiveDay} />
@@ -589,6 +644,7 @@ function PlanEditor({
             meals={week[activeDay] ?? []}
             onChange={(m) => setWeek({ ...week, [activeDay]: m })}
           />
+          <DayTotals meals={week[activeDay] ?? []} targets={cleanMacros(targets)} />
         </div>
       )}
 
@@ -624,28 +680,35 @@ function ItemEditor({
   onChange: (patch: Partial<MealItem>) => void;
   onRemove: () => void;
 }) {
-  const hasDetail = Boolean(item.alternatives?.length || item.macros);
+  const hasDetail = Boolean(item.alternatives?.length || (item.macros && !item.food));
   const [open, setOpen] = useState(hasDetail);
+  const food = item.food;
   return (
     <div className="rounded-lg bg-stone-50/60 p-2">
       <div className="flex gap-2">
-        <input
-          value={item.qty != null ? String(item.qty) : ""}
-          onChange={(e) => onChange({ qty: e.target.value === "" ? undefined : Number(e.target.value) })}
-          placeholder="Cant."
-          inputMode="decimal"
-          className={`${narrowCls} w-16`}
-        />
-        <input
-          value={item.unit ?? ""}
-          onChange={(e) => onChange({ unit: e.target.value || undefined })}
-          placeholder="Unid."
-          className={`${narrowCls} w-16`}
-        />
-        <input
+        {food ? (
+          <LinkedQuantity food={food} onChange={(next) => onChange(withFood(next))} />
+        ) : (
+          <>
+            <input
+              value={item.qty != null ? String(item.qty) : ""}
+              onChange={(e) => onChange({ qty: e.target.value === "" ? undefined : Number(e.target.value) })}
+              placeholder="Cant."
+              inputMode="decimal"
+              className={`${narrowCls} w-16`}
+            />
+            <input
+              value={item.unit ?? ""}
+              onChange={(e) => onChange({ unit: e.target.value || undefined })}
+              placeholder="Unid."
+              className={`${narrowCls} w-16`}
+            />
+          </>
+        )}
+        <FoodPicker
           value={item.text}
-          onChange={(e) => onChange({ text: e.target.value })}
-          placeholder="Alimento / preparación"
+          onText={(text) => onChange({ text })}
+          onPick={(f) => onChange({ text: f.name, ...withFood(linkFood(f)) })}
           className={inputCls}
         />
         <button
@@ -666,6 +729,20 @@ function ItemEditor({
           ✕
         </button>
       </div>
+      {food && (
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 pl-1 text-xs text-stone-400">
+          <span>
+            {round(food.grams)} g · {macroLine(item.macros ?? {})}
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange({ food: undefined })}
+            className="transition hover:text-red-600"
+          >
+            desvincular
+          </button>
+        </div>
+      )}
       {open && (
         <div className="mt-2 space-y-2 pl-1">
           <input
@@ -727,16 +804,106 @@ function ItemEditor({
               + Agregar alternativa
             </button>
           </div>
-          <div>
-            <span className="mb-1 block text-xs text-stone-400">Macros del item</span>
-            <MacrosInputs
-              value={item.macros ?? {}}
-              onChange={(m) => onChange({ macros: hasMacros(m) ? m : undefined })}
-            />
-          </div>
+          {!food && (
+            <div>
+              <span className="mb-1 block text-xs text-stone-400">Macros del item</span>
+              <MacrosInputs
+                value={item.macros ?? {}}
+                onChange={(m) => onChange({ macros: hasMacros(m) ? m : undefined })}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+// ── vínculo con la base de alimentos (ADR 0018) ────────────────────────────
+
+/** Unidad legible de una medida casera: "1 taza" → "taza", "1/2 taza" queda igual. */
+const portionUnit = (label: string) => label.replace(/^1\s+/, "");
+
+/** Vínculo inicial al elegir un alimento: 1 medida casera si tiene, si no 100 g. */
+function linkFood(f: FoodDto): FoodRef {
+  const portion = f.portions[0];
+  return {
+    source: f.source,
+    id: f.id,
+    grams: portion ? portion.grams : 100,
+    ...(portion ? { portion, count: 1 } : {}),
+    ...(f.portions.length ? { portions: f.portions.slice(0, 10) } : {}),
+    per100g: {
+      kcal: f.per100g.energyKcal,
+      protein_g: f.per100g.proteinG,
+      carbs_g: f.per100g.carbsG,
+      fat_g: f.per100g.fatG,
+    },
+    attribution: f.attribution,
+  };
+}
+
+/** Patch del item para un vínculo: cantidad visible + macros calculados (copia). */
+function withFood(food: FoodRef): Partial<MealItem> {
+  return {
+    food,
+    qty: food.portion ? food.count : Math.round(food.grams),
+    unit: food.portion ? portionUnit(food.portion.label) : "g",
+    macros: macrosForGrams(food.per100g, food.grams),
+  };
+}
+
+/**
+ * Cantidad de un item vinculado: número + unidad (gramos o una medida casera del
+ * alimento, copiadas al vincular). Cambiar de unidad conserva el peso: pasar de
+ * "1 taza" a gramos muestra 160; pasar de gramos a una medida arranca en 1.
+ */
+function LinkedQuantity({ food, onChange }: { food: FoodRef; onChange: (f: FoodRef) => void }) {
+  const qty = food.portion ? food.count ?? 1 : Math.round(food.grams);
+  // Medidas disponibles: las copiadas al vincular (+ la elegida, por si es de un plan
+  // guardado antes de que se copiaran todas).
+  const options = [...(food.portions ?? [])];
+  if (food.portion && !options.some((o) => o.label === food.portion!.label)) options.unshift(food.portion);
+  const setQty = (raw: string) => {
+    const n = Number(raw.replace(",", "."));
+    if (!raw || Number.isNaN(n) || n <= 0) return;
+    onChange(
+      food.portion
+        ? { ...food, count: n, grams: Math.min(n * food.portion.grams, 5000) }
+        : { ...food, grams: Math.min(n, 5000) },
+    );
+  };
+  return (
+    <>
+      <input
+        defaultValue={String(qty)}
+        key={`${food.portion?.label ?? "g"}`}
+        onChange={(e) => setQty(e.target.value)}
+        inputMode="decimal"
+        aria-label="Cantidad"
+        className={`${narrowCls} w-16`}
+      />
+      <select
+        value={food.portion ? food.portion.label : "g"}
+        onChange={(e) => {
+          if (e.target.value === "g") {
+            onChange({ ...food, portion: undefined, count: undefined });
+            return;
+          }
+          const p = options.find((o) => o.label === e.target.value);
+          if (p) onChange({ ...food, portion: p, count: 1, grams: p.grams });
+        }}
+        aria-label="Unidad"
+        className={`${narrowCls} w-32`}
+      >
+        {options.map((o) => (
+          <option key={o.label} value={o.label}>
+            {portionUnit(o.label)}
+          </option>
+        ))}
+        <option value="g">gramos</option>
+      </select>
+    </>
   );
 }
 
@@ -805,6 +972,7 @@ function cleanMeal(meal: PlanMeal): PlanMeal {
           note: it.note?.trim() || undefined,
           alternatives: alternatives.length ? alternatives : undefined,
           macros: it.macros ? cleanMacros(it.macros) : undefined,
+          food: it.food,
         };
       })
       .filter((it) => it.text.length > 0),
