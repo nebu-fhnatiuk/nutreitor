@@ -143,3 +143,84 @@ describe("Métricas — autorización de servicio (assigned-only)", () => {
     );
   });
 });
+
+const PATIENT_USER = "00000000-0000-0000-0000-0000000000f3"; // patient@demo → ficha d1
+const asPatient = <T>(fn: () => Promise<T>) => as(PATIENT_USER, "patient", fn);
+
+describe("Métricas — editar/borrar y acceso por id (IDOR)", () => {
+  it("el profesional NO puede editar ni borrar una métrica de un paciente NO asignado → 404", async () => {
+    const m = await asAdmin(() => metrics.record(D2_UNASSIGNED, metricDto()));
+    await expect(
+      asPro(() => metrics.update(D2_UNASSIGNED, m.id, { weightKg: 1 })),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(asPro(() => metrics.remove(D2_UNASSIGNED, m.id))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    const [after] = await ownerDb.select().from(patientMetrics).where(eq(patientMetrics.id, m.id));
+    expect(Number(after!.weightKg)).toBe(70);
+  });
+
+  it("IDOR: una métrica de OTRO paciente no se toca por la ruta de uno asignado → 404", async () => {
+    // El pro tiene acceso a D1; el metricId es de D2. El chequeo de acceso pasa (D1),
+    // así que lo que frena es que la métrica tiene que pertenecer al paciente de la ruta.
+    const ajena = await asAdmin(() => metrics.record(D2_UNASSIGNED, metricDto()));
+    await expect(
+      asPro(() => metrics.update(D1_ASSIGNED, ajena.id, { weightKg: 1 })),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(asPro(() => metrics.remove(D1_ASSIGNED, ajena.id))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    const [after] = await ownerDb
+      .select()
+      .from(patientMetrics)
+      .where(eq(patientMetrics.id, ajena.id));
+    expect(after).toBeDefined();
+    expect(Number(after!.weightKg)).toBe(70);
+  });
+
+  it("el profesional SÍ edita y borra una métrica propia de un paciente asignado", async () => {
+    const m = await asPro(() => metrics.record(D1_ASSIGNED, metricDto()));
+    const upd = await asPro(() => metrics.update(D1_ASSIGNED, m.id, { weightKg: 71.5 }));
+    expect(upd.weightKg).toBe(71.5);
+    await asPro(() => metrics.remove(D1_ASSIGNED, m.id));
+    const rows = await ownerDb.select().from(patientMetrics).where(eq(patientMetrics.id, m.id));
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("Planes — listar y archivar (assigned-only)", () => {
+  it("el profesional NO lista ni archiva planes de un paciente NO asignado → 404", async () => {
+    await asAdmin(() => plans.save(D2_UNASSIGNED, planDto("Plan admin D2")));
+    await expect(asPro(() => plans.list(D2_UNASSIGNED))).rejects.toBeInstanceOf(NotFoundException);
+    await expect(asPro(() => plans.archiveActive(D2_UNASSIGNED))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    const active = await ownerDb
+      .select({ status: mealPlans.status })
+      .from(mealPlans)
+      .where(eq(mealPlans.patientId, D2_UNASSIGNED));
+    expect(active.some((p) => p.status === "active")).toBe(true);
+  });
+
+  it("el profesional SÍ lista los planes de un paciente asignado", async () => {
+    const list = await asPro(() => plans.list(D1_ASSIGNED));
+    expect(list.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Defensa en profundidad: el rol paciente en los services clínicos", () => {
+  // El CapabilityGuard ya frena al paciente en el controller (no tiene plan:* ni
+  // metric:*). Esto verifica la segunda capa: aun saltándose el guard, el service
+  // no le abre la ficha (no tiene asignaciones como profesional) — ni la PROPIA.
+  it("un paciente NO lista planes ni métricas por los endpoints del profesional → 404", async () => {
+    await expect(asPatient(() => plans.list(D1_ASSIGNED))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(asPatient(() => metrics.list(D1_ASSIGNED))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(asPatient(() => metrics.record(D1_ASSIGNED, metricDto()))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});
