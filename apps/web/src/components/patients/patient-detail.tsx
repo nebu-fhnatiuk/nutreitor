@@ -12,6 +12,7 @@ import {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
+import { Alert, Button, Card, Loading, SectionHeading, Toggle, fieldClass } from "@/components/ui";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
@@ -101,7 +102,7 @@ export function PatientDetail({
   }, [load]);
 
   if (state === "loading") {
-    return <p className="text-sm text-stone-400">Cargando ficha…</p>;
+    return <Loading label="Cargando ficha…" />;
   }
   if (state === "notfound" || !p) {
     return (
@@ -161,11 +162,7 @@ export function PatientDetail({
         )}
       </header>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
       {editing ? (
         <EditForm
@@ -340,12 +337,10 @@ function ReadView({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        {title}
-      </h2>
+    <Card>
+      <SectionHeading className="mb-4">{title}</SectionHeading>
       <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{children}</dl>
-    </section>
+    </Card>
   );
 }
 
@@ -387,10 +382,8 @@ function ClinicalVisibilityPanel({
   const shownCount = clinicalFields.filter((f) => visibility[f]).length;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-        Visible para el paciente
-      </h2>
+    <Card>
+      <SectionHeading>Visible para el paciente</SectionHeading>
       <p className="mt-1 text-sm text-stone-500">
         Elegí qué datos clínicos ve el paciente en su portal. Por defecto no ve
         ninguno. Las notas clínicas nunca se comparten.
@@ -414,40 +407,7 @@ function ClinicalVisibilityPanel({
           );
         })}
       </ul>
-    </section>
-  );
-}
-
-/** Switch accesible (role=switch). Acento de marca en ON; gris stone en OFF. */
-function Toggle({
-  on,
-  busy,
-  label,
-  onChange,
-}: {
-  on: boolean;
-  busy: boolean;
-  label: string;
-  onChange: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-        on ? "bg-brand" : "bg-stone-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-          on ? "translate-x-5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
+    </Card>
   );
 }
 
@@ -475,8 +435,8 @@ function Field({
 
 // ── Edición ───────────────────────────────────────────────────────────────────
 
-const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
+// Estilo de campo compartido (fuente única en components/ui) + ancho completo.
+const inputCls = `w-full ${fieldClass}`;
 
 function EditForm({
   patient: p,
@@ -662,12 +622,10 @@ function EditForm({
 
 function FieldsetCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        {title}
-      </h2>
+    <Card>
+      <SectionHeading className="mb-4">{title}</SectionHeading>
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</div>
-    </section>
+    </Card>
   );
 }
 
@@ -718,10 +676,8 @@ function Assignments({
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        Profesionales a cargo
-      </h2>
+    <Card>
+      <SectionHeading className="mb-4">Profesionales a cargo</SectionHeading>
 
       {p.assignments.length === 0 ? (
         <p className="text-sm text-stone-400">Sin asignaciones.</p>
@@ -793,7 +749,7 @@ function Assignments({
           </button>
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -834,10 +790,8 @@ function Notes({
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        Notas clínicas
-      </h2>
+    <Card>
+      <SectionHeading className="mb-4">Notas clínicas</SectionHeading>
 
       {canAddNote && (
         <form onSubmit={add} className="mb-5">
@@ -878,6 +832,6 @@ function Notes({
           ))}
         </ol>
       )}
-    </section>
+    </Card>
   );
 }

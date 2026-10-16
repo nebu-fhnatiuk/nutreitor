@@ -37,3 +37,7 @@ skills-lock.json
 
 # Notas locales
 ROADMAP.md
+
+# Python
+__pycache__/
+*.pyc
