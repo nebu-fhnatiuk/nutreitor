@@ -3,18 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PortalMeDto } from "@nutreitor/shared";
 
+import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { PlanView } from "@/components/patients/meal-plan-panel";
 import { PortalAppointments } from "./portal-appointments";
 import { PortalAssistant } from "./portal-assistant";
 
-const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("es-AR");
-
-const card = "rounded-2xl border border-stone-200 bg-white p-5 shadow-sm";
-const h2 = "mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400";
 
 /**
  * Portal del paciente (solo su propia ficha). Lectura del plan + evolución +
@@ -39,7 +35,7 @@ export function PortalView() {
     void load();
   }, [load]);
 
-  if (state === "loading") return <p className="text-sm text-stone-400">Cargando…</p>;
+  if (state === "loading") return <Loading />;
   if (state === "none" || !me) {
     return (
       <p className="text-sm text-stone-500">
@@ -55,11 +51,7 @@ export function PortalView() {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
       {me.professionals.length > 0 && (
         <p className="text-sm text-stone-500">
@@ -70,17 +62,17 @@ export function PortalView() {
 
       <PortalAppointments />
 
-      <section className={card}>
-        <h2 className={h2}>Tu plan</h2>
+      <Card>
+        <SectionHeading className="mb-4">Tu plan</SectionHeading>
         {me.plan ? (
           <PlanView plan={me.plan} />
         ) : (
-          <p className="text-sm text-stone-400">Todavía no tenés un plan activo.</p>
+          <EmptyState>Todavía no tenés un plan activo.</EmptyState>
         )}
-      </section>
+      </Card>
 
-      <section className={card}>
-        <h2 className={h2}>Tu evolución</h2>
+      <Card>
+        <SectionHeading className="mb-4">Tu evolución</SectionHeading>
         <div className="mb-4 text-xs uppercase tracking-widest text-stone-400">Peso (kg)</div>
         <LineChart data={weightSeries} unit="kg" />
 
@@ -114,7 +106,7 @@ export function PortalView() {
             </table>
           </div>
         )}
-      </section>
+      </Card>
 
       {me.profile.clinical && <ClinicalCard clinical={me.profile.clinical} goal={me.profile.goal} />}
 
@@ -146,8 +138,8 @@ function ClinicalCard({
   const rows = allRows.filter(([, value]) => value);
   if (rows.length === 0) return null;
   return (
-    <section className={card}>
-      <h2 className={h2}>Tus datos de salud</h2>
+    <Card>
+      <SectionHeading className="mb-4">Tus datos de salud</SectionHeading>
       <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {rows.map(([label, value]) => (
           <div key={label}>
@@ -156,7 +148,7 @@ function ClinicalCard({
           </div>
         ))}
       </dl>
-    </section>
+    </Card>
   );
 }
 
@@ -197,12 +189,9 @@ function SelfReport({
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110"
-      >
+      <Button onClick={() => setOpen(true)} className="mt-4">
         + Registrar mi peso
-      </button>
+      </Button>
     );
   }
 
@@ -210,22 +199,18 @@ function SelfReport({
     <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 p-3">
       <label className="block">
         <span className="mb-1 block text-xs text-stone-500">Fecha</span>
-        <input type="date" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)} className={inputCls} />
+        <Input type="date" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)} />
       </label>
       <label className="block">
         <span className="mb-1 block text-xs text-stone-500">Peso (kg)</span>
-        <input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={inputCls} />
+        <Input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
       </label>
-      <button
-        type="submit"
-        disabled={busy || !weightKg.trim()}
-        className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-40"
-      >
+      <Button type="submit" disabled={busy || !weightKg.trim()}>
         {busy ? "Guardando…" : "Guardar"}
-      </button>
-      <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm text-stone-500 transition hover:bg-stone-100">
+      </Button>
+      <Button variant="ghost" onClick={() => setOpen(false)}>
         Cancelar
-      </button>
+      </Button>
     </form>
   );
 }

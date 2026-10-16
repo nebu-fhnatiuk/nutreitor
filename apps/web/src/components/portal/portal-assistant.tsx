@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentChatResponse, AgentConsentDto } from "@nutreitor/shared";
 
+import { Alert, Button, Input, SlideOver } from "@/components/ui";
 import { api } from "@/lib/api";
 
 type Msg = { role: "user" | "assistant"; content: string; crisis?: boolean };
@@ -32,9 +33,6 @@ const AGENTS: {
     suggestions: ["Me cuesta seguir el plan", "Me siento ansioso/a con la comida"],
   },
 ];
-
-const inputCls =
-  "flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 /**
  * Asistentes del PACIENTE en el portal (CHEF / PSICO) — ver ADR 0015. Botón flotante
@@ -141,134 +139,106 @@ export function PortalAssistant({
         </button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <button
-            aria-label="Cerrar asistentes"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-stone-900/20"
-          />
-          <aside
-            role="dialog"
-            aria-label="Asistentes"
-            className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
-          >
-            <header className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-              <h2 className="text-sm font-semibold text-stone-800">Asistentes</h2>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-                className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
-              >
-                ✕
-              </button>
-            </header>
-
-            {!accepted ? (
-              <ConsentGate busy={busy} error={error} onAccept={accept} />
-            ) : (
-              <>
-                <div className="flex gap-1 border-b border-stone-200 px-3 pt-3">
-                  {agents.map((a) => {
-                    const active = a.key === agent;
-                    return (
-                      <button
-                        key={a.key}
-                        onClick={() => {
-                          setAgent(a.key);
-                          setError(null);
-                        }}
-                        role="tab"
-                        aria-selected={active}
-                        className={
-                          "rounded-t-lg px-4 py-2 text-sm font-medium transition " +
-                          (active
-                            ? "border-b-2 border-brand text-brand"
-                            : "text-stone-500 hover:text-stone-800")
-                        }
-                      >
-                        {a.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-                  <p className="text-sm text-stone-500">{meta.blurb}</p>
-                  {agent === "psico" && (
-                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                      Si estás en peligro o pensás en hacerte daño, llamá al <b>135</b> o al{" "}
-                      <b>911</b>. Tu profesional puede ver estas conversaciones.
-                    </p>
-                  )}
-
-                  {thread.messages.length === 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {meta.suggestions.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => void send(s)}
-                          disabled={busy}
-                          className="rounded-full border border-stone-200 px-3 py-1.5 text-xs text-stone-600 transition hover:border-brand/40 hover:text-brand disabled:opacity-50"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {thread.messages.map((m, i) => (
-                    <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-                      <div
-                        className={
-                          "max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2 text-sm " +
-                          (m.role === "user"
-                            ? "bg-brand/10 text-stone-800"
-                            : m.crisis
-                              ? "border border-red-200 bg-red-50 text-red-800"
-                              : "border border-stone-200 bg-stone-50 text-stone-700")
-                        }
-                      >
-                        {m.content}
-                      </div>
-                    </div>
-                  ))}
-                  {busy && <p className="text-sm text-stone-400">{meta.label} está pensando…</p>}
-                  <div ref={endRef} />
-                </div>
-
-                {error && (
-                  <div className="mx-5 mb-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void send(input);
-                  }}
-                  className="flex gap-2 border-t border-stone-200 px-5 py-4"
-                >
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={meta.placeholder}
-                    className={inputCls}
-                  />
+      <SlideOver
+        open={open}
+        onClose={() => setOpen(false)}
+        header={<h2 className="text-sm font-semibold text-stone-800">Asistentes</h2>}
+      >
+        {!accepted ? (
+          <ConsentGate busy={busy} error={error} onAccept={accept} />
+        ) : (
+          <>
+            <div className="flex gap-1 border-b border-stone-200 px-3 pt-3">
+              {agents.map((a) => {
+                const active = a.key === agent;
+                return (
                   <button
-                    type="submit"
-                    disabled={busy || !input.trim()}
-                    className="shrink-0 rounded-lg bg-brand px-5 py-2 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
+                    key={a.key}
+                    onClick={() => {
+                      setAgent(a.key);
+                      setError(null);
+                    }}
+                    role="tab"
+                    aria-selected={active}
+                    className={
+                      "rounded-t-lg px-4 py-2 text-sm font-medium transition " +
+                      (active
+                        ? "border-b-2 border-brand text-brand"
+                        : "text-stone-500 hover:text-stone-800")
+                    }
                   >
-                    Enviar
+                    {a.label}
                   </button>
-                </form>
-              </>
-            )}
-          </aside>
-        </div>
-      )}
+                );
+              })}
+            </div>
+
+            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              <p className="text-sm text-stone-500">{meta.blurb}</p>
+              {agent === "psico" && (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Si estás en peligro o pensás en hacerte daño, llamá al <b>135</b> o al{" "}
+                  <b>911</b>. Tu profesional puede ver estas conversaciones.
+                </p>
+              )}
+
+              {thread.messages.length === 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {meta.suggestions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => void send(s)}
+                      disabled={busy}
+                      className="rounded-full border border-stone-200 px-3 py-1.5 text-xs text-stone-600 transition hover:border-brand/40 hover:text-brand disabled:opacity-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {thread.messages.map((m, i) => (
+                <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                  <div
+                    className={
+                      "max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2 text-sm " +
+                      (m.role === "user"
+                        ? "bg-brand/10 text-stone-800"
+                        : m.crisis
+                          ? "border border-red-200 bg-red-50 text-red-800"
+                          : "border border-stone-200 bg-stone-50 text-stone-700")
+                    }
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {busy && <p className="text-sm text-stone-400">{meta.label} está pensando…</p>}
+              <div ref={endRef} />
+            </div>
+
+            {error && <Alert className="mx-5 mb-2">{error}</Alert>}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void send(input);
+              }}
+              className="flex gap-2 border-t border-stone-200 px-5 py-4"
+            >
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={meta.placeholder}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={busy || !input.trim()} className="shrink-0">
+                Enviar
+              </Button>
+            </form>
+          </>
+        )}
+      </SlideOver>
     </>
   );
 }
@@ -306,18 +276,10 @@ function ConsentGate({
         </ul>
         <p>Al continuar, aceptás el uso de estos asistentes en estas condiciones.</p>
       </div>
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-      <button
-        onClick={onAccept}
-        disabled={busy}
-        className="mt-auto rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-      >
+      {error && <Alert>{error}</Alert>}
+      <Button onClick={onAccept} disabled={busy} className="mt-auto">
         {busy ? "Guardando…" : "Acepto y continúo"}
-      </button>
+      </Button>
     </div>
   );
 }
