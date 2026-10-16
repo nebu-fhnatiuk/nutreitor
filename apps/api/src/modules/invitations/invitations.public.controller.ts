@@ -20,6 +20,8 @@ import type { Request, Response } from "express";
 import { setSessionCookies } from "../../core/auth/auth-cookies.js";
 import { APP_ENV, type ApiEnv } from "../../core/config/app-config.module.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
+import { RateLimit } from "../../core/rate-limit/rate-limit.decorator.js";
+import { INVITE_ACCEPT, INVITE_LOOKUP } from "../../core/rate-limit/rate-limit.rules.js";
 import { InvitationsService } from "./invitations.service.js";
 
 /**
@@ -34,6 +36,7 @@ export class InvitationsPublicController {
   ) {}
 
   @Get("lookup")
+  @RateLimit(INVITE_LOOKUP)
   lookup(@Query("token") token?: string): Promise<InvitationPreview> {
     if (!token) throw new BadRequestException("Falta el token.");
     return this.invitations.lookup(token);
@@ -41,6 +44,7 @@ export class InvitationsPublicController {
 
   /** Acepta la invitación y deja al invitado logueado (auto-login). */
   @Post("accept")
+  @RateLimit(INVITE_ACCEPT)
   async accept(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

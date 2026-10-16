@@ -27,6 +27,8 @@ import { getAuth } from "../tenant/tenant-context.store.js";
 import { clearSessionCookies, setSessionCookies } from "./auth-cookies.js";
 import { AuthService } from "./auth.service.js";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
+import { RateLimit } from "../rate-limit/rate-limit.decorator.js";
+import { LOGIN_BY_EMAIL, LOGIN_BY_IP } from "../rate-limit/rate-limit.rules.js";
 import { TenantResolverService } from "./tenant-resolver.service.js";
 
 @Controller("auth")
@@ -47,6 +49,7 @@ export class AuthController {
 
   /** Login dentro del tenant del subdominio (slug en header x-tenant-slug). */
   @Post("login")
+  @RateLimit(LOGIN_BY_IP, LOGIN_BY_EMAIL)
   async login(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

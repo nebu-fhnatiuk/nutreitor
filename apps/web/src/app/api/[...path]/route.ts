@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { clientIp } from "@/lib/server/client-ip";
 import { serverEnv } from "@/lib/server/env";
 
 export const runtime = "nodejs";
@@ -30,6 +31,9 @@ async function handle(
   if (ct) headers.set("content-type", ct);
   const ua = req.headers.get("user-agent");
   if (ua) headers.set("user-agent", ua);
+  // IP real del cliente para el rate-limiting de la API (que sólo ve al edge).
+  const ip = clientIp(req.headers.get("x-forwarded-for"), env.TRUSTED_PROXY_HOPS);
+  if (ip) headers.set("x-client-ip", ip);
 
   const method = req.method.toUpperCase();
   const body =
@@ -48,6 +52,8 @@ async function handle(
   });
   const resCt = upstream.headers.get("content-type");
   if (resCt) res.headers.set("content-type", resCt);
+  const retryAfter = upstream.headers.get("retry-after");
+  if (retryAfter) res.headers.set("retry-after", retryAfter);
   // Set-Cookie puede venir múltiple (access + refresh).
   for (const c of upstream.headers.getSetCookie()) {
     res.headers.append("set-cookie", c);

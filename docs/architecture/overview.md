@@ -49,11 +49,14 @@ flowchart TB
 
   subgraph apiplane["API — NestJS (apps/api)"]
     edgeguard["edge-secret.middleware<br/>exige x-internal-secret"]
+    rl["RateLimitGuard<br/>login y rutas públicas"]
     alsmw["TenantContextMiddleware<br/>abre scope ALS"]
     guard["JwtAuthGuard + CapabilityGuard<br/>valida JWT, slug==org, membership"]
     tdb["TenantDbService (app-db)<br/>SET LOCAL + RLS"]
     adb["AdminDbService (owner-db)<br/>control plane, BYPASS RLS"]
   end
+
+  redis[("Redis 7<br/>contadores de rate-limit")]
 
   subgraph pg["Postgres 17"]
     direction TB
@@ -63,7 +66,9 @@ flowchart TB
 
   browser -->|"HTTPS + cookie httpOnly"| edge
   mw --> ssr
-  ssr -->|"HTTP + x-tenant-slug<br/>+ x-internal-secret"| edgeguard
+  ssr -->|"HTTP + x-tenant-slug<br/>+ x-internal-secret + x-client-ip"| edgeguard
+  edgeguard -. "rutas sin sesión" .-> rl
+  rl -->|"INCR por ventana<br/>(fail-open)"| redis
   edgeguard --> alsmw --> guard --> tdb
   guard -. "alta/listado de orgs<br/>(sin tenant)" .-> adb
   tdb -->|"rol nutreitor_app<br/>(sin BYPASSRLS)"| tenantTables
@@ -88,15 +93,20 @@ flowchart TB
   plataforma, sin tenant) usa `AdminDbService` con el rol `nutreitor_owner`
   (bypassa RLS) — explícitamente fuera del perímetro de tenant. Hoy **sin authz de
   PLATFORM-ADMIN** (deuda consciente, no desplegar así).
+- **Rate-limiting (sin sesión)**: login, invitaciones y la reserva pública cuentan
+  hits por IP (y por email en el login) en Redis; 429 al pasarse. Si Redis no
+  responde, deja pasar. La IP real la resuelve el edge desde `X-Forwarded-For`. Ver
+  [ADR 0017](../decisions/0017-rate-limiting-redis.md).
 - **`users` es global**: única tabla fuera de RLS (sólo credencial + nombre, sin
   PHI). El acceso queda gateado por `memberships`, que sí está bajo RLS.
 
 ## Despliegue
 
-- **Dev**: `docker compose up` levanta `db` (Postgres 17) + `api` + `web` con
-  hot-reload. La API migra al arrancar (conveniencia de dev).
+- **Dev**: `docker compose up` levanta `db` (Postgres 17) + `redis` + `api` + `web`
+  (+ `agents`) con hot-reload. La API migra al arrancar (conveniencia de dev).
 - **Prod (objetivo)**: Fargate; API en subnet privada detrás del edge/ALB;
-  migraciones como job separado; secrets desde AWS Secrets Manager / SSM. Ver las
+  migraciones como job separado; ElastiCache (Redis 7) para el rate-limiting; secrets
+  desde AWS Secrets Manager / SSM. Ver las
   "Notas para producción" del [README](../../README.md).
 
 ## Evolución a servicios

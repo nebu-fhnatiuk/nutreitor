@@ -296,8 +296,7 @@ producción). Nunca se commitean secrets reales.
 - **Agendamiento — deuda del MVP**: el motor ya está (Sprint 3, motor propio; ver el
   ADR `docs/decisions/0011`). Queda fuera por ahora: sync con Google/Outlook Calendar,
   **recordatorios** (necesitan cron/worker — sólo hay confirmación al reservar), email
-  real (reusa el `ConsoleMailSender`, como invitaciones), **rate-limiting** de los
-  endpoints públicos de reserva, y dedupe de leads.
+  real (reusa el `ConsoleMailSender`, como invitaciones) y dedupe de leads.
 - **Compliance / data governance (Sprint 6)**: audit de acceso a datos de salud,
   export/portabilidad (GDPR), retención, consentimientos.
 
@@ -310,7 +309,9 @@ producción). Nunca se commitean secrets reales.
 - El control-plane (`/admin/organizations`) hoy **no tiene authz**: requiere un
   guard de PLATFORM-ADMIN antes de exponerse. No desplegar así.
 - **Auth**: bcryptjs → **argon2id** en prod; cookies `Secure=true` (TLS);
-  `ROOT_DOMAIN` real + DNS/cert wildcard para subdominios; rate-limiting de login.
+  `ROOT_DOMAIN` real + DNS/cert wildcard para subdominios.
+- **Rate-limiting** (ADR 0017): ElastiCache Redis 7 + `REDIS_URL` (obligatorio en
+  prod) y `TRUSTED_PROXY_HOPS` en la web según los proxies delante de Next (ALB = 1).
   `users` es global sin RLS (sólo credencial): el acceso queda gateado por membership.
 - **Borde de red**: en prod la API va en **subnet privada**, alcanzable sólo vía el
   edge/ALB; el `EDGE_SHARED_SECRET` es defensa en profundidad, no el borde primario.

@@ -28,6 +28,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Contadores del rate-limiting (ADR 0017). Efímeros: sin volumen, perderlos en un
+  # restart sólo resetea las ventanas en curso.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api:
     build:
       context: .
@@ -36,8 +48,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: development
+      REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@db:5432/nutreitor
       DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@db:5432/nutreitor
       API_PORT: "3001"

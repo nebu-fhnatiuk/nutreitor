@@ -13,6 +13,10 @@ const schema = z.object({
   ROOT_DOMAIN: z.string().default("localhost"),
   // Secreto compartido edge↔API; el proxy/SSR lo manda en cada llamada a la API.
   EDGE_SHARED_SECRET: z.string().min(16),
+  // Cuántos proxies de confianza AGREGAN a X-Forwarded-For delante de Next (ALB = 1,
+  // CloudFront + ALB = 2). La IP real del cliente es la entrada N desde la derecha;
+  // lo de más a la izquierda lo puede inventar el cliente. Ver ADR 0017.
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).default(1),
 });
 
 let cached: z.infer<typeof schema> | null = null;

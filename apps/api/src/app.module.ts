@@ -6,6 +6,7 @@ import { AuthModule } from "./core/auth/auth.module.js";
 import { AuditModule } from "./core/audit/audit.module.js";
 import { MailModule } from "./core/mail/mail.module.js";
 import { TenantModule } from "./core/tenant/tenant.module.js";
+import { RateLimitModule } from "./core/rate-limit/rate-limit.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { OrganizationsModule } from "./modules/organizations/organizations.module.js";
 import { PatientsModule } from "./modules/patients/patients.module.js";
@@ -36,6 +37,7 @@ import { AgentsModule } from "./modules/agents/agents.module.js";
     AuthModule,
     AuditModule,
     MailModule,
+    RateLimitModule,
     HealthModule,
     OrganizationsModule,
     PatientsModule,

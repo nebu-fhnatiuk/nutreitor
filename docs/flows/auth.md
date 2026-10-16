@@ -16,6 +16,11 @@ mecánica de RLS en [`../architecture/multi-tenancy.md`](../architecture/multi-t
 Next desde el subdominio). El lookup pre-auth de org/usuario usa la conexión
 **owner** (`AdminDbService`, bypassa RLS): todavía no hay contexto de tenant.
 
+Antes de tocar la base, `@RateLimit` corta con **429** + `Retry-After` a partir de
+20 intentos por minuto desde una IP o 10 cada 15 minutos contra un mismo email del
+tenant (cuentan éxitos y fallos). Contadores en Redis, fail-open; ver
+[ADR 0017](../decisions/0017-rate-limiting-redis.md).
+
 ```mermaid
 sequenceDiagram
   autonumber

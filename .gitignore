@@ -41,3 +41,6 @@ ROADMAP.md
 # Python
 __pycache__/
 *.pyc
+
+# Claude Code (config personal)
+.claude/settings.local.json

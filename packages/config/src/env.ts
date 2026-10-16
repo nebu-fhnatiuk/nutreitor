@@ -63,9 +63,21 @@ export const apiEnvSchema = z
     // 0 = sin límite. El tope mensual se mide sobre el audit `agent_runs`.
     AGENTS_RATELIMIT_PER_MIN: z.coerce.number().int().nonnegative().default(30),
     AGENTS_MONTHLY_TOKEN_CAP: z.coerce.number().int().nonnegative().default(0),
+    // Rate-limiting de endpoints públicos y login (contadores en Redis, ADR 0017).
+    // Opcional en dev/test (sin Redis el limitador queda apagado); obligatorio en prod.
+    REDIS_URL: z.string().url().optional(),
   })
   .merge(databaseEnvSchema)
-  .merge(authEnvSchema);
+  .merge(authEnvSchema)
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === "production" && !env.REDIS_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["REDIS_URL"],
+        message: "REDIS_URL es obligatorio en producción (rate-limiting).",
+      });
+    }
+  });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
 

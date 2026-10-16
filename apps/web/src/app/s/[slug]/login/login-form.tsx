@@ -25,7 +25,13 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       if (!r.ok) {
-        setError(r.status === 401 ? "Credenciales inválidas." : `Error (${r.status})`);
+        setError(
+          r.status === 401
+            ? "Credenciales inválidas."
+            : r.status === 429
+              ? "Demasiados intentos. Esperá unos minutos y volvé a probar."
+              : `Error (${r.status})`,
+        );
         return;
       }
       const data = (await r.json()) as { redirect: string };
