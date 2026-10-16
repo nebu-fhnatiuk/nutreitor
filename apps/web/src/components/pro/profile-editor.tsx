@@ -8,6 +8,8 @@ import type {
   PublicService,
 } from "@nutreitor/shared";
 
+import { Alert, Button, Input, Textarea } from "@/components/ui";
+
 /**
  * Editor del perfil público propio del profesional. Cada campo de contenido lleva
  * su toggle de visibilidad (default privado): el profesional decide qué se publica.
@@ -82,17 +84,17 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
   return (
     <form onSubmit={submit} className="max-w-2xl space-y-7">
       {!initial.isPubliclyListed && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Tu admin todavía no te incluyó en el roster público. Podés preparar tu
           perfil igual; aparecerá cuando te listen.
         </p>
       )}
 
       <Field label="Dirección pública (slug)" hint="Tu URL: …/tu-slug">
-        <input
+        <Input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 font-mono text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="font-mono"
         />
       </Field>
 
@@ -102,23 +104,21 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         vis={vis}
         onToggle={toggle}
       >
-        <input
+        <Input
           value={headline}
           onChange={(e) => setHeadline(e.target.value)}
           maxLength={160}
           placeholder="Ej.: Nutrición deportiva y clínica"
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </FieldWithVisibility>
 
       <FieldWithVisibility label="Bio" field="bio" vis={vis} onToggle={toggle}>
-        <textarea
+        <Textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           maxLength={4000}
           rows={5}
           placeholder="Contá tu enfoque y experiencia."
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </FieldWithVisibility>
 
@@ -128,11 +128,10 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         vis={vis}
         onToggle={toggle}
       >
-        <input
+        <Input
           value={photoUrl}
           onChange={(e) => setPhotoUrl(e.target.value)}
           placeholder="https://…/foto.jpg"
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </FieldWithVisibility>
 
@@ -142,13 +141,12 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         vis={vis}
         onToggle={toggle}
       >
-        <textarea
+        <Textarea
           value={credentials}
           onChange={(e) => setCredentials(e.target.value)}
           maxLength={2000}
           rows={3}
           placeholder="Títulos, matrícula, posgrados."
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </FieldWithVisibility>
 
@@ -159,11 +157,10 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         onToggle={toggle}
         hint="Separadas por coma"
       >
-        <input
+        <Input
           value={specialties}
           onChange={(e) => setSpecialties(e.target.value)}
           placeholder="Nutrición deportiva, Nutrición clínica"
-          className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </FieldWithVisibility>
 
@@ -176,16 +173,12 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         <ServicesEditor services={services} onChange={setServices} />
       </FieldWithVisibility>
 
-      {err && <p className="text-sm text-red-700">{err}</p>}
+      {err && <Alert>{err}</Alert>}
       {msg && <p className="text-sm text-brand">{msg}</p>}
 
-      <button
-        type="submit"
-        disabled={busy}
-        className="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={busy}>
         {busy ? "Guardando…" : "Guardar perfil"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -269,19 +262,17 @@ function ServicesEditor({
           key={i}
           className="grid gap-2 rounded-xl border border-stone-200 p-3 sm:grid-cols-[1fr_1.4fr_auto]"
         >
-          <input
+          <Input
             value={s.name}
             onChange={(e) => update(i, { name: e.target.value })}
             placeholder="Nombre"
             maxLength={120}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
-          <input
+          <Input
             value={s.description ?? ""}
             onChange={(e) => update(i, { description: e.target.value })}
             placeholder="Descripción (opcional)"
             maxLength={500}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
           <button
             type="button"
