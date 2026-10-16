@@ -8,7 +8,7 @@ import {
 import { runMigrations } from "@nutreitor/db/migrate";
 import { runSeed, SEED } from "@nutreitor/db/seed";
 import type { MembershipRole } from "@nutreitor/shared";
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -178,6 +178,32 @@ describe("Scheduling — autorización del profesional (assigned-only)", () => {
     await expect(
       asPro(() => svc.reschedule(other!.id, { startsAt: "2032-08-08T16:00:00.000Z" })),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("rango de slots arbitrario (1970→9999) queda acotado al horizonte y no cuelga", async () => {
+    const t0 = Date.now();
+    const slots = await asPro(() =>
+      svc.mySlots("1970-01-01T00:00:00.000Z", "9999-12-31T00:00:00.000Z"),
+    );
+    expect(Date.now() - t0).toBeLessThan(5_000);
+    expect(slots.length).toBeGreaterThan(0);
+    const now = Date.now();
+    const cap = now + 181 * 24 * 3600 * 1000;
+    expect(slots.every((s) => Date.parse(s.startsAt) >= now - 60_000)).toBe(true);
+    expect(slots.every((s) => Date.parse(s.startsAt) < cap)).toBe(true);
+  });
+
+  it("no se puede reservar más allá del horizonte máximo → 400", async () => {
+    await expect(
+      asPro(() => svc.bookForPatient({ patientId: D1_ASSIGNED, startsAt: "2099-01-05T13:00:00.000Z" })),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("fechas inválidas en el rango → 400 (no 500)", async () => {
+    await expect(asPro(() => svc.mySlots("no-es-fecha"))).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      asPro(() => svc.listForProfessional(undefined, "tampoco")),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("un profesional sin membership activo no puede operar (sin acceso) ", async () => {

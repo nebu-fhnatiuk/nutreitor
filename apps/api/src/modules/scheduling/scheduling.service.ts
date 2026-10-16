@@ -41,6 +41,14 @@ type AppointmentRow = typeof appointments.$inferSelect;
 
 /** Ventana por defecto de slots a futuro si el cliente no pide rango (días). */
 const DEFAULT_HORIZON_DAYS = 21;
+/**
+ * Tope DURO del cálculo de slots: nunca más allá de now + N días. El rango viene
+ * del cliente (incluida la ruta pública, sin sesión) y generateSlots itera día por
+ * día: sin tope, `from=1970&to=9999` bloquea el event loop. También acota hasta
+ * dónde se puede reservar.
+ */
+const MAX_HORIZON_DAYS = 180;
+const DAY_MS = 24 * 3600 * 1000;
 
 /**
  * Agendamiento (motor propio). Disponibilidad semanal del profesional + citas
@@ -129,8 +137,8 @@ export class SchedulingService {
         if (!access.membershipId) throw new ForbiddenException("Sin membership.");
         where.push(eq(appointments.membershipId, access.membershipId));
       }
-      if (fromISO) where.push(gte(appointments.startsAt, new Date(fromISO)));
-      if (toISO) where.push(lt(appointments.startsAt, new Date(toISO)));
+      if (fromISO) where.push(gte(appointments.startsAt, parseDate(fromISO, "from")));
+      if (toISO) where.push(lt(appointments.startsAt, parseDate(toISO, "to")));
       return this.query(tx, where.length ? and(...where) : undefined);
     });
   }
@@ -383,10 +391,10 @@ export class SchedulingService {
   // ── helpers ─────────────────────────────────────────────────────────────────
 
   private range(fromISO?: string, toISO?: string): { from: Date; to: Date } {
-    const from = fromISO ? new Date(fromISO) : new Date();
+    const from = fromISO ? parseDate(fromISO, "from") : new Date();
     const to = toISO
-      ? new Date(toISO)
-      : new Date(from.getTime() + DEFAULT_HORIZON_DAYS * 24 * 3600 * 1000);
+      ? parseDate(toISO, "to")
+      : new Date(from.getTime() + DEFAULT_HORIZON_DAYS * DAY_MS);
     return { from, to };
   }
 
@@ -408,6 +416,9 @@ export class SchedulingService {
     if (!patient || patient.archivedAt) {
       throw new NotFoundException("No encontramos tu ficha de paciente.");
     }
+    // Un paciente puede tener VARIAS asignaciones activas (M:N). Sin orden, cada
+    // request podía elegir un profesional distinto (slots de A, reserva contra B).
+    // Determinístico: la asignación activa más antigua.
     const [care] = await tx
       .select({ membershipId: careAssignments.membershipId })
       .from(careAssignments)
@@ -417,6 +428,7 @@ export class SchedulingService {
           eq(careAssignments.status, "active"),
         ),
       )
+      .orderBy(asc(careAssignments.assignedAt), asc(careAssignments.id))
       .limit(1);
     if (!care) {
       throw new BadRequestException("Todavía no tenés un profesional asignado.");
@@ -444,10 +456,16 @@ export class SchedulingService {
   private async computeSlots(
     tx: TenantTx,
     membershipId: string,
-    from: Date,
-    to: Date,
+    fromReq: Date,
+    toReq: Date,
     now: Date,
   ): Promise<SlotDto[]> {
+    // Acotar SIEMPRE a [now, now + MAX_HORIZON_DAYS]: lo pasado no se ofrece igual,
+    // y el tope corta el costo de iterar rangos arbitrarios (ver MAX_HORIZON_DAYS).
+    const cap = new Date(now.getTime() + MAX_HORIZON_DAYS * DAY_MS);
+    const from = fromReq < now ? now : fromReq;
+    const to = toReq > cap ? cap : toReq;
+    if (from >= to) return [];
     const rules = await tx
       .select()
       .from(availabilityRules)
@@ -570,6 +588,15 @@ export class SchedulingService {
       .orderBy(asc(appointments.startsAt));
     return rows.map((r) => toAppointmentDto(r.appt, r.patientName, r.professionalName));
   }
+}
+
+/** Fecha de query-string → Date; 400 si no parsea (antes: Invalid Date → 500). */
+function parseDate(iso: string, field: string): Date {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    throw new BadRequestException(`Fecha inválida en "${field}".`);
+  }
+  return d;
 }
 
 function toAppointmentDto(
