@@ -58,15 +58,18 @@ hospitales) con aislamiento de datos fuerte.
 - **Backend**: NestJS 11 (`apps/api`).
 - **Frontend**: Next.js 15 App Router + Tailwind (`apps/web`).
 - **Datos**: Postgres 17, ORM Drizzle (`packages/db`).
-- **Contenedores**: `docker compose up` levanta todo (db + api + web) con hot-reload.
+- **Contenedores**: `docker compose up` levanta todo (db + redis + api + web + agents)
+  con hot-reload.
 
 ```
 apps/
   api/   NestJS
-    core/      tenant (ALS) · auth (passport-jwt, guards, roles) · database (RLS) · config
+    core/      tenant (ALS) · auth (passport-jwt, guards, roles) · database (RLS) · config ·
+               rate-limit (Redis)
     modules/   organizations · patients (ficha/planes/métricas/notas) · professionals ·
-               scheduling (agenda + reserva pública) · portal · public · members · invitations
-    agents/    slot vacío (servicio Python a futuro)
+               scheduling (agenda + reserva pública) · portal · public · members · invitations ·
+               agents (gateway al servicio Python)
+  agents/  servicio Python de agentes IA (CHEF/NUTRI/PSICO), mismo Postgres bajo RLS
   web/   Next.js (App Router)
     app/page.tsx          landing de producto (host raíz)
     middleware.ts         resuelve subdominio → /s/[slug] + x-tenant-slug
@@ -259,7 +262,8 @@ Auth propia (NestJS + Passport, datos en nuestro Postgres por residencia/salud):
 
 ### White-label sin recompilar
 El tema por organización (color, logo, nombre) se sirve por tenant como CSS
-variables que el layout inyecta en runtime (`apps/web/src/lib/tenant-theme.ts`).
+variables: `globals.css` define el default y `app/s/[slug]/layout.tsx` lo pisa en
+runtime con el branding de la org.
 `organizations` tiene `slug` (subdominio) y `region`.
 
 ### Migraciones

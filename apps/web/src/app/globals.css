@@ -8,7 +8,7 @@
  * serif (Fraunces) + UI sans (Figtree), acento de marca por tenant.
  *
  * Los colores de marca van como CSS variables → el white-label por tenant los
- * sobrescribe en runtime (ver lib/tenant-theme + layout) sin recompilar.
+ * sobrescribe en runtime (ver app/s/[slug]/layout.tsx) sin recompilar.
  */
 :root {
   --brand-rgb: 16 122 87; /* emerald profundo: buen contraste sobre superficies claras */

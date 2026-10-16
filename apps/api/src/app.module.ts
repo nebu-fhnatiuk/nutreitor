@@ -21,9 +21,10 @@ import { AgentsModule } from "./modules/agents/agents.module.js";
 /**
  * Raíz de la API.
  *
- * core/  → infraestructura transversal (config, database, tenant, auth).
- * modules/ → bounded contexts del producto. Scheduling sigue siendo placeholder;
- *            el resto implementa el patrón multi-tenant + RLS + capacidades.
+ * core/  → infraestructura transversal (config, database, tenant, auth, rate-limit).
+ * modules/ → bounded contexts del producto; todos implementan el patrón
+ *            multi-tenant + RLS + capacidades. Los agentes de IA corren en un
+ *            servicio Python aparte (apps/agents); acá vive su gateway (modules/agents).
  *
  * El TenantContextMiddleware se registra globalmente en main.ts (app.use) para
  * abrir el scope de AsyncLocalStorage en todas las rutas sin depender de patrones
