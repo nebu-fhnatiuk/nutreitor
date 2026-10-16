@@ -8,6 +8,8 @@ import {
 
 import { TenantResolverService } from "../../core/auth/tenant-resolver.service.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
+import { RateLimit } from "../../core/rate-limit/rate-limit.decorator.js";
+import { PUBLIC_BOOK, PUBLIC_SLOTS } from "../../core/rate-limit/rate-limit.rules.js";
 import { SchedulingService } from "./scheduling.service.js";
 
 /**
@@ -24,6 +26,7 @@ export class PublicSchedulingController {
   ) {}
 
   @Get(":slug/professionals/:profileSlug/slots")
+  @RateLimit(PUBLIC_SLOTS)
   async slots(
     @Param("slug") slug: string,
     @Param("profileSlug") profileSlug: string,
@@ -36,6 +39,7 @@ export class PublicSchedulingController {
   }
 
   @Post(":slug/professionals/:profileSlug/appointments")
+  @RateLimit(PUBLIC_BOOK)
   async book(
     @Param("slug") slug: string,
     @Param("profileSlug") profileSlug: string,

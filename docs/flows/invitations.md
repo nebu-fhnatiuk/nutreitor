@@ -23,6 +23,9 @@ identidad y sesión en [`auth.md`](./auth.md).
 Admin: `apps/api/src/modules/invitations/invitations.admin.controller.ts`. Público:
 `invitations.public.controller.ts`. Lógica: `invitations.service.ts`.
 
+Los dos endpoints públicos tienen rate-limit por IP (lookup 30/min, accept 10/min;
+429 + `Retry-After`), ver [ADR 0017](../decisions/0017-rate-limiting-redis.md).
+
 ## Token y estados
 
 - Token opaco de 256 bits; en DB sólo el `sha256` (`token_hash`). El raw viaja sólo

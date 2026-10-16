@@ -95,6 +95,10 @@ una cita a la ficha de un paciente existente con sólo conocer/adivinar el email
 (sería un oracle de existencia + contaminación de su historia). El duplicado lo
 reconcilia el profesional desde la gestión.
 
+**Rate-limit**: como cada reserva crea un lead, la ruta pública admite 5 reservas
+cada 10 minutos por IP, y los slots públicos 60 consultas por minuto (429 +
+`Retry-After`). Ver [ADR 0017](../decisions/0017-rate-limiting-redis.md).
+
 ## Capacidades
 
 `appointment:read` / `appointment:write` (admin + profesional), `portal:book`
@@ -104,5 +108,4 @@ reconcilia el profesional desde la gestión.
 
 Sync con Google/Outlook Calendar; **recordatorios** (necesitan cron/worker — sólo
 hay confirmación al reservar); email real (reusa `ConsoleMailSender`, como
-invitaciones); **rate-limiting** de los endpoints públicos (riesgo de spam /
-denial-of-booking); dedupe de leads; reserva del admin en nombre de un profesional.
+invitaciones); dedupe de leads; reserva del admin en nombre de un profesional.
