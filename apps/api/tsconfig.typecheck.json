@@ -1,0 +1,8 @@
+{
+  // Typecheck de src + test (el CI corre `pnpm typecheck`). El build usa
+  // tsconfig.build.json, que sigue excluyendo los tests; acá sólo se valida tipos.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "rootDir": ".", "noEmit": true },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -45,6 +45,7 @@ describe("AuthService.login — anti-timing / anti-enumeración", () => {
       {} as never, // AdminDbService: las lecturas se stubbean abajo
       resolver as never,
       {} as never, // JwtService: no se alcanza (todos los caminos tiran antes de emitir)
+      {} as never, // TenantDbService: tampoco se alcanza
       { JWT_ACCESS_SECRET: "x", ACCESS_TTL: "900s", REFRESH_TTL_DAYS: 30 } as never,
     );
   });
