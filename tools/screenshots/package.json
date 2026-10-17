@@ -1,0 +1,11 @@
+{
+  "name": "nutreitor-screenshots",
+  "private": true,
+  "description": "Capturas de pantalla de la web por rol (desktop + mobile) para revisar UX/UI. Corre en el servicio `screenshots` del compose (perfil tools).",
+  "scripts": {
+    "shots": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
