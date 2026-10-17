@@ -9,6 +9,7 @@ import type {
 } from "@nutreitor/shared";
 
 import { Alert, Button, Input, Textarea } from "@/components/ui";
+import { errorMessage } from "@/lib/api";
 
 /**
  * Editor del perfil público propio del profesional. Cada campo de contenido lleva
@@ -75,7 +76,7 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
       setMsg("Perfil actualizado. La vidriera ya refleja los cambios.");
     } catch (e2) {
-      setErr(String(e2));
+      setErr(errorMessage(e2));
     } finally {
       setBusy(false);
     }

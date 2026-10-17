@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentChatResponse, AgentConsentDto } from "@nutreitor/shared";
 
 import { Alert, Button, Input, SlideOver } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 
 type Msg = { role: "user" | "assistant"; content: string; crisis?: boolean };
 type AgentKey = "chef" | "psico";
@@ -66,7 +66,7 @@ export function PortalAssistant({
     if (!open || consent) return;
     void api<AgentConsentDto>("portal/agents/consent")
       .then(setConsent)
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }, [open, consent]);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export function PortalAssistant({
     try {
       setConsent(await api<AgentConsentDto>("portal/agents/consent", { method: "POST" }));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -118,7 +118,7 @@ export function PortalAssistant({
       }));
       requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
     } catch (err) {
-      setError(String(err));
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
     }

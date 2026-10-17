@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppointmentDto } from "@nutreitor/shared";
 
-import { Alert, Button, Card, Loading, Modal, SectionHeading } from "@/components/ui";
-import { api } from "@/lib/api";
+import { Alert, Button, Card, Loading, Modal, SectionHeading, useFeedback } from "@/components/ui";
+import { api, errorMessage } from "@/lib/api";
 import { AppointmentsList } from "@/components/scheduling/appointments-list";
 import { SlotPicker } from "@/components/scheduling/slot-picker";
 import { fmtDateTime } from "@/lib/datetime";
@@ -22,7 +22,7 @@ export function PortalAppointments() {
     try {
       setAppts(await api<AppointmentDto[]>("portal/appointments"));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -42,13 +42,24 @@ export function PortalAppointments() {
     void load();
   }
 
+  const { confirm, toast } = useFeedback();
+
   async function cancel(id: string) {
+    const ok = await confirm({
+      title: "¿Cancelar tu turno?",
+      body: "Si querés otro horario, podés reprogramarlo en lugar de cancelarlo.",
+      confirmLabel: "Cancelar turno",
+      cancelLabel: "Mantener",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     try {
       await api(`portal/appointments/${id}/cancel`, { method: "POST" });
+      toast("Turno cancelado");
       void load();
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }
 
@@ -65,7 +76,7 @@ export function PortalAppointments() {
       setRescheduling(null);
       void load();
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }
 

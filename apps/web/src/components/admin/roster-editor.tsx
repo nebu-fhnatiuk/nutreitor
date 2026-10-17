@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { RosterAdminEntry } from "@nutreitor/shared";
 
 import { Button, EmptyState, Input } from "@/components/ui";
+import { errorMessage } from "@/lib/api";
 
 /**
  * Curaduría del roster público (admin): presencia, orden y especialidad por
@@ -55,7 +56,7 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
       setSaved(true);
     } catch (e) {
-      setErr(String(e));
+      setErr(errorMessage(e));
     } finally {
       setBusy(false);
     }

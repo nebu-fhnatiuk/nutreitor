@@ -13,20 +13,8 @@ import {
   type PatientDetailDto,
 } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
-import {
-  Alert,
-  Button,
-  Card,
-  EmptyState,
-  Loading,
-  SectionHeading,
-  Tabs,
-  Toggle,
-  fieldClass,
-  tabPanelProps,
-  type TabItem,
-} from "@/components/ui";
+import { api, errorMessage } from "@/lib/api";
+import { Alert, Button, Card, EmptyState, Loading, SectionHeading, Tabs, Toggle, fieldClass, tabPanelProps, type TabItem, useFeedback } from "@/components/ui";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
@@ -114,6 +102,7 @@ export function PatientDetail({
     requested && TAB_IDS.includes(requested) && (requested !== "asistentes" || canUseAgent)
       ? requested
       : "resumen";
+  const { toast } = useFeedback();
   // ¿Hay charlas con crisis? Marca la pestaña "Asistentes" para que se vea sin
   // tener que entrar (PSICO es supervisado: el profesional tiene que revisarlas).
   const [hasCrisis, setHasCrisis] = useState(false);
@@ -240,6 +229,7 @@ export function PatientDetail({
                 onCancel={() => setEditing(false)}
                 onSaved={() => {
                   setEditing(false);
+                  toast("Ficha actualizada");
                   void load();
                 }}
                 onError={setError}
@@ -457,7 +447,7 @@ function InviteToPortal({
       setSent(true);
       onDone();
     } catch (e) {
-      onError(String(e));
+      onError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -578,7 +568,7 @@ function ClinicalVisibilityPanel({
       });
       onChange();
     } catch (e) {
-      onError(String(e));
+      onError(errorMessage(e));
     } finally {
       setPending(null);
     }
@@ -716,7 +706,7 @@ function EditForm({
       });
       onSaved();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -866,6 +856,7 @@ function Assignments({
 }) {
   const [assignTo, setAssignTo] = useState("");
   const [busy, setBusy] = useState(false);
+  const { confirm } = useFeedback();
 
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -874,7 +865,7 @@ function Assignments({
       await fn();
       onChange();
     } catch (e) {
-      onError(String(e));
+      onError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -915,11 +906,15 @@ function Assignments({
               {canAssign && a.status === "active" && (
                 <button
                   disabled={busy}
-                  onClick={() =>
-                    run(() =>
-                      api(`patients/${p.id}/assignments/${a.id}/end`, { method: "POST" }),
-                    )
-                  }
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: `¿Cerrar la asignación de ${a.professionalName}?`,
+                      body: "Deja de ver a este paciente. La asignación queda en el historial.",
+                      confirmLabel: "Cerrar asignación",
+                      tone: "danger",
+                    });
+                    if (ok) run(() => api(`patients/${p.id}/assignments/${a.id}/end`, { method: "POST" }));
+                  }}
                   className="shrink-0 text-xs text-stone-500 transition hover:text-red-600"
                 >
                   Cerrar
@@ -972,6 +967,7 @@ function Notes({
   onError: (e: string) => void;
 }) {
   const [content, setContent] = useState("");
+  const { toast } = useFeedback();
   const [busy, setBusy] = useState(false);
 
   async function add(e: React.FormEvent) {
@@ -986,9 +982,10 @@ function Notes({
         body: JSON.stringify({ content: content.trim() }),
       });
       setContent("");
+      toast("Nota agregada");
       onChange();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -1028,6 +1025,7 @@ function Notes({
                 {new Date(n.createdAt).toLocaleString("es-AR", {
                   dateStyle: "medium",
                   timeStyle: "short",
+                  hour12: false,
                 })}
               </div>
               <p className="mt-0.5 whitespace-pre-line text-sm text-stone-800">

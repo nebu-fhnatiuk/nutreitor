@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AvailabilityDto, AvailabilityWindow } from "@nutreitor/shared";
 
 import { Alert, Button, EmptyState, Input, Loading, Select } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { browserTimezone } from "@/lib/datetime";
 
 const WEEKDAYS: [number, string][] = [
@@ -47,7 +47,7 @@ export function AvailabilityEditor() {
       setTimezone(a.timezone ?? browserTimezone());
       setWindows(a.windows);
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export function AvailabilityEditor() {
       });
       setSaved(true);
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

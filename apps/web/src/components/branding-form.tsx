@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { BrandingDto } from "@nutreitor/shared";
 
 import { Alert, Button, Input } from "@/components/ui";
+import { errorMessage } from "@/lib/api";
 
 /** Editor de branding white-label (acotado): nombre visible, color, logo. */
 export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
@@ -35,7 +36,7 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
       setMsg("Branding actualizado. Aplicando…");
       setTimeout(() => window.location.reload(), 700);
     } catch (e2) {
-      setErr(String(e2));
+      setErr(errorMessage(e2));
     } finally {
       setBusy(false);
     }

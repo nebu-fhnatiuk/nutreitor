@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { PortalMeDto } from "@nutreitor/shared";
 
 import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { PlanView } from "@/components/patients/meal-plan-panel";
 import { PortalAppointments } from "./portal-appointments";
@@ -181,7 +181,7 @@ function SelfReport({
       setOpen(false);
       onAdded();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }

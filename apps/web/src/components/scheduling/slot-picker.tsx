@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SlotDto } from "@nutreitor/shared";
 
 import { Alert, EmptyState, Loading, SectionHeading } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { browserTimezone, fmtDayLong, fmtTime, groupByDay } from "@/lib/datetime";
 
 /**
@@ -31,7 +31,7 @@ export function SlotPicker({
     try {
       setSlots(await api<SlotDto[]>(path));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export function SlotPicker({
     try {
       await onPick(startsAt);
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setPicking(null);
     }

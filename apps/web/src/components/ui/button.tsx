@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "./cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "destructive";
 export type ButtonSize = "sm" | "md";
 
 const BASE =
@@ -17,8 +17,10 @@ const VARIANTS: Record<ButtonVariant, string> = {
   secondary: "border border-stone-200 text-stone-700 hover:border-brand/40 hover:text-brand",
   // Sin relleno (acciones terciarias: cancelar, cerrar).
   ghost: "text-stone-500 hover:bg-stone-100 hover:text-stone-800",
-  // Acción destructiva.
+  // Acción destructiva secundaria (texto rojo, sin relleno).
   danger: "text-red-600 hover:bg-red-50",
+  // Acción destructiva principal (botón de confirmación de un diálogo).
+  destructive: "bg-red-600 text-white hover:bg-red-700",
 };
 
 const SIZES: Record<ButtonSize, string> = {

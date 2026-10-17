@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentChatResponse } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type AgentKey = "nutri";
@@ -89,7 +89,7 @@ export function AssistantDock({ patientId }: { patientId: string }) {
       }));
       requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
     } catch (err) {
-      setError(String(err));
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
     }

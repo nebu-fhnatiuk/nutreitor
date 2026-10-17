@@ -17,6 +17,8 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import type { MembershipRole } from "@nutreitor/shared";
 
+import { FeedbackProvider } from "@/components/ui";
+
 const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Administración",
   professional: "Profesional",
@@ -154,7 +156,7 @@ export function WorkspaceShell({
         )}
 
         <main id="contenido" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-          {children}
+          <FeedbackProvider>{children}</FeedbackProvider>
         </main>
       </div>
     </div>

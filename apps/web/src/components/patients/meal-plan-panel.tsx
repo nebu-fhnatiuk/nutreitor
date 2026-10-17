@@ -19,8 +19,9 @@ import {
   type Weekday,
 } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { FoodPicker } from "./food-picker";
+import { useFeedback } from "@/components/ui";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -87,7 +88,7 @@ export function MealPlanPanel({
     try {
       setPlans(await api<MealPlanDto[]>(`patients/${patientId}/plans`));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -99,14 +100,23 @@ export function MealPlanPanel({
 
   const active = plans.find((p) => p.status === "active") ?? null;
   const history = plans.filter((p) => p.status !== "active");
+  const { confirm, toast } = useFeedback();
 
   async function archive() {
+    const ok = await confirm({
+      title: "¿Archivar el plan activo?",
+      body: "El paciente se queda sin plan vigente. El plan queda en el historial.",
+      confirmLabel: "Archivar",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     try {
       await api(`patients/${patientId}/plans/archive`, { method: "POST" });
+      toast("Plan archivado");
       void load();
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }
 
@@ -149,6 +159,7 @@ export function MealPlanPanel({
           onCancel={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
+            toast(active ? `Plan guardado como v${active.version + 1}` : "Plan creado");
             void load();
           }}
           onError={setError}
@@ -573,7 +584,7 @@ function PlanEditor({
       });
       onSaved();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Alert, Button, Input, Textarea } from "@/components/ui";
+import { errorMessage } from "@/lib/api";
 
 /**
  * Editor de la página pública de la org (headline + descripción). Distinto del
@@ -38,7 +39,7 @@ export function OrgPublicForm({
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
       setMsg("Página pública actualizada.");
     } catch (e2) {
-      setErr(String(e2));
+      setErr(errorMessage(e2));
     } finally {
       setBusy(false);
     }

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PatientMetricDto } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "./line-chart";
+import { useFeedback } from "@/components/ui";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -31,7 +32,7 @@ export function MetricsPanel({
     try {
       setMetrics(await api<PatientMetricDto[]>(`patients/${patientId}/metrics`));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -41,17 +42,26 @@ export function MetricsPanel({
     void load();
   }, [load]);
 
+  const { confirm, toast } = useFeedback();
   const weightSeries = metrics
     .filter((m) => m.weightKg != null)
     .map((m) => ({ label: fmtDate(m.measuredAt), value: m.weightKg as number }));
 
   async function del(id: string) {
+    const ok = await confirm({
+      title: "¿Borrar esta medición?",
+      body: "Se borra de la evolución del paciente. No se puede deshacer.",
+      confirmLabel: "Borrar",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     try {
       await api(`patients/${patientId}/metrics/${id}`, { method: "DELETE" });
+      toast("Medición borrada");
       void load();
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }
 
@@ -72,7 +82,16 @@ export function MetricsPanel({
         <LineChart data={weightSeries} unit="kg" />
       </div>
 
-      {canRecord && <AddMetric patientId={patientId} onAdded={load} onError={setError} />}
+      {canRecord && (
+        <AddMetric
+          patientId={patientId}
+          onAdded={() => {
+            toast("Medición registrada");
+            void load();
+          }}
+          onError={setError}
+        />
+      )}
 
       {metrics.length > 0 && (
         <div className="mt-6 overflow-x-auto">
@@ -183,7 +202,7 @@ function AddMetric({
       setOpen(false);
       onAdded();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }
