@@ -7,9 +7,11 @@ import type {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
-import { Card, Loading, SectionHeading } from "@/components/ui";
+import { Button, Card, EmptyState, Loading, SectionHeading } from "@/components/ui";
 
 const AGENT_LABEL: Record<string, string> = { nutri: "NUTRI", chef: "CHEF", psico: "PSICO" };
+/** Charlas por página: con decenas de charlas la lista tapaba la ficha entera. */
+const PAGE = 8;
 
 /**
  * Supervisión (lado profesional): las charlas del paciente con los asistentes del
@@ -20,6 +22,7 @@ export function AgentConversations({ patientId }: { patientId: string }) {
   const [list, setList] = useState<AgentConversationSummaryDto[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AgentConversationDetailDto | null>(null);
+  const [shown, setShown] = useState(PAGE);
 
   const load = useCallback(async () => {
     try {
@@ -48,13 +51,27 @@ export function AgentConversations({ patientId }: { patientId: string }) {
     }
   }
 
-  if (!list || list.length === 0) return null;
+  if (list === null) return <Loading />;
+  if (list.length === 0) {
+    return (
+      <Card>
+        <EmptyState>El paciente todavía no habló con los asistentes.</EmptyState>
+      </Card>
+    );
+  }
+  // Las charlas con crisis van primero: son las que el profesional tiene que revisar.
+  const sorted = [...list].sort((a, b) => Number(b.crisis) - Number(a.crisis));
+  const crisisCount = list.filter((c) => c.crisis).length;
 
   return (
     <Card>
-      <SectionHeading className="mb-4">Charlas con asistentes</SectionHeading>
+      <SectionHeading className="mb-1">Charlas con asistentes</SectionHeading>
+      <p className="mb-4 text-sm text-stone-500">
+        {list.length} {list.length === 1 ? "charla" : "charlas"}
+        {crisisCount > 0 && ` · ${crisisCount} para revisar (aparecen primero)`}
+      </p>
       <ul className="space-y-2">
-        {list.map((c) => (
+        {sorted.slice(0, shown).map((c) => (
           <li key={c.id} className="rounded-lg border border-stone-100">
             <button
               onClick={() => void toggle(c.id)}
@@ -101,6 +118,11 @@ export function AgentConversations({ patientId }: { patientId: string }) {
           </li>
         ))}
       </ul>
+      {shown < sorted.length && (
+        <Button variant="secondary" size="sm" className="mt-4" onClick={() => setShown((n) => n + PAGE)}>
+          Ver {Math.min(PAGE, sorted.length - shown)} más
+        </Button>
+      )}
     </Card>
   );
 }
