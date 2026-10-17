@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { OrgPublicForm } from "@/components/admin/org-public-form";
 import { RosterEditor } from "@/components/admin/roster-editor";
+import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe, fetchRoster } from "@/lib/server/api";
 import { fetchPublicOrg } from "@/lib/server/public-api";
@@ -24,10 +25,10 @@ export default async function AdminPublicPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
-      <h1 className="font-serif text-2xl font-semibold tracking-tight">Página pública</h1>
-      <p className="mt-1 mb-8 text-sm text-stone-500">
-        Lo que ven quienes llegan a {slug}.nutreitor.com antes de iniciar sesión.
-      </p>
+      <PageHeader
+        title="Página pública"
+        description={`Lo que ven quienes llegan a ${slug}.nutreitor.com antes de iniciar sesión.`}
+      />
 
       <section className="mb-12">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">

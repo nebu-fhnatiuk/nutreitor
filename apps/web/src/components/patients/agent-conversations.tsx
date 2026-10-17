@@ -69,11 +69,11 @@ export function AgentConversations({ patientId }: { patientId: string }) {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-stone-400">
+                <div className="text-xs text-stone-500">
                   {new Date(c.createdAt).toLocaleDateString("es-AR")} · {c.messageCount} mensajes
                 </div>
               </div>
-              <span className="shrink-0 text-xs text-stone-400">{openId === c.id ? "Ocultar" : "Ver"}</span>
+              <span className="shrink-0 text-xs text-stone-500">{openId === c.id ? "Ocultar" : "Ver"}</span>
             </button>
 
             {openId === c.id && (

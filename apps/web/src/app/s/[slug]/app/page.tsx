@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PortalView } from "@/components/portal/portal-view";
+import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -17,12 +18,7 @@ export default async function PatientAppPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
-      <p className="text-xs font-medium uppercase tracking-widest text-brand">
-        Tu espacio
-      </p>
-      <h1 className="mt-1 mb-8 font-serif text-3xl font-semibold tracking-tight">
-        Hola {me.user.fullName}
-      </h1>
+      <PageHeader title={`Hola, ${me.user.fullName.split(" ")[0]}`} />
       <PortalView />
     </WorkspaceShell>
   );

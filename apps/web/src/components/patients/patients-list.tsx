@@ -74,8 +74,8 @@ export function PatientsList({
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
-          Pacientes{loading && <span className="ml-2 text-stone-400">cargando…</span>}
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+          Pacientes{loading && <span className="ml-2 text-stone-500">cargando…</span>}
         </h2>
         <input
           value={search}
@@ -87,7 +87,7 @@ export function PatientsList({
 
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
         {patients.length === 0 && !loading ? (
-          <div className="px-5 py-12 text-center text-sm text-stone-400">
+          <div className="px-5 py-12 text-center text-sm text-stone-500">
             {search ? "Sin resultados." : "Todavía no hay pacientes."}
           </div>
         ) : (
@@ -194,8 +194,9 @@ function NewPatientForm({
       className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
     >
       <div className="flex-1 min-w-[12rem]">
-        <label className="mb-1 block text-xs text-stone-500">Nombre y apellido</label>
+        <label htmlFor="patients-list-nombre-y-apellido" className="mb-1 block text-xs text-stone-500">Nombre y apellido</label>
         <input
+          id="patients-list-nombre-y-apellido"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           autoFocus
@@ -204,8 +205,9 @@ function NewPatientForm({
         />
       </div>
       <div className="flex-1 min-w-[12rem]">
-        <label className="mb-1 block text-xs text-stone-500">Email (opcional)</label>
+        <label htmlFor="patients-list-email-opcional" className="mb-1 block text-xs text-stone-500">Email (opcional)</label>
         <input
+          id="patients-list-email-opcional"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -215,10 +217,15 @@ function NewPatientForm({
       </div>
       {canAssign && (
         <div className="min-w-[12rem]">
-          <label className="mb-1 block text-xs text-stone-500">
+          <label htmlFor="patients-list-asignar" className="mb-1 block text-xs text-stone-500">
             Asignar profesional (opcional)
           </label>
-          <MemberSelect value={assignTo} onChange={setAssignTo} emptyLabel="Sin asignar" />
+          <MemberSelect
+            id="patients-list-asignar"
+            value={assignTo}
+            onChange={setAssignTo}
+            emptyLabel="Sin asignar"
+          />
         </div>
       )}
       <div className="flex gap-2">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -32,15 +33,11 @@ export default async function AdminPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
-      <p className="text-xs font-medium uppercase tracking-widest text-brand">
-        Administración
-      </p>
-      <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Panel de {me.org.name}</h1>
-      <p className="mt-4 text-stone-500">
-        Hola {me.user.fullName}. Desde acá vas a administrar la organización:
-        profesionales, pacientes, planes y configuración white-label.
-      </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <PageHeader
+        title={`Panel de ${me.org.name}`}
+        description={`Hola, ${me.user.fullName.split(" ")[0]}. Desde acá administrás el equipo, los pacientes y cómo se ve tu organización.`}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
         {SECTIONS.map((s) => (
           <Link
             key={s.href}

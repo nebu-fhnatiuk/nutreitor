@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ProfileEditor } from "@/components/pro/profile-editor";
+import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe, fetchOwnProfile } from "@/lib/server/api";
 import { roleHome } from "@nutreitor/shared";
@@ -19,11 +20,10 @@ export default async function ProProfilePage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
-      <h1 className="font-serif text-2xl font-semibold tracking-tight">Mi perfil</h1>
-      <p className="mt-1 mb-8 text-sm text-stone-500">
-        Tu vidriera pública en {me.org.name}. Cada campo es privado por defecto:
-        marcá “Público” lo que quieras mostrar.
-      </p>
+      <PageHeader
+        title="Mi perfil"
+        description={`Tu vidriera pública en ${me.org.name}. Cada campo es privado por defecto: marcá “Público” lo que quieras mostrar.`}
+      />
       {profile ? (
         <ProfileEditor initial={profile} />
       ) : (

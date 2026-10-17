@@ -26,7 +26,7 @@ export function EnterWorkspace() {
           placeholder="tu-organizacion"
           className="flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-stone-400"
         />
-        <span className="text-sm text-stone-400">.nutreitor.com</span>
+        <span className="text-sm text-stone-500">.nutreitor.com</span>
       </div>
       <button
         type="submit"

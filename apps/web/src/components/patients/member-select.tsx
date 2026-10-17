@@ -11,10 +11,12 @@ import { Select } from "@/components/ui";
  * que define "quién es asignable" para no divergir entre el alta y la reasignación.
  */
 export function MemberSelect({
+  id,
   value,
   onChange,
   emptyLabel = "Elegir…",
 }: {
+  id?: string;
   value: string;
   onChange: (membershipId: string) => void;
   emptyLabel?: string;
@@ -36,7 +38,7 @@ export function MemberSelect({
   }, []);
 
   return (
-    <Select value={value} onChange={(e) => onChange(e.target.value)}>
+    <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{emptyLabel}</option>
       {members.map((m) => (
         <option key={m.membershipId} value={m.membershipId}>

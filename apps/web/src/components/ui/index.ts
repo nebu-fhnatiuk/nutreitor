@@ -13,3 +13,4 @@ export { Input, Textarea, Select, Label, fieldClass } from "./field";
 export { Toggle } from "./toggle";
 export { Alert, Spinner, Loading, EmptyState, type AlertTone } from "./feedback";
 export { Modal, SlideOver } from "./overlay";
+export { PageHeader } from "./page-header";

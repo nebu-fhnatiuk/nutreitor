@@ -46,8 +46,9 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm text-stone-500">Email</label>
+        <label htmlFor="login-email" className="mb-1 block text-sm text-stone-600">Email</label>
         <input
+          id="login-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -58,8 +59,9 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-stone-500">Contraseña</label>
+        <label htmlFor="login-password" className="mb-1 block text-sm text-stone-600">Contraseña</label>
         <input
+          id="login-password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

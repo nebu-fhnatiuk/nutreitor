@@ -24,7 +24,7 @@ export function Card({
 
 /**
  * Encabezado de sección (kicker en mayúsculas). Token único: antes repetido en
- * ~12 pantallas con `text-xs font-semibold uppercase tracking-widest text-stone-400`.
+ * ~12 pantallas con `text-xs font-semibold uppercase tracking-widest text-stone-500`.
  */
 export function SectionHeading({
   children,
@@ -34,7 +34,7 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <h2 className={cn("text-xs font-semibold uppercase tracking-widest text-stone-400", className)}>
+    <h2 className={cn("text-xs font-semibold uppercase tracking-widest text-stone-500", className)}>
       {children}
     </h2>
   );

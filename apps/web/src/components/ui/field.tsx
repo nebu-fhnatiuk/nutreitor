@@ -62,7 +62,7 @@ export function Label({
     <label className={cn("block", wide && "sm:col-span-2")}>
       <span className="mb-1 block text-xs text-stone-500">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-stone-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-stone-500">{hint}</span>}
     </label>
   );
 }

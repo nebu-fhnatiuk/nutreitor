@@ -23,7 +23,7 @@ function CloseButton({ onClose }: { onClose: () => void }) {
       type="button"
       onClick={onClose}
       aria-label="Cerrar"
-      className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      className="rounded-lg p-1 text-stone-500 transition hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
     >
       <X className="h-4 w-4" aria-hidden />
     </button>

@@ -87,8 +87,9 @@ export function AcceptInvite({ token }: { token: string }) {
         {preview.needsAccount && (
           <>
             <div>
-              <label className="mb-1 block text-sm text-stone-500">Tu nombre</label>
+              <label htmlFor="accept-invite-tu-nombre" className="mb-1 block text-sm text-stone-500">Tu nombre</label>
               <input
+                id="accept-invite-tu-nombre"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -96,8 +97,9 @@ export function AcceptInvite({ token }: { token: string }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-stone-500">Contraseña</label>
+              <label htmlFor="accept-invite-contrasena" className="mb-1 block text-sm text-stone-500">Contraseña</label>
               <input
+                id="accept-invite-contrasena"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

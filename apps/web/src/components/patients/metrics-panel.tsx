@@ -57,8 +57,8 @@ export function MetricsPanel({
 
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-        Evolución{loading && <span className="ml-2 text-stone-400">cargando…</span>}
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-500">
+        Evolución{loading && <span className="ml-2 text-stone-500">cargando…</span>}
       </h2>
 
       {error && (
@@ -68,7 +68,7 @@ export function MetricsPanel({
       )}
 
       <div className="mb-6">
-        <div className="mb-1 text-xs uppercase tracking-widest text-stone-400">Peso (kg)</div>
+        <div className="mb-1 text-xs uppercase tracking-widest text-stone-500">Peso (kg)</div>
         <LineChart data={weightSeries} unit="kg" />
       </div>
 
@@ -78,7 +78,7 @@ export function MetricsPanel({
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-stone-400">
+              <tr className="text-left text-xs uppercase tracking-wide text-stone-500">
                 <th className="py-2 pr-4 font-medium">Fecha</th>
                 <th className="py-2 pr-4 font-medium">Peso</th>
                 <th className="py-2 pr-4 font-medium">% Grasa</th>
@@ -98,7 +98,7 @@ export function MetricsPanel({
                   <Cell v={m.muscleMassKg} u="kg" />
                   <Cell v={m.waistCm} u="cm" />
                   <Cell v={m.hipCm} u="cm" />
-                  <td className="py-2 pr-4 text-xs text-stone-400">
+                  <td className="py-2 pr-4 text-xs text-stone-500">
                     {m.recordedByRole === "patient" ? (
                       <span className="rounded-full bg-brand/10 px-2 py-0.5 text-brand">
                         auto-reportado
@@ -111,7 +111,7 @@ export function MetricsPanel({
                     <td className="py-2 text-right">
                       <button
                         onClick={() => del(m.id)}
-                        className="text-xs text-stone-400 transition hover:text-red-600"
+                        className="text-xs text-stone-500 transition hover:text-red-600"
                       >
                         Borrar
                       </button>
