@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "./cn";
 
@@ -15,6 +16,16 @@ function useEscape(open: boolean, onClose: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+}
+
+/**
+ * Los overlays se montan en <body> (portal): renderizados en su lugar heredaban
+ * estilos del contenedor — p. ej. `space-y-*` le sumaba margin-top a un `fixed
+ * inset-0` y el panel arrancaba 24 px más abajo, dejando una franja sin cubrir.
+ */
+function Portal({ children }: { children: ReactNode }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
 }
 
 function CloseButton({ onClose }: { onClose: () => void }) {
@@ -51,27 +62,29 @@ export function Modal({
   useEscape(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/30 p-0 sm:items-center sm:p-4">
-      <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 cursor-default" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={cn(
-          "relative w-full max-w-lg rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl",
-          className,
-        )}
-      >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          {title ? (
-            <h3 className="font-serif text-lg font-medium text-stone-900">{title}</h3>
-          ) : (
-            <span />
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/30 p-0 sm:items-center sm:p-4">
+        <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 cursor-default" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          className={cn(
+            "relative w-full max-w-lg rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl",
+            className,
           )}
-          <CloseButton onClose={onClose} />
+        >
+          <div className="mb-3 flex items-start justify-between gap-3">
+            {title ? (
+              <h3 className="font-serif text-lg font-medium text-stone-900">{title}</h3>
+            ) : (
+              <span />
+            )}
+            <CloseButton onClose={onClose} />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
-    </div>
+    </Portal>
   );
 }
 
@@ -85,29 +98,38 @@ export function SlideOver({
   header,
   children,
   className,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   header?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Panel ancho (formularios con varias columnas, p. ej. horarios de atención). */
+  wide?: boolean;
 }) {
   useEscape(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-stone-900/20" />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        className={cn("relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl", className)}
-      >
-        <header className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-          <div className="min-w-0">{header}</div>
-          <CloseButton onClose={onClose} />
-        </header>
-        {children}
-      </aside>
-    </div>
+    <Portal>
+      <div className="fixed inset-0 z-50 flex justify-end">
+        <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-stone-900/20" />
+        <aside
+          role="dialog"
+          aria-modal="true"
+          className={cn(
+            "relative flex h-full w-full flex-col bg-white shadow-2xl",
+            wide ? "max-w-2xl" : "max-w-md",
+            className,
+          )}
+        >
+          <header className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
+            <div className="min-w-0">{header}</div>
+            <CloseButton onClose={onClose} />
+          </header>
+          {children}
+        </aside>
+      </div>
+    </Portal>
   );
 }
