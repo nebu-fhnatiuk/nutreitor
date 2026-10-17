@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AvailabilityDto, AvailabilityWindow } from "@nutreitor/shared";
 
-import { Alert, Button, EmptyState, Input, Loading, Select } from "@/components/ui";
+import { Alert, Button, EmptyState, Input, Loading, Select, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { browserTimezone } from "@/lib/datetime";
 
@@ -32,13 +32,13 @@ const emptyWindow = (): AvailabilityWindow => ({
 });
 
 /** Edita la disponibilidad semanal del profesional (huso + ventanas). */
-export function AvailabilityEditor() {
+export function AvailabilityEditor({ onSaved }: { onSaved?: () => void } = {}) {
+  const { toast } = useFeedback();
   const [timezone, setTimezone] = useState("");
   const [windows, setWindows] = useState<AvailabilityWindow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,14 +64,14 @@ export function AvailabilityEditor() {
   async function save() {
     setBusy(true);
     setError(null);
-    setSaved(false);
     try {
       await api("scheduling/availability", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ timezone: timezone.trim() || browserTimezone(), windows }),
       });
-      setSaved(true);
+      toast("Horarios guardados");
+      onSaved?.();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -159,7 +159,6 @@ export function AvailabilityEditor() {
         <Button onClick={save} disabled={busy}>
           {busy ? "Guardando…" : "Guardar disponibilidad"}
         </Button>
-        {saved && <span className="text-sm text-brand">Guardado ✓</span>}
       </div>
     </div>
   );

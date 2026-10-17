@@ -20,13 +20,23 @@ export function fmtDateTime(iso: string): string {
   });
 }
 
-/** Encabezado de día: "lunes 8 de junio". */
-export function fmtDayLong(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-AR", {
+/**
+ * Encabezado de día: "lunes 8 de junio", con "Hoy · " / "Mañana · " delante cuando
+ * corresponde y el año sólo si no es el actual ("lunes 3 de marzo de 2031"): sin
+ * año, un turno de otro año parecía de este.
+ */
+export function fmtDayLong(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const base = d.toLocaleDateString("es-AR", {
     weekday: "long",
     day: "numeric",
     month: "long",
+    ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" as const } : {}),
   });
+  const key = dayKey(iso);
+  if (key === dayKey(now.toISOString())) return `Hoy · ${base}`;
+  if (key === dayKey(new Date(now.getTime() + 24 * 3600 * 1000).toISOString())) return `Mañana · ${base}`;
+  return base;
 }
 
 /** Clave de día local (YYYY-MM-DD) para agrupar slots/citas por jornada. */

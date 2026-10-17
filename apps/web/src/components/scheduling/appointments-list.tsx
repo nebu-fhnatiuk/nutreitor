@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { AppointmentDto, AppointmentStatus } from "@nutreitor/shared";
 
 import { EmptyState, SectionHeading } from "@/components/ui";
@@ -43,9 +44,16 @@ export function AppointmentsList({
                   <span className="text-sm font-medium text-stone-800">
                     {fmtTime(a.startsAt)}–{fmtTime(a.endsAt)}
                   </span>
-                  <span className="text-sm text-stone-600">
-                    {perspective === "professional" ? a.patientName : a.professionalName}
-                  </span>
+                  {perspective === "professional" ? (
+                    <Link
+                      href={`/pro/patients/${a.patientId}`}
+                      className="text-sm text-stone-700 underline-offset-2 hover:text-brand hover:underline"
+                    >
+                      {a.patientName}
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-stone-600">{a.professionalName}</span>
+                  )}
                   <StatusChip status={a.status} />
                 </div>
                 {a.status === "booked" && (onReschedule || onCancel) && (
