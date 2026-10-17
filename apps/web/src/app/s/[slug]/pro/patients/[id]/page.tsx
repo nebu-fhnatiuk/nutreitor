@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { PatientDetail } from "@/components/patients/patient-detail";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -17,18 +18,20 @@ export default async function ProPatientPage({
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
-      <PatientDetail
-        id={id}
-        basePath="/pro/patients"
-        canEdit
-        canAddNote
-        canRecord
-        canWritePlan
-        canEditVisibility
-        canUseAgent={me.modules.includes("agents")}
-        canAssign={false}
-        canInvite={false}
-      />
+      <Suspense>
+        <PatientDetail
+          id={id}
+          basePath="/pro/patients"
+          canEdit
+          canAddNote
+          canRecord
+          canWritePlan
+          canEditVisibility
+          canUseAgent={me.modules.includes("agents")}
+          canAssign={false}
+          canInvite={false}
+        />
+      </Suspense>
     </WorkspaceShell>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
+import { AlertTriangle, ClipboardList, LineChart as LineChartIcon, NotebookPen } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   activityLevels,
@@ -12,7 +14,19 @@ import {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
-import { Alert, Card, Loading, SectionHeading, Toggle, fieldClass } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  Loading,
+  SectionHeading,
+  Tabs,
+  Toggle,
+  fieldClass,
+  tabPanelProps,
+  type TabItem,
+} from "@/components/ui";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
@@ -55,10 +69,15 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
+type TabId = "resumen" | "plan" | "evolucion" | "ficha" | "notas" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "ficha", "notas", "asistentes"];
+
 /**
- * Ficha del paciente: lectura rápida + edición de campos sobrescribibles, notas
- * (append-only) y asignaciones. La API ya hace el access check (404 si no
- * corresponde). `canAssign` muestra los controles de admin.
+ * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
+ * pestaña por tarea (Resumen, Plan, Evolución, Ficha clínica, Notas, Asistentes).
+ * Antes era una sola página de ~6 pantallas donde el plan y la evolución quedaban
+ * enterrados. La pestaña activa vive en la URL (?tab=), así el "atrás" y los links
+ * funcionan. La API ya hace el access check (404 si no corresponde).
  */
 export function PatientDetail({
   id,
@@ -87,6 +106,25 @@ export function PatientDetail({
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const requested = params.get("tab") as TabId | null;
+  const tab: TabId =
+    requested && TAB_IDS.includes(requested) && (requested !== "asistentes" || canUseAgent)
+      ? requested
+      : "resumen";
+  // ¿Hay charlas con crisis? Marca la pestaña "Asistentes" para que se vea sin
+  // tener que entrar (PSICO es supervisado: el profesional tiene que revisarlas).
+  const [hasCrisis, setHasCrisis] = useState(false);
+  useEffect(() => {
+    if (!canUseAgent) return;
+    api<{ crisis: boolean }[]>(`agents/conversations?patientId=${id}`)
+      .then((list) => setHasCrisis(list.some((c) => c.crisis)))
+      .catch(() => setHasCrisis(false));
+  }, [canUseAgent, id]);
+  const setTab = (next: TabId) =>
+    router.replace(next === "resumen" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
 
   const load = useCallback(async () => {
     try {
@@ -118,10 +156,10 @@ export function PatientDetail({
   const age = ageFrom(p.birthDate);
 
   return (
-    <div className="space-y-6">
+    // pb: que el botón flotante de asistentes no tape la última fila.
+    <div className={canUseAgent ? "space-y-6 pb-24" : "space-y-6"}>
       <BackLink basePath={basePath} />
 
-      {/* Header */}
       <header className="flex flex-wrap items-center gap-4">
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand/10 text-2xl font-semibold text-brand">
           {p.fullName.slice(0, 1).toUpperCase()}
@@ -145,66 +183,233 @@ export function PatientDetail({
             )}
           </p>
         </div>
-        {!editing && (
-          <div className="flex gap-2">
-            {canInvite && (
-              <InviteToPortal patient={p} onDone={load} onError={setError} />
-            )}
-            {canEdit && (
-              <button
-                onClick={() => setEditing(true)}
-                className="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-brand/40 hover:text-brand"
-              >
-                Editar ficha
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canInvite && <InviteToPortal patient={p} onDone={load} onError={setError} />}
+          {canEdit && !editing && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setTab("ficha");
+                setEditing(true);
+              }}
+            >
+              Editar ficha
+            </Button>
+          )}
+        </div>
       </header>
 
       {error && <Alert>{error}</Alert>}
 
-      {editing ? (
-        <EditForm
-          patient={p}
-          onCancel={() => setEditing(false)}
-          onSaved={() => {
-            setEditing(false);
-            void load();
-          }}
-          onError={setError}
-        />
-      ) : (
-        <ReadView patient={p} age={age} />
-      )}
+      <Tabs<TabId>
+        label="Secciones de la ficha"
+        value={tab}
+        onChange={(t) => {
+          setEditing(false);
+          setTab(t);
+        }}
+        items={[
+          { id: "resumen", label: "Resumen" },
+          { id: "plan", label: "Plan" },
+          { id: "evolucion", label: "Evolución" },
+          { id: "ficha", label: "Ficha clínica" },
+          { id: "notas", label: "Notas", count: p.notes.length },
+          ...(canUseAgent
+            ? [{ id: "asistentes", label: "Asistentes", alert: hasCrisis } as TabItem<TabId>]
+            : []),
+        ]}
+      />
 
-      {!editing && canEditVisibility && p.clinical && p.clinicalVisibility && (
-        <ClinicalVisibilityPanel
-          patientId={p.id}
-          visibility={p.clinicalVisibility}
-          onChange={load}
-          onError={setError}
-        />
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Assignments
-          patient={p}
-          canAssign={canAssign}
-          onChange={load}
-          onError={setError}
-        />
-        <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
+      <div {...tabPanelProps(tab)} className="focus-visible:outline-none">
+        {tab === "resumen" && (
+          <Summary
+            patient={p}
+            canWritePlan={canWritePlan}
+            canRecord={canRecord}
+            canAddNote={canAddNote}
+            onGo={setTab}
+          />
+        )}
+        {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />}
+        {tab === "evolucion" && <MetricsPanel patientId={p.id} canRecord={canRecord} />}
+        {tab === "ficha" && (
+          <div className="space-y-6">
+            {editing ? (
+              <EditForm
+                patient={p}
+                onCancel={() => setEditing(false)}
+                onSaved={() => {
+                  setEditing(false);
+                  void load();
+                }}
+                onError={setError}
+              />
+            ) : (
+              <ReadView patient={p} age={age} />
+            )}
+            {!editing && canEditVisibility && p.clinical && p.clinicalVisibility && (
+              <ClinicalVisibilityPanel
+                patientId={p.id}
+                visibility={p.clinicalVisibility}
+                onChange={load}
+                onError={setError}
+              />
+            )}
+            <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />
+          </div>
+        )}
+        {tab === "notas" && (
+          <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
+        )}
+        {tab === "asistentes" && canUseAgent && <AgentConversations patientId={p.id} />}
       </div>
-
-      <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />
-
-      <MetricsPanel patientId={p.id} canRecord={canRecord} />
-
-      {canUseAgent && <AgentConversations patientId={p.id} />}
 
       {canUseAgent && <AssistantDock patientId={p.id} />}
     </div>
+  );
+}
+
+/**
+ * Resumen: lo que hay que tener presente antes de atender, sin pedidos extra a la
+ * API (sale de la ficha ya cargada) + accesos a las tareas de cada pestaña.
+ */
+function Summary({
+  patient: p,
+  canWritePlan,
+  canRecord,
+  canAddNote,
+  onGo,
+}: {
+  patient: PatientDetailDto;
+  canWritePlan: boolean;
+  canRecord: boolean;
+  canAddNote: boolean;
+  onGo: (tab: TabId) => void;
+}) {
+  const alerts = p.clinical
+    ? (
+        [
+          ["Alergias / intolerancias", p.clinical.allergies],
+          ["Patologías diagnosticadas", p.clinical.diagnosedConditions],
+          ["Medicación actual", p.clinical.currentMedication],
+        ] as const
+      ).filter(([, v]) => v && !/^(ninguna?|no|nada|sin datos|-|—)[.\s]*$/i.test(v.trim()))
+    : [];
+  const active = p.assignments.filter((a) => a.status === "active");
+  const lastNote = p.notes[0];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
+      <div className="space-y-6">
+        {alerts.length > 0 && (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900">
+              <AlertTriangle className="h-4 w-4" aria-hidden />A tener en cuenta
+            </h2>
+            <dl className="grid gap-3 sm:grid-cols-2">
+              {alerts.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-amber-800">{label}</dt>
+                  <dd className="text-sm text-amber-950">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        <Card>
+          <SectionHeading className="mb-4">Objetivo</SectionHeading>
+          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <Field label="Objetivo" value={p.goal} />
+            <Field label="Motivo de consulta" value={p.clinical?.reasonForConsult ?? null} />
+            <Field label="Preferencias / restricciones" value={p.dietaryPreferences} wide />
+            <Field label="Altura" value={p.heightCm ? `${p.heightCm} cm` : null} />
+            <Field label="Peso inicial" value={p.initialWeightKg ? `${p.initialWeightKg} kg` : null} />
+            <Field
+              label="Actividad física"
+              value={p.activityLevel ? ACTIVITY_LABEL[p.activityLevel] : null}
+            />
+          </dl>
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <SectionHeading>Última nota</SectionHeading>
+            {p.notes.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onGo("notas")}
+                className="text-sm text-brand hover:underline"
+              >
+                Ver todas ({p.notes.length})
+              </button>
+            )}
+          </div>
+          {lastNote ? (
+            <div>
+              <p className="whitespace-pre-line text-sm text-stone-800">{lastNote.content}</p>
+              <p className="mt-2 text-xs text-stone-500">
+                {lastNote.authorName} · {new Date(lastNote.createdAt).toLocaleDateString("es-AR")}
+              </p>
+            </div>
+          ) : (
+            <EmptyState>Todavía no hay notas.</EmptyState>
+          )}
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <SectionHeading className="mb-3">Acciones</SectionHeading>
+          <div className="flex flex-col gap-2">
+            <QuickAction icon={ClipboardList} onClick={() => onGo("plan")}>
+              {canWritePlan ? "Revisar el plan" : "Ver el plan"}
+            </QuickAction>
+            <QuickAction icon={LineChartIcon} onClick={() => onGo("evolucion")}>
+              {canRecord ? "Registrar una medición" : "Ver la evolución"}
+            </QuickAction>
+            {canAddNote && (
+              <QuickAction icon={NotebookPen} onClick={() => onGo("notas")}>
+                Agregar una nota
+              </QuickAction>
+            )}
+          </div>
+        </Card>
+        <Card>
+          <SectionHeading className="mb-3">Profesionales a cargo</SectionHeading>
+          {active.length ? (
+            <ul className="space-y-1 text-sm text-stone-800">
+              {active.map((a) => (
+                <li key={a.id}>{a.professionalName}</li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState>Sin profesional asignado.</EmptyState>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function QuickAction({
+  icon: Icon,
+  onClick,
+  children,
+}: {
+  icon: typeof ClipboardList;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-11 items-center gap-3 rounded-lg border border-stone-200 px-3 text-left text-sm text-stone-700 transition hover:border-brand/40 hover:text-brand"
+    >
+      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      {children}
+    </button>
   );
 }
 
