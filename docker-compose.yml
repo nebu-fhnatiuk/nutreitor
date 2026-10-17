@@ -114,6 +114,8 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: development
+      # El watcher nativo no ve cambios del bind-mount en colima/macOS: polling.
+      WATCHPACK_POLLING: "true"
       # Server-side (route handlers / proxy): red interna de compose. El browser
       # nunca pega directo a la API; todo pasa por el proxy de Next (cookies
       # first-party por subdominio).

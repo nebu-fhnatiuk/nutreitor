@@ -16,13 +16,16 @@ export function PatientsList({
   basePath,
   canCreate,
   canAssign,
+  initialSearch = "",
 }: {
   basePath: string;
   canCreate: boolean;
   canAssign: boolean;
+  /** Búsqueda con la que arranca (p. ej. desde el buscador del inicio). */
+  initialSearch?: string;
 }) {
   const [patients, setPatients] = useState<PatientDto[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,11 +54,11 @@ export function PatientsList({
   );
 
   useEffect(() => {
-    void load("");
+    void load(initialSearch);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [load]);
+  }, [load, initialSearch]);
 
   return (
     <div className="space-y-6">

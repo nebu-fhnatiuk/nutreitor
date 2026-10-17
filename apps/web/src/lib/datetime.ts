@@ -5,7 +5,8 @@
  */
 
 export function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  // 24 h, como se usa en Argentina ("09:00", no "09:00 a. m.").
+  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 export function fmtDateTime(iso: string): string {
@@ -15,6 +16,7 @@ export function fmtDateTime(iso: string): string {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
