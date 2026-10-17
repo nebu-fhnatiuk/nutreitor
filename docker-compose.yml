@@ -171,6 +171,23 @@ services:
       - ./apps/agents/app:/app/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
+  # Capturas de pantalla por rol para revisar UX/UI (no arranca con `up`):
+  #   docker compose --profile tools run --rm -e LABEL=antes screenshots
+  # Imagen oficial de Playwright (navegadores + dependencias); la versión tiene que
+  # coincidir con @playwright/test de tools/screenshots/package.json.
+  screenshots:
+    image: mcr.microsoft.com/playwright:v1.49.1-noble
+    profiles: ["tools"]
+    working_dir: /work
+    depends_on:
+      - web
+    environment:
+      LABEL: actual
+    volumes:
+      - ./tools/screenshots:/work
+      - screenshots_node_modules:/work/node_modules
+    command: sh -c "npm install --no-audit --no-fund --silent && npx playwright test"
+
 volumes:
   pgdata:
   api_root_node_modules:
@@ -185,3 +202,4 @@ volumes:
   web_config_node_modules:
   web_shared_node_modules:
   web_db_node_modules:
+  screenshots_node_modules:
