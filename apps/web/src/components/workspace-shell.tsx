@@ -6,6 +6,7 @@ import {
   Home,
   LayoutDashboard,
   Settings,
+  Sun,
   UserRound,
   Users,
   UsersRound,
@@ -33,7 +34,8 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/admin/settings", label: "Configuración", icon: Settings },
   ],
   professional: [
-    { href: "/pro", label: "Pacientes", icon: Users },
+    { href: "/pro", label: "Hoy", icon: Sun },
+    { href: "/pro/patients", label: "Pacientes", icon: Users },
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
   ],

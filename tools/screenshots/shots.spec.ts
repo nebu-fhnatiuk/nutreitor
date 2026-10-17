@@ -17,6 +17,7 @@ const ROLES = {
     email: "pro@demo.test",
     pages: [
       ["inicio", "/pro"],
+      ["pacientes", "/pro/patients"],
       ["ficha", `/pro/patients/${PATIENT_ID}`],
       ["agenda", "/pro/agenda"],
       ["perfil", "/pro/profile"],

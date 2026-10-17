@@ -19,7 +19,7 @@ export default async function ProPatientPage({
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <PatientDetail
         id={id}
-        basePath="/pro"
+        basePath="/pro/patients"
         canEdit
         canAddNote
         canRecord
