@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  CalendarDays,
+  Globe,
+  Home,
+  LayoutDashboard,
+  Settings,
+  UserRound,
+  Users,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -11,21 +22,35 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
   patient: "Paciente",
 };
 
-const NAV: Record<MembershipRole, { href: string; label: string }[]> = {
+type NavItem = { href: string; label: string; icon: LucideIcon };
+
+const NAV: Record<MembershipRole, NavItem[]> = {
   admin: [
-    { href: "/admin", label: "Resumen" },
-    { href: "/admin/patients", label: "Pacientes" },
-    { href: "/admin/members", label: "Miembros" },
-    { href: "/admin/public", label: "Página pública" },
-    { href: "/admin/settings", label: "Configuración" },
+    { href: "/admin", label: "Resumen", icon: LayoutDashboard },
+    { href: "/admin/patients", label: "Pacientes", icon: Users },
+    { href: "/admin/members", label: "Miembros", icon: UsersRound },
+    { href: "/admin/public", label: "Página pública", icon: Globe },
+    { href: "/admin/settings", label: "Configuración", icon: Settings },
   ],
   professional: [
-    { href: "/pro", label: "Pacientes" },
-    { href: "/pro/agenda", label: "Agenda" },
-    { href: "/pro/profile", label: "Mi perfil" },
+    { href: "/pro", label: "Pacientes", icon: Users },
+    { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
+    { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
   ],
-  patient: [{ href: "/app", label: "Inicio" }],
+  patient: [{ href: "/app", label: "Inicio", icon: Home }],
 };
+
+/**
+ * Ítem activo = el de ruta MÁS LARGA que coincide con la actual. Con startsWith
+ * suelto, "/pro" quedaba activo junto con "/pro/agenda"; así sólo gana el más
+ * específico, y una subruta sin ítem propio (la ficha) marca a su sección padre.
+ */
+function activeHref(items: NavItem[], pathname: string): string | null {
+  const matches = items.filter(
+    (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
+  );
+  return matches.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+}
 
 /**
  * Layout base de un destino autenticado: sidebar de navegación por rol + topbar
@@ -44,29 +69,39 @@ export function WorkspaceShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const items = NAV[role];
+  const current = activeHref(items, pathname);
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#contenido"
+        className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-sm shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Saltar al contenido
+      </a>
       <aside className="hidden w-56 shrink-0 flex-col border-r border-stone-200 bg-white px-4 py-5 sm:flex">
         <div className="mb-8 flex items-center gap-2 px-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="truncate text-sm font-semibold tracking-tight">{orgName}</span>
         </div>
-        <nav className="flex flex-1 flex-col gap-1">
-          {NAV[role].map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <nav aria-label="Secciones" className="flex flex-1 flex-col gap-1">
+          {items.map((item) => {
+            const active = item.href === current;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={
-                  "rounded-lg px-3 py-2 text-sm transition " +
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition " +
                   (active
-                    ? "bg-brand/15 text-brand"
-                    : "text-stone-500 hover:bg-stone-100 hover:text-stone-900")
+                    ? "bg-brand/15 font-medium text-brand"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900")
                 }
               >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 {item.label}
               </Link>
             );
@@ -88,22 +123,27 @@ export function WorkspaceShell({
 
         {/* Navegación mobile: en celular el sidebar está oculto, así que las
             secciones viven en una fila de tabs scrolleable bajo el topbar. */}
-        {NAV[role].length > 1 && (
-          <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden">
-            {NAV[role].map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {items.length > 1 && (
+          <nav
+            aria-label="Secciones"
+            className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden"
+          >
+            {items.map((item) => {
+              const active = item.href === current;
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={
-                    "shrink-0 rounded-full px-3 py-1.5 text-sm transition " +
+                    "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm transition " +
                     (active
-                      ? "bg-brand/15 text-brand"
-                      : "text-stone-500 hover:bg-stone-100")
+                      ? "bg-brand/15 font-medium text-brand"
+                      : "text-stone-600 hover:bg-stone-100")
                   }
                 >
+                  <Icon className="h-4 w-4" aria-hidden />
                   {item.label}
                 </Link>
               );
@@ -111,7 +151,9 @@ export function WorkspaceShell({
           </nav>
         )}
 
-        <main className="mx-auto w-full max-w-5xl px-6 py-8">{children}</main>
+        <main id="contenido" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -142,7 +184,7 @@ function UserMenu({ userName, role }: { userName: string; role: MembershipRole }
         <span className="hidden max-w-[10rem] truncate text-sm text-stone-700 sm:block">
           {userName}
         </span>
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-stone-400" aria-hidden>
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-stone-500" aria-hidden>
           <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>

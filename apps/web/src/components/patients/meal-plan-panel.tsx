@@ -113,9 +113,9 @@ export function MealPlanPanel({
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-500">
           Plan alimentario
-          {loading && <span className="ml-2 text-stone-400">cargando…</span>}
+          {loading && <span className="ml-2 text-stone-500">cargando…</span>}
         </h2>
         {canWrite && !editing && (
           <div className="flex gap-2">
@@ -157,7 +157,7 @@ export function MealPlanPanel({
       ) : active ? (
         <PlanView plan={active} />
       ) : (
-        <p className="text-sm text-stone-400">
+        <p className="text-sm text-stone-500">
           Este paciente todavía no tiene un plan activo.
         </p>
       )}
@@ -211,7 +211,7 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
         <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">
           {body.layout === "week" ? "semanal" : "día tipo"}
         </span>
-        <span className="text-xs text-stone-400">
+        <span className="text-xs text-stone-500">
           {start ? `desde ${start} · ` : ""}
           {plan.authorName} · {new Date(plan.createdAt).toLocaleDateString("es-AR")}
         </span>
@@ -219,17 +219,17 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
 
       {body.targets && (
         <p className="mt-2 text-xs text-stone-500">
-          <span className="uppercase tracking-widest text-stone-400">Objetivo</span>{" "}
+          <span className="uppercase tracking-widest text-stone-500">Objetivo</span>{" "}
           {macroLine(body.targets)}
         </p>
       )}
 
       <div className="mt-3 space-y-4">
-        {empty && <p className="text-sm text-stone-400">Sin comidas cargadas.</p>}
+        {empty && <p className="text-sm text-stone-500">Sin comidas cargadas.</p>}
         {groups.map((g) => (
           <div key={g.key} className={g.label ? "space-y-2" : "space-y-3"}>
             {g.label && (
-              <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+              <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
                 {g.label}
               </p>
             )}
@@ -240,9 +240,9 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
                   <div className="mb-1 flex items-baseline justify-between gap-2">
                     <div className="flex items-baseline gap-2">
                       <span className="font-medium text-stone-800">{meal.name}</span>
-                      {meal.time && <span className="text-xs text-stone-400">{meal.time}</span>}
+                      {meal.time && <span className="text-xs text-stone-500">{meal.time}</span>}
                     </div>
-                    {totals && <span className="text-xs text-stone-400">{macroLine(totals)}</span>}
+                    {totals && <span className="text-xs text-stone-500">{macroLine(totals)}</span>}
                   </div>
                   <ul className="space-y-1">
                     {meal.items.map((it, j) => (
@@ -250,14 +250,14 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
                         · {qtyText(it) && <span className="text-stone-500">{qtyText(it)} </span>}
                         {it.text}
                         {it.food && it.food.portion && (
-                          <span className="text-stone-400"> ({round(it.food.grams)} g)</span>
+                          <span className="text-stone-500"> ({round(it.food.grams)} g)</span>
                         )}
-                        {it.note && <span className="text-stone-400"> — {it.note}</span>}
+                        {it.note && <span className="text-stone-500"> — {it.note}</span>}
                         {it.macros && (
-                          <span className="ml-1 text-xs text-stone-400">({macroLine(it.macros)})</span>
+                          <span className="ml-1 text-xs text-stone-500">({macroLine(it.macros)})</span>
                         )}
                         {it.alternatives && it.alternatives.length > 0 && (
-                          <span className="block pl-4 text-xs text-stone-400">
+                          <span className="block pl-4 text-xs text-stone-500">
                             o: {it.alternatives.map((a) => `${qtyText(a)} ${a.text}`.trim()).join(" · ")}
                           </span>
                         )}
@@ -272,7 +272,7 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
         ))}
         {plan.body.generalNotes && (
           <p className="whitespace-pre-line text-sm text-stone-600">
-            <span className="text-xs uppercase tracking-widest text-stone-400">Notas</span>
+            <span className="text-xs uppercase tracking-widest text-stone-500">Notas</span>
             <br />
             {plan.body.generalNotes}
           </p>
@@ -298,7 +298,7 @@ function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) 
   ];
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg bg-stone-50 px-3 py-2 text-xs">
-      <span className="font-semibold uppercase tracking-widest text-stone-400">Total del día</span>
+      <span className="font-semibold uppercase tracking-widest text-stone-500">Total del día</span>
       {keys.map(([k, label, unit]) => {
         const v = total[k];
         if (v == null) return null;
@@ -309,7 +309,7 @@ function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) 
             {label} {round(v)}
             {unit}
             {targets?.[k] != null && (
-              <span className="text-stone-400">
+              <span className="text-stone-500">
                 {" "}
                 / {round(targets[k]!)}
                 {unit}
@@ -332,7 +332,7 @@ function Attribution({ groups }: { groups: { meals: PlanMeal[] }[] }) {
   sources.delete(null);
   if (sources.size === 0) return null;
   return (
-    <p className="text-[11px] text-stone-400">
+    <p className="text-[11px] text-stone-500">
       Datos nutricionales: {[...sources].join(", ")}.
     </p>
   );
@@ -462,7 +462,7 @@ function MealsEditor({
             <button
               type="button"
               onClick={() => onChange(meals.filter((_, j) => j !== mi))}
-              className="shrink-0 rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
+              className="shrink-0 rounded-lg px-2 text-sm text-stone-500 transition hover:text-red-600"
               aria-label="Quitar comida"
             >
               ✕
@@ -714,7 +714,7 @@ function ItemEditor({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className={`shrink-0 rounded-lg px-2 text-xs transition ${open ? "text-brand" : "text-stone-400 hover:text-stone-600"}`}
+          className={`shrink-0 rounded-lg px-2 text-xs transition ${open ? "text-brand" : "text-stone-500 hover:text-stone-600"}`}
           aria-label="Detalle del item"
           aria-expanded={open}
         >
@@ -723,14 +723,14 @@ function ItemEditor({
         <button
           type="button"
           onClick={onRemove}
-          className="shrink-0 rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
+          className="shrink-0 rounded-lg px-2 text-sm text-stone-500 transition hover:text-red-600"
           aria-label="Quitar item"
         >
           ✕
         </button>
       </div>
       {food && (
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 pl-1 text-xs text-stone-400">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 pl-1 text-xs text-stone-500">
           <span>
             {round(food.grams)} g · {macroLine(item.macros ?? {})}
           </span>
@@ -752,7 +752,7 @@ function ItemEditor({
             className={inputCls}
           />
           <div>
-            <span className="mb-1 block text-xs text-stone-400">Alternativas / intercambios</span>
+            <span className="mb-1 block text-xs text-stone-500">Alternativas / intercambios</span>
             {(item.alternatives ?? []).map((alt, ai) => (
               <div key={ai} className="mb-1 flex gap-2">
                 <input
@@ -789,7 +789,7 @@ function ItemEditor({
                 <button
                   type="button"
                   onClick={() => onChange({ alternatives: (item.alternatives ?? []).filter((_, k) => k !== ai) })}
-                  className="shrink-0 rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
+                  className="shrink-0 rounded-lg px-2 text-sm text-stone-500 transition hover:text-red-600"
                   aria-label="Quitar alternativa"
                 >
                   ✕
@@ -806,7 +806,7 @@ function ItemEditor({
           </div>
           {!food && (
             <div>
-              <span className="mb-1 block text-xs text-stone-400">Macros del item</span>
+              <span className="mb-1 block text-xs text-stone-500">Macros del item</span>
               <MacrosInputs
                 value={item.macros ?? {}}
                 onChange={(m) => onChange({ macros: hasMacros(m) ? m : undefined })}
@@ -917,7 +917,7 @@ function MacrosInputs({
 }) {
   const field = (key: keyof Macros, label: string) => (
     <label className="flex items-center gap-1">
-      <span className="text-xs text-stone-400">{label}</span>
+      <span className="text-xs text-stone-500">{label}</span>
       <input
         value={value[key] != null ? String(value[key]) : ""}
         onChange={(e) =>

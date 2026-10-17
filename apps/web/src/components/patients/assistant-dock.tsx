@@ -133,7 +133,7 @@ export function AssistantDock({ patientId }: { patientId: string }) {
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"
-                className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                className="rounded-lg p-1 text-stone-500 transition hover:bg-stone-100 hover:text-stone-700"
               >
                 ✕
               </button>
@@ -198,7 +198,7 @@ export function AssistantDock({ patientId }: { patientId: string }) {
                   </div>
                 </div>
               ))}
-              {busy && <p className="text-sm text-stone-400">{meta.label} está pensando…</p>}
+              {busy && <p className="text-sm text-stone-500">{meta.label} está pensando…</p>}
               <div ref={endRef} />
             </div>
 

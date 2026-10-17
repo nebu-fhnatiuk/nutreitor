@@ -118,7 +118,7 @@ export function AvailabilityEditor() {
               onChange={(e) => update(i, { startMinute: toMin(e.target.value) })}
               className="w-auto"
             />
-            <span className="text-stone-400">a</span>
+            <span className="text-stone-500">a</span>
             <Input
               type="time"
               value={toHM(w.endMinute)}
@@ -139,7 +139,7 @@ export function AvailabilityEditor() {
             <button
               type="button"
               onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}
-              className="ml-auto rounded-lg px-2 text-sm text-stone-400 transition hover:text-red-600"
+              className="ml-auto rounded-lg px-2 text-sm text-stone-500 transition hover:text-red-600"
               aria-label="Quitar franja"
             >
               ✕

@@ -73,7 +73,7 @@ export function PortalView() {
 
       <Card>
         <SectionHeading className="mb-4">Tu evolución</SectionHeading>
-        <div className="mb-4 text-xs uppercase tracking-widest text-stone-400">Peso (kg)</div>
+        <div className="mb-4 text-xs uppercase tracking-widest text-stone-500">Peso (kg)</div>
         <LineChart data={weightSeries} unit="kg" />
 
         {me.canSelfReport && <SelfReport onAdded={load} onError={setError} />}
@@ -82,7 +82,7 @@ export function PortalView() {
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-stone-400">
+                <tr className="text-left text-xs uppercase tracking-wide text-stone-500">
                   <th className="py-2 pr-4 font-medium">Fecha</th>
                   <th className="py-2 pr-4 font-medium">Peso</th>
                   <th className="py-2 pr-4 font-medium">% Grasa</th>
@@ -97,7 +97,7 @@ export function PortalView() {
                     <td className="py-2 pr-4">{m.weightKg != null ? `${m.weightKg} kg` : "—"}</td>
                     <td className="py-2 pr-4">{m.bodyFatPct != null ? `${m.bodyFatPct} %` : "—"}</td>
                     <td className="py-2 pr-4">{m.waistCm != null ? `${m.waistCm} cm` : "—"}</td>
-                    <td className="py-2 pr-4 text-xs text-stone-400">
+                    <td className="py-2 pr-4 text-xs text-stone-500">
                       {m.recordedByRole === "patient" ? "Vos" : m.recordedByName}
                     </td>
                   </tr>
@@ -143,7 +143,7 @@ function ClinicalCard({
       <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-xs text-stone-400">{label}</dt>
+            <dt className="text-xs text-stone-500">{label}</dt>
             <dd className="mt-0.5 whitespace-pre-line text-sm text-stone-800">{value}</dd>
           </div>
         ))}

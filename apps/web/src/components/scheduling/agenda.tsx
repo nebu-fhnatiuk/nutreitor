@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppointmentDto } from "@nutreitor/shared";
 
-import { Alert, Card, Loading, Modal, SectionHeading } from "@/components/ui";
+import { Alert, Card, Loading, Modal, PageHeader, SectionHeading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { fmtDateTime } from "@/lib/datetime";
 import { AppointmentsList } from "./appointments-list";
@@ -58,12 +58,7 @@ export function Agenda() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-sm font-medium uppercase tracking-widest text-brand">Agenda</p>
-        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-stone-900">
-          Tu disponibilidad y tus turnos
-        </h1>
-      </header>
+      <PageHeader title="Agenda" description="Tus próximos turnos y los horarios en que atendés." className="mb-0" />
 
       {error && <Alert>{error}</Alert>}
 

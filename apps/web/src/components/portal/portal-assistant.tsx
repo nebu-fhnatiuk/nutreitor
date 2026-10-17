@@ -213,7 +213,7 @@ export function PortalAssistant({
                   </div>
                 </div>
               ))}
-              {busy && <p className="text-sm text-stone-400">{meta.label} está pensando…</p>}
+              {busy && <p className="text-sm text-stone-500">{meta.label} está pensando…</p>}
               <div ref={endRef} />
             </div>
 

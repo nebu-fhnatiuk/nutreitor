@@ -54,7 +54,7 @@ export function AppointmentsList({
                       <button
                         type="button"
                         onClick={() => onReschedule(a)}
-                        className="rounded-lg px-2.5 py-1 text-xs text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
+                        className="min-h-11 rounded-lg px-3 text-sm sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-xs text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
                       >
                         Reprogramar
                       </button>
@@ -63,7 +63,7 @@ export function AppointmentsList({
                       <button
                         type="button"
                         onClick={() => onCancel(a.id)}
-                        className="rounded-lg px-2.5 py-1 text-xs text-red-600 transition hover:bg-red-50"
+                        className="min-h-11 rounded-lg px-3 text-sm sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-xs text-red-600 transition hover:bg-red-50"
                       >
                         Cancelar
                       </button>
@@ -85,7 +85,7 @@ function StatusChip({ status }: { status: AppointmentStatus }) {
       ? "bg-brand/10 text-brand"
       : status === "completed"
         ? "bg-stone-100 text-stone-600"
-        : "bg-stone-100 text-stone-400";
+        : "bg-stone-100 text-stone-500";
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{STATUS_LABEL[status]}</span>
   );

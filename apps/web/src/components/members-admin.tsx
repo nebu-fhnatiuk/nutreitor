@@ -9,7 +9,7 @@ import {
   type MembershipRole,
 } from "@nutreitor/shared";
 
-import { Alert, Button, Input, Select } from "@/components/ui";
+import { Alert, Button, Input, PageHeader, Select } from "@/components/ui";
 
 const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Admin",
@@ -63,12 +63,11 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">Miembros</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Gestión de profesionales y pacientes de la organización.
-        </p>
-      </div>
+      <PageHeader
+        title="Miembros"
+        description="Profesionales y pacientes con acceso a la organización: invitaciones, roles y bajas."
+        className="mb-0"
+      />
 
       {error && <Alert>{error}</Alert>}
 
@@ -125,7 +124,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-medium uppercase tracking-widest text-stone-500">
-            Miembros{loading && <span className="ml-2 text-stone-400">cargando…</span>}
+            Miembros{loading && <span className="ml-2 text-stone-500">cargando…</span>}
           </h2>
           <Input
             value={search}
@@ -182,7 +181,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
                     {m.status === "active" ? (
                       <span className="text-xs text-emerald-600">activo</span>
                     ) : (
-                      <span className="text-xs text-stone-400">dado de baja</span>
+                      <span className="text-xs text-stone-500">dado de baja</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -199,7 +198,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
               ))}
               {members.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-stone-400">
+                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-stone-500">
                     Sin miembros.
                   </td>
                 </tr>
@@ -254,8 +253,9 @@ function InviteForm({
   return (
     <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-4">
       <div className="flex-1">
-        <label className="mb-1 block text-xs text-stone-500">Invitar por email</label>
+        <label htmlFor="members-admin-invitar-por-email" className="mb-1 block text-xs text-stone-500">Invitar por email</label>
         <Input
+          id="members-admin-invitar-por-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

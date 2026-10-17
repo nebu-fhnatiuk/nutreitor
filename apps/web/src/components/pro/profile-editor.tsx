@@ -196,7 +196,7 @@ function Field({
     <div>
       <div className="mb-1 flex items-baseline justify-between">
         <label className="text-sm text-stone-700">{label}</label>
-        {hint && <span className="text-xs text-stone-400">{hint}</span>}
+        {hint && <span className="text-xs text-stone-500">{hint}</span>}
       </div>
       {children}
     </div>
@@ -225,7 +225,7 @@ function FieldWithVisibility({
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <label className="text-sm text-stone-700">
           {label}
-          {hint && <span className="ml-2 text-xs text-stone-400">{hint}</span>}
+          {hint && <span className="ml-2 text-xs text-stone-500">{hint}</span>}
         </label>
         <button
           type="button"

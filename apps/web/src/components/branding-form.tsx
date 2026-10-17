@@ -44,17 +44,19 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
   return (
     <form onSubmit={submit} className="max-w-lg space-y-5">
       <div>
-        <label className="mb-1 block text-sm text-stone-500">Nombre visible</label>
+        <label htmlFor="branding-form-nombre-visible" className="mb-1 block text-sm text-stone-500">Nombre visible</label>
         <Input
+          id="branding-form-nombre-visible"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Nombre que ven los pacientes"
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-stone-500">Color primario</label>
+        <label htmlFor="branding-form-color" className="mb-1 block text-sm text-stone-500">Color primario</label>
         <div className="flex items-center gap-3">
           <input
+            id="branding-form-color"
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
@@ -70,8 +72,9 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-sm text-stone-500">URL del logo (opcional)</label>
+        <label htmlFor="branding-form-url-del-logo-opcional" className="mb-1 block text-sm text-stone-500">URL del logo (opcional)</label>
         <Input
+          id="branding-form-url-del-logo-opcional"
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="https://…/logo.png"

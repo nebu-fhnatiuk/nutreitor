@@ -107,7 +107,7 @@ function ModuleCard({
           >
             {busy ? "Desinstalando…" : "Desinstalar"}
           </Button>
-          <p className="mt-2 text-xs text-stone-400">
+          <p className="mt-2 text-xs text-stone-500">
             Desinstalar deshabilita el complemento; las conversaciones y consentimientos se conservan.
           </p>
         </div>

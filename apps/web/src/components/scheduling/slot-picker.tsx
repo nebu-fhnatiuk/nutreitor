@@ -59,7 +59,7 @@ export function SlotPicker({
 
   return (
     <div>
-      <p className="mb-3 text-xs text-stone-400">Horarios en tu zona ({browserTimezone()}).</p>
+      <p className="mb-3 text-xs text-stone-500">Horarios en tu zona ({browserTimezone()}).</p>
       <div className="max-h-96 space-y-4 overflow-y-auto pr-1">
         {groupByDay(slots).map(([k, daySlots]) => (
           <div key={k}>

@@ -102,7 +102,7 @@ export default async function OrgPublicPage({
           </p>
         ) : (
           <>
-            <h2 className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-stone-400">
+            <h2 className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-stone-500">
               Profesionales
             </h2>
             <ul className="grid gap-4 sm:grid-cols-2">
@@ -144,7 +144,7 @@ export default async function OrgPublicPage({
         )}
       </section>
 
-      <footer className="border-t border-stone-200 py-8 text-center text-sm text-stone-400">
+      <footer className="border-t border-stone-200 py-8 text-center text-sm text-stone-500">
         {displayName} · hecho con Nutreitor
       </footer>
     </main>

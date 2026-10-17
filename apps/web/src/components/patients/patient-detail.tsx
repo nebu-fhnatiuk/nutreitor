@@ -12,7 +12,7 @@ import {
 } from "@nutreitor/shared";
 
 import { api } from "@/lib/api";
-import { Alert, Button, Card, Loading, SectionHeading, Toggle, fieldClass } from "@/components/ui";
+import { Alert, Card, Loading, SectionHeading, Toggle, fieldClass } from "@/components/ui";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
@@ -424,10 +424,10 @@ function Field({
 }) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
-      <dt className="text-xs text-stone-400">{label}</dt>
+      <dt className="text-xs text-stone-500">{label}</dt>
       <dd className="mt-0.5 whitespace-pre-line text-sm text-stone-800">
         {value || <span className="text-stone-300">—</span>}
-        {value && hint ? <span className="ml-2 text-stone-400">({hint})</span> : null}
+        {value && hint ? <span className="ml-2 text-stone-500">({hint})</span> : null}
       </dd>
     </div>
   );
@@ -680,7 +680,7 @@ function Assignments({
       <SectionHeading className="mb-4">Profesionales a cargo</SectionHeading>
 
       {p.assignments.length === 0 ? (
-        <p className="text-sm text-stone-400">Sin asignaciones.</p>
+        <p className="text-sm text-stone-500">Sin asignaciones.</p>
       ) : (
         <ul className="space-y-2">
           {p.assignments.map((a) => (
@@ -690,7 +690,7 @@ function Assignments({
             >
               <div className="min-w-0">
                 <div className="truncate text-sm text-stone-800">{a.professionalName}</div>
-                <div className="text-xs text-stone-400">
+                <div className="text-xs text-stone-500">
                   {a.status === "active" ? "Activa" : "Cerrada"} · desde{" "}
                   {new Date(a.assignedAt).toLocaleDateString("es-AR")}
                   {a.endedAt
@@ -715,7 +715,7 @@ function Assignments({
                       api(`patients/${p.id}/assignments/${a.id}/end`, { method: "POST" }),
                     )
                   }
-                  className="shrink-0 text-xs text-stone-400 transition hover:text-red-600"
+                  className="shrink-0 text-xs text-stone-500 transition hover:text-red-600"
                 >
                   Cerrar
                 </button>
@@ -813,12 +813,12 @@ function Notes({
       )}
 
       {p.notes.length === 0 ? (
-        <p className="text-sm text-stone-400">Sin notas todavía.</p>
+        <p className="text-sm text-stone-500">Sin notas todavía.</p>
       ) : (
         <ol className="space-y-3">
           {p.notes.map((n) => (
             <li key={n.id} className="border-l-2 border-brand/30 pl-3">
-              <div className="text-xs text-stone-400">
+              <div className="text-xs text-stone-500">
                 {n.authorName} ·{" "}
                 {new Date(n.createdAt).toLocaleString("es-AR", {
                   dateStyle: "medium",

@@ -15,7 +15,7 @@ export function LineChart({
 }) {
   if (data.length < 2) {
     return (
-      <p className="text-sm text-stone-400">
+      <p className="text-sm text-stone-500">
         Cargá al menos dos mediciones para ver la evolución.
       </p>
     );
@@ -44,7 +44,7 @@ export function LineChart({
       <div className="mb-2 flex items-baseline justify-between">
         <span className="text-2xl font-semibold text-stone-900">
           {last.value}
-          <span className="ml-1 text-sm font-normal text-stone-400">{unit}</span>
+          <span className="ml-1 text-sm font-normal text-stone-500">{unit}</span>
         </span>
         <span
           className={
@@ -53,7 +53,7 @@ export function LineChart({
               ? "text-emerald-600"
               : delta > 0
                 ? "text-amber-600"
-                : "text-stone-400")
+                : "text-stone-500")
           }
         >
           {delta > 0 ? "+" : ""}
@@ -86,7 +86,7 @@ export function LineChart({
           />
         ))}
       </svg>
-      <div className="mt-1 flex justify-between text-xs text-stone-400">
+      <div className="mt-1 flex justify-between text-xs text-stone-500">
         <span>{first.label}</span>
         <span>{last.label}</span>
       </div>

@@ -46,7 +46,7 @@ export function Spinner({ className }: { className?: string }) {
 /** Estado de carga inline, consistente (antes: "Cargando…" suelto en ~7 lugares). */
 export function Loading({ label = "Cargando…" }: { label?: string }) {
   return (
-    <p className="flex items-center gap-2 text-sm text-stone-400">
+    <p className="flex items-center gap-2 text-sm text-stone-500">
       <Spinner />
       {label}
     </p>
@@ -62,7 +62,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 py-2 text-sm text-stone-400">
+    <div className="flex flex-col items-start gap-3 py-2 text-sm text-stone-500">
       <p>{children}</p>
       {action}
     </div>
