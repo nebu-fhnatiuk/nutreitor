@@ -28,6 +28,37 @@ const altSchema = z.object({
   unit: z.string().max(30).optional(),
 });
 
+/**
+ * Vínculo del item con un alimento de la base (ADR 0018). Guarda una COPIA de los
+ * nutrientes por 100 g sobre los que se calcularon los macros del item: si después
+ * se corrige el catálogo, las versiones ya guardadas del plan no cambian, y el
+ * editor puede recalcular al cambiar la cantidad sin volver a consultar.
+ */
+const portionSchema = z.object({
+  label: z.string().min(1).max(60),
+  grams: z.number().positive().max(2000),
+});
+const foodRefSchema = z.object({
+  source: z.enum(["catalog", "tenant"]),
+  id: z.string().uuid(),
+  /** Cantidad efectiva en gramos (la que da los macros). */
+  grams: z.number().positive().max(5000),
+  /** Medida casera elegida, si la cantidad se cargó así ("1 taza" = 160 g × count). */
+  portion: portionSchema.optional(),
+  count: z.number().positive().max(100).optional(),
+  /** Medidas caseras del alimento al vincularlo (para cambiar de unidad en el editor). */
+  portions: z.array(portionSchema).max(10).optional(),
+  per100g: z.object({
+    kcal: z.number().min(0).max(900),
+    protein_g: z.number().min(0).max(100),
+    carbs_g: z.number().min(0).max(100),
+    fat_g: z.number().min(0).max(100),
+  }),
+  /** Atribución de la fuente del dato ("USDA FoodData Central"); null en propios. */
+  attribution: z.string().max(80).nullish(),
+});
+export type FoodRef = z.infer<typeof foodRefSchema>;
+
 /** Item de una comida. `text` siempre; el resto es enriquecimiento opcional. */
 const mealItemSchema = z.object({
   text: z.string().min(1).max(500),
@@ -36,6 +67,7 @@ const mealItemSchema = z.object({
   alternatives: z.array(altSchema).max(20).optional(),
   macros: macrosSchema.optional(),
   note: z.string().max(300).optional(),
+  food: foodRefSchema.optional(),
 });
 const planMealSchema = z.object({
   name: z.string().min(1).max(120),
@@ -121,4 +153,56 @@ export interface MealPlanDto {
   authorMembershipId: string;
   authorName: string;
   createdAt: string;
+}
+
+// ── Cálculo nutricional (ADR 0018) ───────────────────────────────────────────
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Macros de `grams` de un alimento a partir de sus valores por 100 g. */
+export function macrosForGrams(per100g: FoodRef["per100g"], grams: number): Macros {
+  const f = grams / 100;
+  return {
+    protein_g: r1(per100g.protein_g * f),
+    carbs_g: r1(per100g.carbs_g * f),
+    fat_g: r1(per100g.fat_g * f),
+    kcal: Math.round(per100g.kcal * f),
+  };
+}
+
+/**
+ * Suma de macros. Sólo incluye una clave si AL MENOS un sumando la trae (un "C 0"
+ * engañoso cuando el dato no se cargó es peor que no mostrarlo). Null si ninguno.
+ */
+export function sumMacros(list: (Macros | undefined | null)[]): Macros | null {
+  const keys = ["protein_g", "carbs_g", "fat_g", "kcal"] as const;
+  const acc: Macros = {};
+  let any = false;
+  for (const m of list) {
+    if (!m) continue;
+    for (const k of keys) {
+      const v = m[k];
+      if (v != null) {
+        acc[k] = (acc[k] ?? 0) + v;
+        any = true;
+      }
+    }
+  }
+  if (!any) return null;
+  for (const k of keys) if (acc[k] != null) acc[k] = k === "kcal" ? Math.round(acc[k]!) : r1(acc[k]!);
+  return acc;
+}
+
+/** Totales de un día del plan (todas sus comidas). */
+export function dayMacros(day: DayPlan): Macros | null {
+  return sumMacros(day.meals.flatMap((m) => m.items.map((it) => it.macros)));
+}
+
+/**
+ * Desvío de un total contra el objetivo, en % (positivo = se pasa). Null si no hay
+ * objetivo o total para esa clave. Sirve para marcar el día en el editor.
+ */
+export function targetDeviation(total: number | undefined, target: number | undefined): number | null {
+  if (total == null || target == null || target <= 0) return null;
+  return Math.round(((total - target) / target) * 100);
 }

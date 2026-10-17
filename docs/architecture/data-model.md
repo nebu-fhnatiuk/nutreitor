@@ -444,8 +444,11 @@ erDiagram
   - `{ layout: "week", days: { mon: {meals}, … }, targets?, generalNotes? }` — semanal.
 
   Cada comida tiene `name`, `time?` e `items`; cada item, `text` (siempre) +
-  `qty?`/`unit?`, `alternatives?` (intercambios), `macros?` (P/C/G/kcal) y `note?` —
-  todo opcional. Las macros se cargan por item; los totales por comida/día se
+  `qty?`/`unit?`, `alternatives?` (intercambios), `macros?` (P/C/G/kcal), `note?` y
+  `food?` — todo opcional. `food` vincula el item con la base de alimentos (ADR 0018):
+  `{ source, id, grams, portion?, count?, portions?, per100g, attribution? }`. Guarda
+  una **copia** de los nutrientes por 100 g, y los `macros` del item son el cálculo
+  sobre esa copia: corregir el catálogo no altera versiones ya guardadas. Las macros se cargan por item; los totales por comida/día se
   **derivan en la UI** (única fuente = items). `targets` (objetivo del plan) sí se
   guarda. El stripping/normalización de bodies legacy (anteriores al `layout`) lo
   hace `normalizeMealPlanBody` (shared); la migración `0021` envolvió las filas

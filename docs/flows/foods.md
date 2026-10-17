@@ -56,6 +56,33 @@ micronutrientes disponibles en `extra`.
 - Alta, edición y archivado quedan en `audit_log` (`food.created`, `food.updated`,
   `food.archived`).
 
+## En el editor del plan
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant P as Profesional
+  participant E as Editor del plan
+  participant API as /foods
+  P->>E: tipea "arroz" en el item
+  E->>API: GET /foods?q=arroz (debounce 250 ms)
+  API-->>E: sugerencias (catálogo + propios)
+  P->>E: elige "Arroz blanco, cocido"
+  E->>E: vincula el item: 1 medida casera (o 100 g)<br/>copia per100g + medidas + atribución
+  P->>E: cambia a "2 taza" o a gramos
+  E->>E: recalcula macros = per100g × gramos / 100
+  E->>E: total del día vs objetivo (±10% ok, si no se resalta)
+  P->>E: Guardar → nueva versión del plan con el vínculo
+```
+
+- El campo sigue aceptando **texto libre**: un item sin vínculo se carga como antes
+  (cantidad, unidad y macros a mano).
+- Con vínculo, los macros del item se calculan solos (no se editan a mano) y se puede
+  **desvincular** para volver a la carga manual.
+- La vista del plan (también la del portal del paciente) muestra los gramos, el
+  **total del día contra el objetivo** y cita la fuente ("Datos nutricionales: USDA
+  FoodData Central") cuando algún item viene del catálogo.
+
 ## Capacidades
 
 `food:read` y `food:manage`: admin y profesional. El paciente no accede a la base de
