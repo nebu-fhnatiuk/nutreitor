@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PatientDto } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { MemberSelect } from "./member-select";
 
 /**
@@ -36,7 +36,7 @@ export function PatientsList({
       const qs = term ? `?search=${encodeURIComponent(term)}` : "";
       setPatients(await api<PatientDto[]>(`patients${qs}`));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ function NewPatientForm({
       setOpen(false);
       onCreated();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }

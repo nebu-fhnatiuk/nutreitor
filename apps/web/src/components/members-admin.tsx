@@ -9,7 +9,8 @@ import {
   type MembershipRole,
 } from "@nutreitor/shared";
 
-import { Alert, Button, Input, PageHeader, Select } from "@/components/ui";
+import { Alert, Button, Input, PageHeader, Select, useFeedback } from "@/components/ui";
+import { errorMessage } from "@/lib/api";
 
 const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Admin",
@@ -45,7 +46,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
       setMembers(m);
       setInvites(inv);
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -55,10 +56,24 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
     void load("");
   }, [load]);
 
+  const { confirm, toast } = useFeedback();
+  /** Corre la acción sólo si se confirma, y avisa al terminar. */
+  async function confirmRun(
+    opts: Parameters<typeof confirm>[0],
+    fn: () => Promise<unknown>,
+    done: string,
+  ) {
+    if (!(await confirm(opts))) return;
+    run(async () => {
+      await fn();
+      toast(done);
+    });
+  }
+
   function run(fn: () => Promise<unknown>) {
     fn()
       .then(() => load(search))
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }
 
   return (
@@ -105,7 +120,18 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
                       )}
                       {can("member:revoke") && (
                         <button
-                          onClick={() => run(() => api(`invitations/${inv.id}/revoke`, { method: "POST" }))}
+                          onClick={() =>
+                            void confirmRun(
+                              {
+                                title: "¿Revocar la invitación?",
+                                body: `El link que recibió ${inv.email} deja de funcionar.`,
+                                confirmLabel: "Revocar",
+                                tone: "danger",
+                              },
+                              () => api(`invitations/${inv.id}/revoke`, { method: "POST" }),
+                              "Invitación revocada",
+                            )
+                          }
                           className="text-xs text-stone-500 hover:text-red-700"
                         >
                           Revocar
@@ -187,7 +213,18 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
                   <td className="px-4 py-3 text-right">
                     {can("member:revoke") && m.status === "active" && (
                       <button
-                        onClick={() => run(() => api(`members/${m.membershipId}/revoke`, { method: "POST" }))}
+                        onClick={() =>
+                          void confirmRun(
+                            {
+                              title: `¿Dar de baja a ${m.fullName}?`,
+                              body: "Pierde el acceso a la organización. Su historia (notas, planes) se conserva.",
+                              confirmLabel: "Dar de baja",
+                              tone: "danger",
+                            },
+                            () => api(`members/${m.membershipId}/revoke`, { method: "POST" }),
+                            "Miembro dado de baja",
+                          )
+                        }
                         className="text-xs text-stone-500 hover:text-red-700"
                       >
                         Dar de baja
@@ -244,7 +281,7 @@ function InviteForm({
       setEmail("");
       onInvited();
     } catch (err) {
-      onError(String(err));
+      onError(errorMessage(err));
     } finally {
       setBusy(false);
     }

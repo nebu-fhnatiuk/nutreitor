@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { InvitationPreview } from "@nutreitor/shared";
+import { errorMessage } from "@/lib/api";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "administrador/a",
@@ -51,7 +52,7 @@ export function AcceptInvite({ token }: { token: string }) {
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
       window.location.assign(d.redirect);
     } catch (e2) {
-      setErr(String(e2));
+      setErr(errorMessage(e2));
     } finally {
       setBusy(false);
     }

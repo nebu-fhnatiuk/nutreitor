@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AppointmentDto } from "@nutreitor/shared";
 
-import { Alert, Card, Loading, Modal, PageHeader, SectionHeading } from "@/components/ui";
-import { api } from "@/lib/api";
+import { Alert, Card, Loading, Modal, PageHeader, SectionHeading, useFeedback } from "@/components/ui";
+import { api, errorMessage } from "@/lib/api";
 import { fmtDateTime } from "@/lib/datetime";
 import { AppointmentsList } from "./appointments-list";
 import { AvailabilityEditor } from "./availability-editor";
@@ -23,7 +23,7 @@ export function Agenda() {
       // Desde ahora en adelante (la agenda mira a futuro).
       setAppts(await api<AppointmentDto[]>(`scheduling/appointments?from=${new Date().toISOString()}`));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -33,13 +33,24 @@ export function Agenda() {
     void load();
   }, [load]);
 
+  const { confirm, toast } = useFeedback();
+
   async function cancel(id: string) {
+    const ok = await confirm({
+      title: "¿Cancelar este turno?",
+      body: "El horario vuelve a quedar libre para otra reserva.",
+      confirmLabel: "Cancelar turno",
+      cancelLabel: "Mantener",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     try {
       await api(`scheduling/appointments/${id}/cancel`, { method: "POST" });
+      toast("Turno cancelado");
       void load();
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }
 

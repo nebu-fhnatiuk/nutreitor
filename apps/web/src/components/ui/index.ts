@@ -15,3 +15,4 @@ export { Alert, Spinner, Loading, EmptyState, type AlertTone } from "./feedback"
 export { Modal, SlideOver } from "./overlay";
 export { PageHeader } from "./page-header";
 export { Tabs, tabPanelProps, type TabItem } from "./tabs";
+export { FeedbackProvider, useFeedback, type ConfirmOptions } from "./feedback-provider";

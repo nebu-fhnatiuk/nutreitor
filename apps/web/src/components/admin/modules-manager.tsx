@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MODULE_CATALOG, type ModuleKey, type OrgModuleStateDto } from "@nutreitor/shared";
 
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { Alert, Button, Card, Loading, Select } from "@/components/ui";
 
 /**
@@ -19,7 +19,7 @@ export function ModulesManager() {
     try {
       setModules(await api<OrgModuleStateDto[]>("organizations/current/modules"));
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   }, []);
 
@@ -65,7 +65,7 @@ function ModuleCard({
       });
       onChange();
     } catch (e) {
-      onError(String(e));
+      onError(errorMessage(e));
     } finally {
       setBusy(false);
     }
