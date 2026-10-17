@@ -36,7 +36,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
-    "catalog:build": "tsx scripts/build-food-catalog.ts"
+    "catalog:build": "tsx scripts/build-food-catalog.ts",
+    "db:reset-dev": "tsx scripts/reset-dev.ts"
   },
   "dependencies": {
     "@nutreitor/config": "workspace:*",

@@ -166,6 +166,15 @@ docker compose exec api pnpm --filter @nutreitor/api test
 Incluye: aislamiento RLS (2 tenants, fail-closed, WITH CHECK), anti-timing del login, y
 autorización del capability guard.
 
+Los tests corren contra una base **separada** (`nutreitor_test`, se crea sola en el
+primer `test`): los e2e escriben de verdad y no deben ensuciar la base de desarrollo
+que se usa para probar a mano. Para volver la base de desarrollo al estado demo limpio
+(borra todo lo cargado a mano):
+
+```bash
+docker compose exec api pnpm --filter @nutreitor/db db:reset-dev
+```
+
 Verifica con 2 tenants seedeados que: cada tenant ve sólo lo suyo, forzar el id de
 un paciente ajeno no devuelve nada, insertar con `tenant_id` ajeno es rechazado por
 RLS (`WITH CHECK`), y que sin contexto no se ve nada (*fail-closed*).
