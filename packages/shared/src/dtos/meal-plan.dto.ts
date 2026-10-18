@@ -39,7 +39,7 @@ const portionSchema = z.object({
   grams: z.number().positive().max(2000),
 });
 const foodRefSchema = z.object({
-  source: z.enum(["catalog", "tenant"]),
+  source: z.enum(["catalog", "tenant", "recipe", "library"]),
   id: z.string().uuid(),
   /** Cantidad efectiva en gramos (la que da los macros). */
   grams: z.number().positive().max(5000),

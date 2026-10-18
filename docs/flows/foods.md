@@ -83,6 +83,28 @@ sequenceDiagram
   **total del día contra el objetivo** y cita la fuente ("Datos nutricionales: USDA
   FoodData Central") cuando algún item viene del catálogo.
 
+## Recetas (ADR 0019)
+
+| Acción | Endpoint | Capacidad |
+|---|---|---|
+| Listar (biblioteca + propias) | `GET /recipes` | `food:read` |
+| Leer una | `GET /recipes/{library\|tenant}/{id}` | `food:read` |
+| Crear propia | `POST /recipes` | `food:manage` |
+| Editar / archivar propia | `PUT /recipes/tenant/{id}` · `POST /recipes/tenant/{id}/archive` | `food:manage` |
+| Copiar de la biblioteca | `POST /recipes/library/{id}/copy` | `food:manage` |
+
+- Una receta guarda **ingredientes con gramos y porciones que rinde**; los nutrientes
+  (total, por 100 g y por porción) se **calculan al servirla**, en lote para todas las
+  recetas de una respuesta.
+- La **búsqueda del editor** (`GET /foods`) devuelve también recetas (`source:
+  recipe | library`) con la forma de un alimento y la medida **"1 porción"**: el
+  editor del plan las usa sin cambios.
+- Un ingrediente propio tiene que ser un alimento **activo de este consultorio** (si
+  no, 400). Uno que deja de existir se cuenta en `missingIngredients`.
+- La **biblioteca** es global y de sólo lectura; se genera con
+  `pnpm --filter @nutreitor/db recipes:build` desde
+  `packages/db/catalog/recipes-ar.curation.json` (14 recetas, **borrador a validar**).
+
 ## Capacidades
 
 `food:read` y `food:manage`: admin y profesional. El paciente no accede a la base de

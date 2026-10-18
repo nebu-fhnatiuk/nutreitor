@@ -16,6 +16,7 @@ export * from "./scheduling.js";
 export * from "./agents.js";
 export * from "./org-modules.js";
 export * from "./foods.js";
+export * from "./recipes.js";
 
 import { organizations } from "./organizations.js";
 import { locations } from "./locations.js";
@@ -34,6 +35,7 @@ import { availabilityRules, appointments } from "./scheduling.js";
 import { agentConversations, agentMessages, agentRuns, agentConsents } from "./agents.js";
 import { orgModules } from "./org-modules.js";
 import { foodCatalog, tenantFoods } from "./foods.js";
+import { recipeLibrary, tenantRecipes } from "./recipes.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -59,4 +61,6 @@ export const schema = {
   orgModules,
   foodCatalog,
   tenantFoods,
+  recipeLibrary,
+  tenantRecipes,
 };

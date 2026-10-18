@@ -5,7 +5,9 @@ import { z } from "zod";
  * referencia global (`catalog`, sólo lectura) y los alimentos propios del
  * consultorio (`tenant`). Todos los nutrientes son por 100 g de porción comestible.
  */
-export const foodSources = ["catalog", "tenant"] as const;
+/** catalog/tenant: alimentos (ADR 0018). recipe/library: recetas del consultorio y
+ * de la biblioteca global, servidas con la misma forma (ADR 0019). */
+export const foodSources = ["catalog", "tenant", "recipe", "library"] as const;
 export type FoodSource = (typeof foodSources)[number];
 
 /** Medida casera: "1 taza" = 160 g. */
@@ -40,6 +42,8 @@ export interface FoodDto {
   /** Atribución de la fuente del dato (catálogo: "usda"). Null en los propios. */
   attribution: string | null;
   archived: boolean;
+  /** Sólo en recetas: rinde, peso total e ingredientes que ya no existen. */
+  recipe?: { servings: number; totalGrams: number; missingIngredients: number };
 }
 
 const grams = z.number().min(0).max(100);
