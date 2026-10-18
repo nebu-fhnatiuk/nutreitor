@@ -67,6 +67,10 @@ export const mealPlans = pgTable(
     version: integer("version").notNull(),
     status: mealPlanStatus("status").notNull().default("active"),
     title: text("title").notNull(),
+    /** Segundos de armado (editor abierto → guardar; tope 2 h). Métricas de eficiencia. */
+    editSeconds: integer("edit_seconds"),
+    /** Desde qué se armó: scratch | previous | template | nutri. */
+    draftedFrom: text("drafted_from"),
     startDate: date("start_date"),
     body: jsonb("body")
       .$type<MealPlanBody>()

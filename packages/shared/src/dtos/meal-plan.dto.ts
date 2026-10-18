@@ -157,8 +157,13 @@ export const savePlanSchema = z.object({
     .nullish(),
   // Acepta body nuevo o legacy (normaliza antes de validar la union).
   body: z.preprocess(normalizeMealPlanBody, mealPlanBodySchema),
+  /** Instrumentación de eficiencia (Fase 4.4): segundos en el editor (el server topea a 2 h). */
+  editSeconds: z.number().int().min(0).max(86_400).optional(),
+  /** Desde qué se armó la versión. */
+  draftedFrom: z.enum(["scratch", "previous", "template", "nutri"]).optional(),
 });
 export type SavePlanDto = z.infer<typeof savePlanSchema>;
+export type PlanDraftedFrom = NonNullable<SavePlanDto["draftedFrom"]>;
 
 export type MealPlanStatus = "active" | "superseded" | "archived";
 

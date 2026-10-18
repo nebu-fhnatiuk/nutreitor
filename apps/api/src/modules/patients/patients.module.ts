@@ -6,6 +6,8 @@ import { MealPlansController } from "./meal-plans.controller.js";
 import { MealPlansService } from "./meal-plans.service.js";
 import { AdherenceController } from "./adherence.controller.js";
 import { AdherenceService } from "./adherence.service.js";
+import { EfficiencyController } from "./efficiency.controller.js";
+import { EfficiencyService } from "./efficiency.service.js";
 import { ConversationsController } from "./conversations.controller.js";
 import { ConversationsService } from "./conversations.service.js";
 import { MetricsController } from "./metrics.controller.js";
@@ -25,6 +27,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     PlanTemplatesController,
     AdherenceController,
     ConversationsController,
+    EfficiencyController,
   ],
   providers: [
     PatientsService,
@@ -35,6 +38,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     PlanTemplatesService,
     AdherenceService,
     ConversationsService,
+    EfficiencyService,
   ],
   exports: [AdherenceService, ConversationsService],
 })

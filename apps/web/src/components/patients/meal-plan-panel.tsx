@@ -21,6 +21,7 @@ import {
   type MealPlanDto,
   type PlanMeal,
   type PlanDraftDto,
+  type PlanDraftedFrom,
   type PlanTemplateDto,
   type Weekday,
 } from "@nutreitor/shared";
@@ -595,6 +596,9 @@ function PlanEditor({
   const [templates, setTemplates] = useState<PlanTemplateDto[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
+  // Métricas de eficiencia (Fase 4.4): cuánto lleva armar la versión y desde qué partió.
+  const openedAt = useRef(Date.now());
+  const [draftedFrom, setDraftedFrom] = useState<PlanDraftedFrom>(initial ? "previous" : "scratch");
   const [draft, setDraft] = useState<Pick<PlanDraftDto, "notes" | "unresolved"> | null>(null);
   useEffect(() => {
     api<PlanTemplateDto[]>("plan-templates")
@@ -667,6 +671,7 @@ function PlanEditor({
     });
     loadBody(res.body);
     setDraft({ notes: res.notes, unresolved: res.unresolved });
+    setDraftedFrom("nutri");
     setDraftOpen(false);
     toast("Borrador de NUTRI cargado: revisalo antes de guardar");
   }
@@ -687,6 +692,7 @@ function PlanEditor({
     setTargets(t.body.targets ?? {});
     setGeneralNotes(t.body.generalNotes ?? "");
     setDraft(null);
+    setDraftedFrom("template");
     toast(`Plantilla "${t.name}" cargada: ajustala al paciente`);
   }
 
@@ -703,6 +709,8 @@ function PlanEditor({
           title: title.trim() || "Plan alimentario",
           startDate: startDate || null,
           body,
+          editSeconds: Math.round((Date.now() - openedAt.current) / 1000),
+          draftedFrom,
         }),
       });
       onSaved();

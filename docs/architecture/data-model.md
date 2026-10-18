@@ -306,6 +306,8 @@ erDiagram
     date start_date
     jsonb body "documento por layout: day|week (ver nota)"
     timestamptz created_at
+    int edit_seconds "armado (s), tope 2 h; métricas"
+    text drafted_from "scratch | previous | template | nutri"
   }
 
   availability_rules {
