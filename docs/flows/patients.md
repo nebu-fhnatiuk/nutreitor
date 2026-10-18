@@ -138,6 +138,22 @@ sequenceDiagram
   API-->>Pr: registros + sensaciones → grilla y % en Evolución
 ```
 
+**Mensajes** (chat profesional ↔ paciente, [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)).
+Una conversación por paciente con su equipo (admin + profesionales asignados).
+Append-only; no leídos por participante.
+
+| Quién | Endpoints | Capacidad |
+|---|---|---|
+| Equipo | `GET/POST /patients/{id}/messages`, `POST …/read`, `GET /messages/inbox`, `GET /messages/unread` | `message:send` |
+| Paciente | `GET/POST /portal/me/messages`, `POST /portal/me/messages/read` | `portal:message` |
+
+- La conversación abierta hace **polling cada 10 s** (`?after=` el último mensaje;
+  el cliente deduplica) y marca como leído al ver mensajes ajenos; escribir también
+  marca como leído. El menú muestra el contador ("Mensajes"), cada 60 s.
+- El paciente sólo escribe si tiene un **profesional asignado** (409 si no).
+- UI: bandeja en `/pro/messages` y `/admin/messages`, pestaña **Mensajes** en la
+  ficha, y `/app/mensajes` en el portal ("no es un canal de urgencias").
+
 **Plantillas de planes** (`/plan-templates`, `plan:read` / `plan:write`): desde el
 editor, "Guardar como plantilla" guarda las comidas, el objetivo y las notas (sin
 datos del paciente) a nivel consultorio; al crear o revisar un plan, "Empezar desde
