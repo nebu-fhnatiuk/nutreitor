@@ -19,7 +19,7 @@ import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
 import { MemberSelect } from "./member-select";
-import { ChatThread } from "@/components/messages/chat-thread";
+import { PatientConversation } from "@/components/messages/conversations";
 import { AdherencePanel } from "./adherence-panel";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -80,6 +80,7 @@ export function PatientDetail({
   canInvite,
   canEditVisibility,
   canUseAgent,
+  canMessage = false,
 }: {
   id: string;
   basePath: string;
@@ -91,6 +92,8 @@ export function PatientDetail({
   canInvite: boolean;
   canEditVisibility: boolean;
   canUseAgent: boolean;
+  /** Conversación privada con el paciente: sólo el profesional (ADR 0024), nunca la admin. */
+  canMessage?: boolean;
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
@@ -101,7 +104,8 @@ export function PatientDetail({
   const params = useSearchParams();
   const requested = params.get("tab") as TabId | null;
   const tab: TabId =
-    requested && TAB_IDS.includes(requested) && (requested !== "asistentes" || canUseAgent)
+    requested && TAB_IDS.includes(requested) && (requested !== "asistentes" || canUseAgent) &&
+    (requested !== "mensajes" || canMessage)
       ? requested
       : "resumen";
   const { toast } = useFeedback();
@@ -205,7 +209,7 @@ export function PatientDetail({
           { id: "evolucion", label: "Evolución" },
           { id: "ficha", label: "Ficha clínica" },
           { id: "notas", label: "Notas", count: p.notes.length },
-          { id: "mensajes", label: "Mensajes" },
+          ...(canMessage ? [{ id: "mensajes", label: "Mensajes" } as TabItem<TabId>] : []),
           ...(canUseAgent
             ? [{ id: "asistentes", label: "Asistentes", alert: hasCrisis } as TabItem<TabId>]
             : []),
@@ -259,12 +263,7 @@ export function PatientDetail({
         {tab === "notas" && (
           <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
         )}
-        {tab === "mensajes" && (
-          <ChatThread
-            endpoint={`patients/${p.id}/messages`}
-            emptyText="Todavía no hay mensajes con este paciente. Lo que escribas le llega a su portal."
-          />
-        )}
+        {tab === "mensajes" && canMessage && <PatientConversation patientId={p.id} />}
         {tab === "asistentes" && canUseAgent && <AgentConversations patientId={p.id} />}
       </div>
 

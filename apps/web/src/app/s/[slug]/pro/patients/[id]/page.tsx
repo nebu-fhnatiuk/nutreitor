@@ -28,6 +28,7 @@ export default async function ProPatientPage({
           canWritePlan
           canEditVisibility
           canUseAgent={me.modules.includes("agents")}
+          canMessage
           canAssign={false}
           canInvite={false}
         />

@@ -1,6 +1,6 @@
 # 0022 — Chat profesional ↔ paciente: append-only y con polling
 
-- **Estado**: aceptada
+- **Estado**: aceptada; **alcance de conversación reemplazado** por [ADR 0024](0024-conversaciones-privadas.md) (conversaciones privadas por par). Siguen vigentes append-only y polling.
 - **Fecha**: 2026-10-18
 
 ## Contexto

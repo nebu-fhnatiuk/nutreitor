@@ -27,6 +27,7 @@ let ownerPool: pg.Pool;
 let worker: Database;
 let workerPool: pg.Pool;
 let appointmentId: string;
+let conversationId: string;
 const now = new Date();
 const opts = (enqueue: (d: Delivery[]) => Promise<void> = async () => {}) => ({
   webUrlTemplate: "http://{slug}.localhost:3000",
@@ -50,17 +51,22 @@ beforeAll(async () => {
             ${starts.toISOString()}, ${new Date(starts.getTime() + 30 * 60_000).toISOString()}) returning id`);
   appointmentId = (a.rows[0] as { id: string }).id;
 
-  // Mensaje del paciente de hace 20 min, sin leer por el profesional.
-  await owner.execute(sql`insert into message_reads (tenant_id, region, patient_id, membership_id, last_read_at)
-    values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, ${PRO_MEMBERSHIP}, ${new Date(now.getTime() - 3_600_000).toISOString()})
-    on conflict (patient_id, membership_id) do update set last_read_at = excluded.last_read_at`);
-  await owner.execute(sql`insert into patient_messages (tenant_id, region, patient_id, author_membership_id, body, created_at)
-    values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, ${PATIENT_MEMBERSHIP}, ${SECRET_BODY},
+  // Mensaje del paciente de hace 20 min en su conversación con el profesional, sin
+  // leer por el profesional; el paciente leyó todo (no mezclar avisos al revés).
+  await owner.execute(sql`insert into conversations (tenant_id, region, kind, patient_id, professional_membership_id)
+    values (${TENANT}, ${SEED.orgDemo.region}::region, 'patient_professional', ${D1}, ${PRO_MEMBERSHIP})
+    on conflict do nothing`);
+  conversationId = ((await owner.execute(sql`select id from conversations
+    where kind = 'patient_professional' and patient_id = ${D1} and professional_membership_id = ${PRO_MEMBERSHIP}`)).rows[0] as { id: string }).id;
+  const reads = (membership: string, at: string) => owner.execute(sql`
+    insert into conversation_reads (conversation_id, membership_id, tenant_id, region, last_read_at)
+    values (${conversationId}, ${membership}, ${TENANT}, ${SEED.orgDemo.region}::region, ${at})
+    on conflict (conversation_id, membership_id) do update set last_read_at = excluded.last_read_at`);
+  await reads(PRO_MEMBERSHIP, new Date(now.getTime() - 3_600_000).toISOString());
+  await owner.execute(sql`insert into messages (tenant_id, region, conversation_id, author_membership_id, body, created_at)
+    values (${TENANT}, ${SEED.orgDemo.region}::region, ${conversationId}, ${PATIENT_MEMBERSHIP}, ${SECRET_BODY},
             ${new Date(now.getTime() - 20 * 60_000).toISOString()})`);
-  // Y el paciente leyó todo lo del equipo (para no mezclar avisos en sentido contrario).
-  await owner.execute(sql`insert into message_reads (tenant_id, region, patient_id, membership_id, last_read_at)
-    values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, ${PATIENT_MEMBERSHIP}, now())
-    on conflict (patient_id, membership_id) do update set last_read_at = now()`);
+  await reads(PATIENT_MEMBERSHIP, now.toISOString());
 
   // Recordatorio diario activo (hora 0 en UTC: siempre "pasada"), plan activo y sin registros hoy.
   await owner.execute(sql`insert into notification_preferences (tenant_id, region, user_id, adherence_reminder, adherence_reminder_hour, timezone)
@@ -104,10 +110,12 @@ describe("Worker — generación", () => {
     const { appointment, unread, adherence } = mine(deliveries);
     expect(appointment).toMatchObject({ to: "patient@demo.test", fromName: expect.any(String) });
     expect(appointment!.text).toMatch(/mañana a las \d{2}:\d{2} con Profesional Demo/);
-    expect(unread!.text).toContain("Paciente Demo Uno te escribió");
+    expect(unread!.text).toContain("Paciente Demo te escribió");
     expect(unread!.text).not.toContain(SECRET_BODY);
     expect(unread!.text).toContain(`/pro/patients/${D1}?tab=mensajes`);
     expect(adherence).toMatchObject({ to: "patient@demo.test" });
+    // La admin no recibe avisos del chat clínico (ADR 0024).
+    expect(deliveries.some((d) => d.to === "admin@demo.test" && d.subject.startsWith("Tenés un mensaje"))).toBe(false);
   });
 
   it("es idempotente: un segundo escaneo no repite avisos", async () => {

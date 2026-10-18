@@ -3,10 +3,14 @@ import { z } from "zod";
 import type { MembershipRole } from "./auth.dto.js";
 
 /**
- * Chat profesional ↔ paciente (Fase 4.3). Una conversación por paciente con su
- * equipo; mensajes append-only. El cliente consulta con polling mientras la
- * conversación está abierta (`after` = createdAt del último que tiene).
+ * Conversaciones PRIVADAS por par (ADR 0024, reemplaza la de equipo de ADR 0022):
+ *  - patient_professional: paciente ↔ un profesional asignado (la admin NO la ve);
+ *  - professional_admin: un profesional ↔ la administración (los otros profesionales no).
+ * Mensajes append-only; el cliente consulta con polling (`after`).
  */
+export const conversationKinds = ["patient_professional", "professional_admin"] as const;
+export type ConversationKind = (typeof conversationKinds)[number];
+
 export const MESSAGE_MAX_LENGTH = 2000;
 
 export const sendMessageSchema = z.object({
@@ -33,20 +37,31 @@ export interface ThreadDto {
   messages: MessageDto[];
   /** No leídos por quien consulta (antes de marcar como leído). */
   unread: number;
-  /** El paciente puede escribir (tiene un profesional asignado activo). */
+  /** Quien consulta puede escribir (asignación activa, ficha activa…). */
   canSend: boolean;
 }
 
-/** Bandeja del equipo: una fila por paciente con mensajes. */
+/**
+ * Una fila de la bandeja. `conversationId` null = todavía no hay conversación con
+ * esa persona (se crea al abrirla). `with` dice con quién es.
+ */
 export interface InboxEntryDto {
-  patientId: string;
-  patientName: string;
-  lastMessage: { body: string; createdAt: string; fromPatient: boolean };
+  conversationId: string | null;
+  kind: ConversationKind;
+  /** Con quién: paciente (para el profesional), profesional (para paciente y admin) o la administración. */
+  title: string;
+  patientId: string | null;
+  professionalMembershipId: string;
+  lastMessage: { body: string; createdAt: string; mine: boolean } | null;
   unread: number;
 }
 
 export interface UnreadDto {
   total: number;
+}
+
+export interface ConversationRefDto {
+  conversationId: string;
 }
 
 /** Fusiona mensajes nuevos (polling) sin duplicar, en orden cronológico. */
