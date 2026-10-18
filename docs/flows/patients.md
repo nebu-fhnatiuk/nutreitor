@@ -161,3 +161,8 @@ navegación). El paciente sólo ve un total de calorías/macros cuando **todos**
 items del día los tienen (`macroCoverage`), y nunca el desvío contra el objetivo:
 eso es una herramienta del profesional, que ve el total como "parcial" si faltan
 datos.
+
+El portal se puede **instalar como app** (PWA white-label: nombre, color e ícono del
+consultorio; arranca en `/app`). El portal invita a instalarla (Android: diálogo
+nativo; iPhone: "Compartir → Agregar a inicio"). Sin conexión muestra un aviso: no
+se guardan datos en el dispositivo ([ADR 0021](../decisions/0021-pwa-white-label-sin-cache.md)).

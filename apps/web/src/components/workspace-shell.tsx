@@ -121,7 +121,9 @@ export function WorkspaceShell({
         </nav>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      {/* min-w-0: sin esto la columna toma el ancho mínimo de su contenido (una
+          tabla con scroll propio) y en celulares la página entera se desborda. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar persistente (todos los tamaños): org (solo mobile) + menú de usuario. */}
         <header className="sticky top-0 z-20 flex print:hidden items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-2 sm:hidden">

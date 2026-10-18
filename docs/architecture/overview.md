@@ -97,6 +97,9 @@ flowchart TB
   hits por IP (y por email en el login) en Redis; 429 al pasarse. Si Redis no
   responde, deja pasar. La IP real la resuelve el edge desde `X-Forwarded-For`. Ver
   [ADR 0017](../decisions/0017-rate-limiting-redis.md).
+- **PWA del portal**: el edge sirve, por tenant, el manifest, los íconos y un
+  service worker que **no cachea datos** (sólo avisa "sin conexión"). Ver
+  [ADR 0021](../decisions/0021-pwa-white-label-sin-cache.md).
 - **`users` es global**: única tabla fuera de RLS (sólo credencial + nombre, sin
   PHI). El acceso queda gateado por `memberships`, que sí está bajo RLS.
 
