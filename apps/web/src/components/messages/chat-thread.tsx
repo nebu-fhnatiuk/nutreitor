@@ -29,7 +29,7 @@ export function ChatThread({
   emptyText,
   blockedText,
 }: {
-  /** "patients/{id}/messages" (equipo) o "portal/me/messages" (paciente). */
+  /** "conversations/{id}" (equipo) o "portal/me/conversations/{id}" (paciente). */
   endpoint: string;
   emptyText: string;
   /** Texto si no se puede escribir (paciente sin profesional asignado). */
@@ -68,13 +68,13 @@ export function ChatThread({
 
   useEffect(() => {
     let alive = true;
-    api<ThreadDto>(endpoint)
+    api<ThreadDto>(`${endpoint}/messages`)
       .then((t) => alive && absorb(t, true))
       .catch((e) => alive && setError(errorMessage(e)));
     const id = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       const after = lastRef.current ? `?after=${encodeURIComponent(lastRef.current)}` : "";
-      api<ThreadDto>(`${endpoint}${after}`)
+      api<ThreadDto>(`${endpoint}/messages${after}`)
         .then((t) => alive && absorb(t))
         .catch(() => {});
     }, POLL_MS);
@@ -94,7 +94,7 @@ export function ChatThread({
     setBusy(true);
     setError(null);
     try {
-      const m = await api<MessageDto>(endpoint, {
+      const m = await api<MessageDto>(`${endpoint}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body }),

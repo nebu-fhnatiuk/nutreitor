@@ -44,8 +44,9 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `plan_templates` | Tenant-scoped (RLS) | `tenant_id` | Plantillas de planes del consultorio: `body` con la misma forma que `meal_plans.body`, sin datos del paciente. Se usan como punto de partida al crear o revisar un plan. Sin `DELETE`: se archivan. |
 | `adherence_meal_logs` | Tenant-scoped (RLS) | `tenant_id` | Adherencia por comida que registra el paciente: (paciente, fecha, comida) único, `status` done/partial/skipped, nota, `plan_id` de la versión vigente (SET NULL). Se corrige con upsert; sin `DELETE`. |
 | `adherence_checkins` | Tenant-scoped (RLS) | `tenant_id` | Cómo se sintió el paciente en el día: hambre/energía/ánimo 1–5 (CHECK) + nota; (paciente, fecha) único, upsert, sin `DELETE`. |
-| `patient_messages` | Tenant-scoped (RLS) | `tenant_id` | Chat paciente ↔ equipo (ADR 0022): autor = membership, cuerpo ≤ 2000. **Append-only** por GRANT. |
-| `message_reads` | Tenant-scoped (RLS) | `tenant_id` | Hasta dónde leyó cada participante la conversación de un paciente (PK paciente + membership). |
+| `conversations` | Tenant-scoped (RLS) | `tenant_id` | Conversaciones privadas por par (ADR 0024): `patient_professional` (paciente + profesional) o `professional_admin` (profesional + administración). Únicas por índices parciales. |
+| `messages` | Tenant-scoped (RLS) | `tenant_id` | Mensajes de una conversación: autor = membership, cuerpo ≤ 2000. **Append-only** por GRANT. |
+| `conversation_reads` | Tenant-scoped (RLS) | `tenant_id` | Hasta dónde leyó cada participante (PK conversación + membership). |
 | `notifications` | Tenant-scoped (RLS) | `tenant_id` | Registro de avisos del worker (ADR 0023), **sin contenido**: tipo, `ref_key`, destinatario, canal, estado e intentos. `UNIQUE (tenant, kind, ref_key, destinatario, canal)` = idempotencia. Escribe sólo `nutreitor_worker`; la app sólo lee. |
 | `notification_preferences` | Tenant-scoped (RLS) | `tenant_id` | Opt-in del recordatorio diario de registro por usuario (hora 0–23 + zona horaria). PK (tenant, user). |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
@@ -74,11 +75,11 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 `nutreitor_app` recibe:
 
-- `audit_log`, `patient_notes`, `patient_messages`: **sólo `SELECT` + `INSERT`** → append-only, el
+- `audit_log`, `patient_notes`, `messages`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
-- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`, `adherence_meal_logs`, `adherence_checkins`, `message_reads`: `SELECT` + `INSERT` + `UPDATE`,
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`, `adherence_meal_logs`, `adherence_checkins`, `conversation_reads`: `SELECT` + `INSERT` + `UPDATE`, `conversations`: `SELECT` + `INSERT`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -129,7 +130,7 @@ erDiagram
   organizations ||--o{ plan_templates         : "owns"
   organizations ||--o{ adherence_meal_logs    : "scopes"
   organizations ||--o{ adherence_checkins     : "scopes"
-  organizations ||--o{ patient_messages       : "scopes"
+  organizations ||--o{ conversations          : "scopes"
   organizations ||--o{ notifications          : "scopes"
   organizations ||--o{ notification_preferences : "scopes"
 
@@ -156,9 +157,11 @@ erDiagram
   patients ||--o{ meal_plans       : "has"
   patients ||--o{ adherence_meal_logs : "logs"
   patients ||--o{ adherence_checkins  : "checks in"
-  patients ||--o{ patient_messages    : "talks"
-  patients ||--o{ message_reads       : "read by"
-  memberships ||--o{ patient_messages : "writes"
+  patients |o--o{ conversations       : "talks (patient_professional)"
+  memberships ||--o{ conversations    : "professional"
+  conversations ||--o{ messages       : "contains"
+  conversations ||--o{ conversation_reads : "read by"
+  memberships ||--o{ messages         : "writes"
   users |o--o{ notifications            : "recipient (SET NULL)"
   users ||--o{ notification_preferences : "prefers"
   meal_plans |o--o{ adherence_meal_logs : "version (SET NULL)"
@@ -482,18 +485,26 @@ erDiagram
     text timezone
   }
 
-  patient_messages {
+  conversations {
     uuid id PK
     uuid tenant_id FK
     region region
-    uuid patient_id FK
+    conversation_kind kind "patient_professional | professional_admin"
+    uuid patient_id FK "sólo patient_professional"
+    uuid professional_membership_id FK
+  }
+
+  messages {
+    uuid id PK
+    uuid tenant_id FK
+    uuid conversation_id FK
     uuid author_membership_id FK "RESTRICT"
     text body "1-2000"
     timestamptz created_at
   }
 
-  message_reads {
-    uuid patient_id PK
+  conversation_reads {
+    uuid conversation_id PK
     uuid membership_id PK
     uuid tenant_id FK
     timestamptz last_read_at

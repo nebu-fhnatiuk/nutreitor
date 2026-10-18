@@ -29,10 +29,11 @@ sequenceDiagram
 
 - **Turno** (al paciente, ~24 h antes): fecha, hora y profesional, en la zona
   horaria de la disponibilidad del profesional. Llave: id del turno.
-- **Mensaje sin leer** (chat, ADR 0022): si pasan 15 min sin leer, al destinatario
-  (paciente → profesionales asignados; equipo → paciente). **No incluye el
-  mensaje**. Llave: paciente + destinatario + hasta dónde había leído → un aviso
-  por ráfaga.
+- **Mensaje sin leer** (conversaciones privadas, ADR 0024): si pasan 15 min sin
+  leer, a los **participantes** de esa conversación (paciente ↔ su profesional;
+  profesional ↔ admins). La admin nunca recibe avisos del chat clínico. **No incluye
+  el mensaje**. Llave: conversación + destinatario + hasta dónde había leído → un
+  aviso por ráfaga.
 - **Registro diario** (opt-in en el portal: interruptor + hora; toma la zona horaria
   del dispositivo): pasada esa hora local, si tiene plan activo y no marcó ninguna
   comida del día. Llave: paciente + fecha.

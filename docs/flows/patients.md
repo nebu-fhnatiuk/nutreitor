@@ -138,21 +138,27 @@ sequenceDiagram
   API-->>Pr: registros + sensaciones → grilla y % en Evolución
 ```
 
-**Mensajes** (chat profesional ↔ paciente, [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)).
-Una conversación por paciente con su equipo (admin + profesionales asignados).
-Append-only; no leídos por participante.
+**Mensajes** — conversaciones **privadas por par** ([ADR 0024](../decisions/0024-conversaciones-privadas.md);
+append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)):
+
+| Conversación | Participan | No la ven |
+|---|---|---|
+| Paciente ↔ profesional (una por par) | ese paciente y ese profesional (con asignación activa) | la admin, otros profesionales |
+| Profesional ↔ administración (una por profesional) | ese profesional y cualquier admin | otros profesionales, pacientes |
 
 | Quién | Endpoints | Capacidad |
 |---|---|---|
-| Equipo | `GET/POST /patients/{id}/messages`, `POST …/read`, `GET /messages/inbox`, `GET /messages/unread` | `message:send` |
-| Paciente | `GET/POST /portal/me/messages`, `POST /portal/me/messages/read` | `portal:message` |
+| Equipo | `GET /conversations` (bandeja), `GET /conversations/unread`, `POST /conversations/patient/{id}` · `/admin` · `/professional/{membershipId}` (abrir), `GET/POST /conversations/{id}/messages`, `POST …/read` | `message:send` |
+| Paciente | `GET /portal/me/conversations`, `POST …/professional/{membershipId}`, `GET/POST …/{id}/messages`, `POST …/{id}/read` | `portal:message` |
 
-- La conversación abierta hace **polling cada 10 s** (`?after=` el último mensaje;
-  el cliente deduplica) y marca como leído al ver mensajes ajenos; escribir también
-  marca como leído. El menú muestra el contador ("Mensajes"), cada 60 s.
-- El paciente sólo escribe si tiene un **profesional asignado** (409 si no).
-- UI: bandeja en `/pro/messages` y `/admin/messages`, pestaña **Mensajes** en la
-  ficha, y `/app/mensajes` en el portal ("no es un canal de urgencias").
+- Quien no participa recibe **404**. Las conversaciones se crean al abrirlas.
+- Polling cada **10 s** con la conversación abierta (`?after=`, dedupe por id); el
+  contador del menú, cada 60 s. Escribir marca como leído.
+- Si la asignación termina, el paciente conserva la conversación en sólo lectura y
+  el profesional deja de verla.
+- UI: `/pro/messages` (Administración fija + pacientes), `/admin/messages` (un
+  profesional por fila), `/app/mensajes` (un profesional por fila; con uno solo,
+  directo), pestaña **Mensajes** en la ficha sólo para el profesional.
 
 **Plantillas de planes** (`/plan-templates`, `plan:read` / `plan:write`): desde el
 editor, "Guardar como plantilla" guarda las comidas, el objetivo y las notas (sin

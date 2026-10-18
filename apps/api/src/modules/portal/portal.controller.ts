@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
   adherenceRangeSchema,
   checkinSchema,
@@ -13,6 +13,8 @@ import {
   type CheckinRecordDto,
   type LogMealDto,
   type MealLogDto,
+  type ConversationRefDto,
+  type InboxEntryDto,
   type MessageDto,
   type MessagesQueryDto,
   type NotificationPreferencesDto,
@@ -28,7 +30,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AdherenceService } from "../patients/adherence.service.js";
-import { MessagesService } from "../patients/messages.service.js";
+import { ConversationsService } from "../patients/conversations.service.js";
 import { PortalService } from "./portal.service.js";
 
 /**
@@ -41,7 +43,7 @@ export class PortalController {
   constructor(
     private readonly portal: PortalService,
     private readonly adherence: AdherenceService,
-    private readonly messages: MessagesService,
+    private readonly conversations: ConversationsService,
   ) {}
 
   @Get("me")
@@ -86,26 +88,44 @@ export class PortalController {
     return this.adherence.savePreferences(dto);
   }
 
-  /** Conversación con su equipo (polling con `after`). */
-  @Get("me/messages")
+  /** Sus conversaciones: una por profesional asignado (ADR 0024). */
+  @Get("me/conversations")
   @RequireCapability("portal:message")
-  myMessages(
+  myConversations(): Promise<InboxEntryDto[]> {
+    return this.conversations.inbox();
+  }
+
+  @Post("me/conversations/professional/:membershipId")
+  @RequireCapability("portal:message")
+  openWithProfessional(
+    @Param("membershipId", new ParseUUIDPipe()) membershipId: string,
+  ): Promise<ConversationRefDto> {
+    return this.conversations.openWithProfessional(membershipId);
+  }
+
+  @Get("me/conversations/:id/messages")
+  @RequireCapability("portal:message")
+  myThread(
+    @Param("id", new ParseUUIDPipe()) id: string,
     @Query(new ZodValidationPipe(messagesQuerySchema)) q: MessagesQueryDto,
   ): Promise<ThreadDto> {
-    return this.messages.mine(q);
+    return this.conversations.thread(id, q);
   }
 
-  @Post("me/messages")
+  @Post("me/conversations/:id/messages")
   @RequireCapability("portal:message")
-  sendMessage(@Body(new ZodValidationPipe(sendMessageSchema)) dto: SendMessageDto): Promise<MessageDto> {
-    return this.messages.sendMine(dto.body);
+  sendMessage(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(sendMessageSchema)) dto: SendMessageDto,
+  ): Promise<MessageDto> {
+    return this.conversations.send(id, dto.body);
   }
 
-  @Post("me/messages/read")
+  @Post("me/conversations/:id/read")
   @HttpCode(204)
   @RequireCapability("portal:message")
-  readMessages(): Promise<void> {
-    return this.messages.markMineRead();
+  readMessages(@Param("id", new ParseUUIDPipe()) id: string): Promise<void> {
+    return this.conversations.markRead(id);
   }
 
   @Post("me/metrics")
