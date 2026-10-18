@@ -103,6 +103,12 @@ user). Endpoints (`apps/api/src/modules/portal/`):
 - `POST /portal/me/metrics` (capacidad `portal:self_report`): auto-reporte de una
   métrica sobre su propia ficha (queda marcada como originada por el paciente).
 
+**Plantillas de planes** (`/plan-templates`, `plan:read` / `plan:write`): desde el
+editor, "Guardar como plantilla" guarda las comidas, el objetivo y las notas (sin
+datos del paciente) a nivel consultorio; al crear o revisar un plan, "Empezar desde
+una plantilla" las carga en el editor para ajustarlas. Las comparten todos los
+profesionales del consultorio; se archivan, no se borran.
+
 **En la UI del portal** (`/app`, pensado primero para el celular) lo primero es **lo
 que le toca comer hoy**: las comidas del plan activo para la fecha (`mealsForDate`:
 día-tipo → siempre las mismas; semanal → las del día de la semana), después su

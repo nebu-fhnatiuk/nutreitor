@@ -232,3 +232,23 @@ export function macroCoverage(day: DayPlan): { items: number; withKcal: number; 
   const withKcal = items.filter((it) => it.macros?.kcal != null).length;
   return { items: items.length, withKcal, complete: items.length > 0 && withKcal === items.length };
 }
+
+// ── Plantillas (Fase 4.2) ─────────────────────────────────────────────────────
+
+/** Guardar un plan como plantilla del consultorio. */
+export const savePlanTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).nullish(),
+  body: z.preprocess(normalizeMealPlanBody, mealPlanBodySchema),
+});
+export type SavePlanTemplateDto = z.infer<typeof savePlanTemplateSchema>;
+
+export interface PlanTemplateDto {
+  id: string;
+  name: string;
+  description: string | null;
+  body: MealPlanBody;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}

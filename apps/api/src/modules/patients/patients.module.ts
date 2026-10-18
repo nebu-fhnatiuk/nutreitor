@@ -9,16 +9,19 @@ import { MetricsService } from "./metrics.service.js";
 import { PatientNotesService } from "./patient-notes.service.js";
 import { PatientsController } from "./patients.controller.js";
 import { PatientsService } from "./patients.service.js";
+import { PlanTemplatesController } from "./plan-templates.controller.js";
+import { PlanTemplatesService } from "./plan-templates.service.js";
 
 @Module({
   imports: [AuthModule],
-  controllers: [PatientsController, MetricsController, MealPlansController],
+  controllers: [PatientsController, MetricsController, MealPlansController, PlanTemplatesController],
   providers: [
     PatientsService,
     CareAssignmentsService,
     PatientNotesService,
     MetricsService,
     MealPlansService,
+    PlanTemplatesService,
   ],
 })
 export class PatientsModule {}

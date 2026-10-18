@@ -30,6 +30,8 @@ export type AuditAction =
   | "recipe.created"
   | "recipe.updated"
   | "recipe.archived"
+  | "plan_template.created"
+  | "plan_template.archived"
   | "availability.updated"
   | "appointment.booked"
   | "appointment.cancelled"
