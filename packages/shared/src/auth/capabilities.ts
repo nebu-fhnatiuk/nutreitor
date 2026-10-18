@@ -29,10 +29,12 @@ export const capabilities = [
   "appointment:read",
   "appointment:write",
   "agent:use",
+  "message:send",
   "portal:read",
   "portal:self_report",
   "portal:book",
   "portal:agent",
+  "portal:message",
   "org:read",
   "org:manage_modules",
   "org:update_branding",
@@ -62,6 +64,7 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     "appointment:read",
     "appointment:write",
     "agent:use",
+    "message:send",
     "org:read",
     "professional:update_own_profile",
     // NO `patient:create` ni `patient:assign`: el ALTA y la asignación son del
@@ -72,7 +75,7 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
   ],
   // El paciente opera SÓLO su portal (su propia entidad), nunca el panel de
   // gestión. El portal resuelve "mi paciente" por userId (además de RLS de tenant).
-  patient: ["org:read", "portal:read", "portal:self_report", "portal:book", "portal:agent"],
+  patient: ["org:read", "portal:read", "portal:self_report", "portal:book", "portal:agent", "portal:message"],
 };
 
 /** Capacidades de un rol (defensivo ante un rol desconocido). */

@@ -1,15 +1,21 @@
-import { Body, Controller, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
   adherenceRangeSchema,
   checkinSchema,
   logMealSchema,
+  messagesQuerySchema,
   recordMetricSchema,
+  sendMessageSchema,
   type AdherenceDto,
   type AdherenceRangeDto,
   type CheckinDto,
   type CheckinRecordDto,
   type LogMealDto,
   type MealLogDto,
+  type MessageDto,
+  type MessagesQueryDto,
+  type SendMessageDto,
+  type ThreadDto,
   type PatientMetricDto,
   type PortalMeDto,
   type RecordMetricDto,
@@ -20,6 +26,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AdherenceService } from "../patients/adherence.service.js";
+import { MessagesService } from "../patients/messages.service.js";
 import { PortalService } from "./portal.service.js";
 
 /**
@@ -32,6 +39,7 @@ export class PortalController {
   constructor(
     private readonly portal: PortalService,
     private readonly adherence: AdherenceService,
+    private readonly messages: MessagesService,
   ) {}
 
   @Get("me")
@@ -60,6 +68,28 @@ export class PortalController {
   @RequireCapability("portal:self_report")
   checkin(@Body(new ZodValidationPipe(checkinSchema)) dto: CheckinDto): Promise<CheckinRecordDto> {
     return this.adherence.checkin(dto);
+  }
+
+  /** Conversación con su equipo (polling con `after`). */
+  @Get("me/messages")
+  @RequireCapability("portal:message")
+  myMessages(
+    @Query(new ZodValidationPipe(messagesQuerySchema)) q: MessagesQueryDto,
+  ): Promise<ThreadDto> {
+    return this.messages.mine(q);
+  }
+
+  @Post("me/messages")
+  @RequireCapability("portal:message")
+  sendMessage(@Body(new ZodValidationPipe(sendMessageSchema)) dto: SendMessageDto): Promise<MessageDto> {
+    return this.messages.sendMine(dto.body);
+  }
+
+  @Post("me/messages/read")
+  @HttpCode(204)
+  @RequireCapability("portal:message")
+  readMessages(): Promise<void> {
+    return this.messages.markMineRead();
   }
 
   @Post("me/metrics")

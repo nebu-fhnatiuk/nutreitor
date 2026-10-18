@@ -7,6 +7,7 @@ import {
   Globe,
   Home,
   LayoutDashboard,
+  MessageSquare,
   Settings,
   ShoppingCart,
   Sun,
@@ -17,9 +18,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { MembershipRole } from "@nutreitor/shared";
 
+import { useUnreadMessages } from "@/components/messages/use-unread";
 import { FeedbackProvider } from "@/components/ui";
 
 const ROLE_LABEL: Record<MembershipRole, string> = {
@@ -28,12 +30,14 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
   patient: "Paciente",
 };
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
+/** `unread`: el ítem muestra el contador de mensajes sin leer. */
+type NavItem = { href: string; label: string; icon: LucideIcon; unread?: boolean };
 
 const NAV: Record<MembershipRole, NavItem[]> = {
   admin: [
     { href: "/admin", label: "Resumen", icon: LayoutDashboard },
     { href: "/admin/patients", label: "Pacientes", icon: Users },
+    { href: "/admin/messages", label: "Mensajes", icon: MessageSquare, unread: true },
     { href: "/admin/members", label: "Miembros", icon: UsersRound },
     { href: "/admin/public", label: "Página pública", icon: Globe },
     { href: "/admin/settings", label: "Configuración", icon: Settings },
@@ -41,6 +45,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
   professional: [
     { href: "/pro", label: "Hoy", icon: Sun },
     { href: "/pro/patients", label: "Pacientes", icon: Users },
+    { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, unread: true },
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/pro/recipes", label: "Recetas", icon: BookOpen },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
@@ -49,6 +54,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/app", label: "Inicio", icon: Home },
     { href: "/app/plan", label: "Mi plan", icon: ClipboardList },
     { href: "/app/compras", label: "Compras", icon: ShoppingCart },
+    { href: "/app/mensajes", label: "Mensajes", icon: MessageSquare, unread: true },
   ],
 };
 
@@ -83,6 +89,15 @@ export function WorkspaceShell({
   const pathname = usePathname();
   const items = NAV[role];
   const current = activeHref(items, pathname);
+  const unread = useUnreadMessages(role);
+  // En celular las secciones son una fila con scroll: que la activa quede a la vista.
+  const mobileNavRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mobileNavRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // `unread`: el contador ensancha el ítem cuando llega, después del primer scroll.
+  }, [current, unread]);
 
   return (
     <div className="flex min-h-screen">
@@ -115,6 +130,7 @@ export function WorkspaceShell({
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 {item.label}
+                {item.unread && <UnreadBadge count={unread} />}
               </Link>
             );
           })}
@@ -139,6 +155,7 @@ export function WorkspaceShell({
             secciones viven en una fila de tabs scrolleable bajo el topbar. */}
         {items.length > 1 && (
           <nav
+            ref={mobileNavRef}
             aria-label="Secciones"
             className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden print:hidden"
           >
@@ -159,6 +176,7 @@ export function WorkspaceShell({
                 >
                   <Icon className="h-4 w-4" aria-hidden />
                   {item.label}
+                  {item.unread && <UnreadBadge count={unread} />}
                 </Link>
               );
             })}
@@ -244,5 +262,17 @@ function UserMenu({ userName, role }: { userName: string; role: MembershipRole }
         </>
       )}
     </div>
+  );
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  if (!count) return null;
+  return (
+    <span
+      className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-medium text-brand-fg"
+      aria-label={`${count} sin leer`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }

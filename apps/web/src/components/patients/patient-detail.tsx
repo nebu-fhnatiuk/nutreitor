@@ -19,6 +19,7 @@ import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
 import { MemberSelect } from "./member-select";
+import { ChatThread } from "@/components/messages/chat-thread";
 import { AdherencePanel } from "./adherence-panel";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -58,8 +59,8 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "evolucion" | "ficha" | "notas" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "ficha", "notas", "asistentes"];
+type TabId = "resumen" | "plan" | "evolucion" | "ficha" | "notas" | "mensajes" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "ficha", "notas", "mensajes", "asistentes"];
 
 /**
  * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
@@ -204,6 +205,7 @@ export function PatientDetail({
           { id: "evolucion", label: "Evolución" },
           { id: "ficha", label: "Ficha clínica" },
           { id: "notas", label: "Notas", count: p.notes.length },
+          { id: "mensajes", label: "Mensajes" },
           ...(canUseAgent
             ? [{ id: "asistentes", label: "Asistentes", alert: hasCrisis } as TabItem<TabId>]
             : []),
@@ -256,6 +258,12 @@ export function PatientDetail({
         )}
         {tab === "notas" && (
           <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
+        )}
+        {tab === "mensajes" && (
+          <ChatThread
+            endpoint={`patients/${p.id}/messages`}
+            emptyText="Todavía no hay mensajes con este paciente. Lo que escribas le llega a su portal."
+          />
         )}
         {tab === "asistentes" && canUseAgent && <AgentConversations patientId={p.id} />}
       </div>
