@@ -137,13 +137,16 @@ export function DayCheckin({
   useEffect(() => setNote(checkin?.note ?? ""), [checkin?.note]);
   return (
     <div className="mt-5 border-t border-stone-100 pt-4">
-      <p className="mb-3 text-sm font-medium text-stone-900">¿Cómo te sentiste?</p>
+      <p className="text-sm font-medium text-stone-900">¿Cómo te sentiste?</p>
+      {/* En pantallas angostas las puntas de la escala no entran al costado. */}
+      <p className="mb-3 text-xs text-stone-500 sm:hidden">1 = poco · 5 = mucho</p>
+      <div className="mb-3 hidden sm:block" />
       <div className="space-y-2.5">
         {SCALES.map((sc) => (
           <div key={sc.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="w-16 text-sm text-stone-600">{sc.label}</span>
             <div role="group" aria-label={sc.label} className="flex items-center gap-1">
-              <span className="mr-1 text-xs text-stone-400">{sc.low}</span>
+              <span className="mr-1 hidden text-xs text-stone-400 sm:inline">{sc.low}</span>
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
@@ -161,7 +164,7 @@ export function DayCheckin({
                   {n}
                 </button>
               ))}
-              <span className="ml-1 text-xs text-stone-400">{sc.high}</span>
+              <span className="ml-1 hidden text-xs text-stone-400 sm:inline">{sc.high}</span>
             </div>
           </div>
         ))}

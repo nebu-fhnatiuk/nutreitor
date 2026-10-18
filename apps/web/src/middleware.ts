@@ -6,15 +6,18 @@ import { NextResponse, type NextRequest } from "next/server";
  *  - host raíz (localhost / nutreitor.com / www.*) → landing de producto (sin tocar).
  *  - {slug}.ROOT_DOMAIN → workspace del tenant: reescribe el path a /s/{slug}/...
  *    e inyecta el header `x-tenant-slug` (lo consume el proxy /api y la API).
- *  - rutas /api/*, /sitemap.xml y /robots.txt NO se reescriben (las maneja el app
- *    root, que lee el host); igual reciben el header para resolver el tenant.
+ *  - rutas /api/*, /sitemap.xml, /robots.txt y lo de la PWA (manifest, sw.js,
+ *    íconos) NO se reescriben (las maneja el app root, que lee el host); igual
+ *    reciben el header para resolver el tenant.
  *  - la RAÍZ del subdominio y `/{professional-slug}` son PÚBLICAS (no se redirigen).
  *  - chequeo coarse de auth: ruta protegida (workspace) sin cookie → redirect a /login.
  *
  * El slug sale del hostname; la API lo valida por lookup (no es un tenant_id de confianza).
  */
 const PROTECTED = ["/admin", "/pro", "/app"];
-const NO_REWRITE = ["/sitemap.xml", "/robots.txt"];
+const NO_REWRITE = ["/sitemap.xml", "/robots.txt", "/manifest.webmanifest", "/sw.js"];
+// Íconos de la PWA (por tenant, los resuelve el app root leyendo el header).
+const NO_REWRITE_PREFIX = ["/pwa-icon/"];
 
 function resolveSlug(hostname: string): string | null {
   const root = process.env.ROOT_DOMAIN ?? "localhost";
@@ -36,7 +39,11 @@ export function middleware(req: NextRequest): NextResponse {
   headers.set("x-tenant-slug", slug);
 
   // /api/* (proxy) y sitemap/robots (app root, por host): no se reescriben.
-  if (pathname.startsWith("/api/") || NO_REWRITE.includes(pathname)) {
+  if (
+    pathname.startsWith("/api/") ||
+    NO_REWRITE.includes(pathname) ||
+    NO_REWRITE_PREFIX.some((p) => pathname.startsWith(p))
+  ) {
     return NextResponse.next({ request: { headers } });
   }
 

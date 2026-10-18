@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PortalView } from "@/components/portal/portal-view";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
@@ -19,6 +20,7 @@ export default async function PatientAppPage({
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
       <PageHeader title={`Hola, ${me.user.fullName.split(" ")[0]}`} />
+      <InstallPrompt appName={me.org.name} className="mb-6" />
       <PortalView />
     </WorkspaceShell>
   );
