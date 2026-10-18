@@ -176,3 +176,22 @@ describe("Validación y permisos", () => {
     expect(hasCapability("patient", "food:manage")).toBe(false);
   });
 });
+
+describe("Intercambios (API real)", () => {
+  it("el arroz sugiere otros cereales con la cantidad que iguala las kcal", async () => {
+    const [rice] = await asPro(() => svc.search({ q: "arroz blanco", limit: 1 }));
+    const swaps = await asPro(() => svc.swaps("catalog", rice!.id, 160));
+    expect(swaps.length).toBeGreaterThan(0);
+    expect(swaps.every((s) => s.food.group === rice!.group && s.food.id !== rice!.id)).toBe(true);
+    const target = (rice!.per100g.energyKcal * 160) / 100;
+    for (const s of swaps) {
+      expect(Math.abs((s.food.per100g.energyKcal * s.grams) / 100 - target)).toBeLessThan(target * 0.02);
+    }
+  });
+
+  it("una receta sugiere recetas de la misma categoría", async () => {
+    const [guiso] = await asPro(() => svc.search({ q: "guiso de lentejas", limit: 1 }));
+    const swaps = await asPro(() => svc.swaps(guiso!.source, guiso!.id, guiso!.portions[0]!.grams));
+    expect(swaps.every((s) => s.food.group === guiso!.group && (s.food.source === "library" || s.food.source === "recipe"))).toBe(true);
+  });
+});

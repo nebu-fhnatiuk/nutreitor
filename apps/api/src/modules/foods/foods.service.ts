@@ -1,11 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { foodCatalog, recipeLibrary, tenantFoods, tenantRecipes, type TenantTx } from "@nutreitor/db";
-import type {
-  FoodDto,
-  FoodNutrients,
-  FoodSearchQuery,
-  FoodSource,
-  TenantFoodDto,
+import {
+  equivalentSwaps,
+  type FoodDto,
+  type FoodNutrients,
+  type FoodSearchQuery,
+  type FoodSource,
+  type FoodSwapDto,
+  type TenantFoodDto,
 } from "@nutreitor/shared";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
@@ -74,6 +76,32 @@ export class FoodsService {
       const [food] = await this.load(tx, [{ source, id }]);
       if (!food) throw new NotFoundException();
       return food;
+    });
+  }
+
+  /**
+   * Intercambios por equivalencia calculada (Fase 4.2): candidatos del mismo grupo
+   * (alimentos) o la misma categoría (recetas) con los gramos que dan las mismas
+   * kcal. Ver `equivalentSwaps` en shared.
+   */
+  async swaps(source: FoodSource, id: string, grams: number): Promise<FoodSwapDto[]> {
+    return this.tenantDb.run(async (tx) => {
+      const [original] = await this.load(tx, [{ source, id }]);
+      if (!original) throw new NotFoundException();
+      const isRecipe = source === "recipe" || source === "library";
+      const res = isRecipe
+        ? await tx.execute(sql`
+            select 'library' as source, id from recipe_library where category = ${original.group}
+            union all
+            select 'recipe' as source, id from tenant_recipes
+              where category = ${original.group} and archived_at is null`)
+        : await tx.execute(sql`
+            select 'catalog' as source, id from food_catalog where food_group = ${original.group}
+            union all
+            select 'tenant' as source, id from tenant_foods
+              where food_group = ${original.group} and archived_at is null`);
+      const candidates = await this.load(tx, res.rows as { source: FoodSource; id: string }[]);
+      return equivalentSwaps(original, grams, candidates);
     });
   }
 
