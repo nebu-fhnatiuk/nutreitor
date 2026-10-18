@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../../core/auth/auth.module.js";
+import { OnboardingModule } from "../onboarding/onboarding.module.js";
 import { BrandingController } from "./branding.controller.js";
 import { OrganizationsController } from "./organizations.controller.js";
 import { OrganizationsService } from "./organizations.service.js";
@@ -9,7 +10,7 @@ import { OrgModulesService } from "./org-modules.service.js";
 import { OrgPublicProfileController } from "./public-profile.controller.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, OnboardingModule],
   controllers: [
     OrganizationsController,
     BrandingController,

@@ -1,3 +1,4 @@
+import { BadgeCheck } from "lucide-react";
 import type { PublicProfessional } from "@nutreitor/shared";
 
 import { SectionHeading } from "@/components/ui";
@@ -57,6 +58,12 @@ export function ProfessionalView({
           </h1>
           {p.headline && (
             <p className="mt-2 text-lg text-stone-600">{p.headline}</p>
+          )}
+          {p.license && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-stone-600">
+              <BadgeCheck className="h-4 w-4 text-brand" aria-hidden />
+              Matrícula {p.license}
+            </p>
           )}
           {orgTagline && (
             <p className="mt-3 max-w-md text-sm italic text-stone-500">

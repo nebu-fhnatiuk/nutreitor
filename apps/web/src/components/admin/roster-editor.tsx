@@ -106,8 +106,17 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
         </Button>
       </div>
 
+      {listed && entry.licenseStatus !== "reviewed" && (
+        <p className="mt-2 text-xs text-amber-700">
+          {entry.licenseStatus === "declared"
+            ? "Matrícula en revisión: aparece en la vidriera cuando la revisemos."
+            : entry.licenseStatus === "rejected"
+              ? "Matrícula rechazada: tiene que corregirla desde su perfil."
+              : "Sin matrícula cargada: no aparece en la vidriera hasta que la cargue y la revisemos."}
+        </p>
+      )}
       {hiddenForEmpty && (
-        <p className="mt-2 text-xs text-amber-300/80">
+        <p className="mt-2 text-xs text-amber-700">
           Listado pero sin contenido público (titular o bio): no aparece en la
           vidriera hasta que el profesional publique su perfil.
         </p>

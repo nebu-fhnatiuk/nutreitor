@@ -11,10 +11,13 @@ import { LoginForm } from "./login-form";
  */
 export default async function LoginPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ email?: string; nueva?: string }>;
 }) {
   const { slug } = await params;
+  const { email, nueva } = await searchParams;
   const me = await fetchMe(slug);
   if (me) redirect(roleHome[me.role]);
 
@@ -32,8 +35,13 @@ export default async function LoginPage({
         <p className="mt-1 text-sm text-stone-500">
           Workspace de <span className="text-stone-700">{orgName}</span>
         </p>
+        {nueva === "1" && (
+          <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            ¡Listo! Creamos {orgName}. Ingresá para configurarla mientras revisamos el alta.
+          </p>
+        )}
         <div className="mt-8">
-          <LoginForm />
+          <LoginForm initialEmail={email} />
         </div>
       </div>
     </main>

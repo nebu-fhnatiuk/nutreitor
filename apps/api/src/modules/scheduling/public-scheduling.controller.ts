@@ -33,7 +33,7 @@ export class PublicSchedulingController {
     @Query("from") from?: string,
     @Query("to") to?: string,
   ): Promise<SlotDto[]> {
-    const org = await this.tenantResolver.bySlug(slug);
+    const org = await this.tenantResolver.publicBySlug(slug);
     if (!org) throw new NotFoundException();
     return this.scheduling.publicSlots(org, profileSlug, from, to);
   }
@@ -45,7 +45,7 @@ export class PublicSchedulingController {
     @Param("profileSlug") profileSlug: string,
     @Body(new ZodValidationPipe(publicBookAppointmentSchema)) dto: PublicBookAppointmentDto,
   ): Promise<PublicBookingResult> {
-    const org = await this.tenantResolver.bySlug(slug);
+    const org = await this.tenantResolver.publicBySlug(slug);
     if (!org) throw new NotFoundException();
     return this.scheduling.publicBook(org, profileSlug, dto);
   }

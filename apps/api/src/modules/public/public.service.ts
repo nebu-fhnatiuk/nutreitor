@@ -31,7 +31,8 @@ export class PublicService {
   ) {}
 
   async getOrg(slug: string): Promise<PublicOrg> {
-    const org = await this.tenantResolver.bySlug(slug);
+    // Sólo orgs aprobadas tienen vidriera (ADR 0025).
+    const org = await this.tenantResolver.publicBySlug(slug);
     if (!org) throw new NotFoundException();
 
     return this.tenantDb.runAs(org.id, async (tx) => {
@@ -54,6 +55,8 @@ export class PublicService {
           specialties: professionalProfiles.specialties,
           services: professionalProfiles.services,
           visibility: professionalProfiles.visibility,
+          licenseNumber: professionalProfiles.licenseNumber,
+          licenseJurisdiction: professionalProfiles.licenseJurisdiction,
           fullName: users.fullName,
         })
         .from(professionalProfiles)
@@ -65,6 +68,7 @@ export class PublicService {
         .where(
           and(
             eq(professionalProfiles.isPubliclyListed, true),
+            eq(professionalProfiles.licenseStatus, "reviewed"),
             isNull(memberships.revokedAt),
           ),
         )
@@ -93,7 +97,8 @@ export class PublicService {
     slug: string,
     profileSlug: string,
   ): Promise<PublicProfessional> {
-    const org = await this.tenantResolver.bySlug(slug);
+    // Sólo orgs aprobadas tienen vidriera (ADR 0025).
+    const org = await this.tenantResolver.publicBySlug(slug);
     if (!org) throw new NotFoundException();
 
     return this.tenantDb.runAs(org.id, async (tx) => {
@@ -109,6 +114,8 @@ export class PublicService {
           specialties: professionalProfiles.specialties,
           services: professionalProfiles.services,
           visibility: professionalProfiles.visibility,
+          licenseNumber: professionalProfiles.licenseNumber,
+          licenseJurisdiction: professionalProfiles.licenseJurisdiction,
           fullName: users.fullName,
         })
         .from(professionalProfiles)
@@ -121,6 +128,7 @@ export class PublicService {
           and(
             eq(professionalProfiles.profileSlug, profileSlug),
             eq(professionalProfiles.isPubliclyListed, true),
+            eq(professionalProfiles.licenseStatus, "reviewed"),
             isNull(memberships.revokedAt),
           ),
         )
@@ -149,6 +157,8 @@ function asProfileLike(r: {
   specialties: string[] | null;
   services: { name: string; description?: string }[] | null;
   visibility: Record<string, boolean> | null;
+  licenseNumber?: string | null;
+  licenseJurisdiction?: string | null;
 }): ProfileLike {
   return {
     profileSlug: r.profileSlug,
@@ -161,5 +171,7 @@ function asProfileLike(r: {
     specialties: r.specialties ?? [],
     services: r.services ?? [],
     visibility: r.visibility ?? {},
+    licenseNumber: r.licenseNumber ?? null,
+    licenseJurisdiction: r.licenseJurisdiction ?? null,
   };
 }

@@ -345,7 +345,7 @@ export class SchedulingService {
     });
   }
 
-  /** Membership del profesional público (perfil listado + membership vigente). */
+  /** Membership del profesional público (perfil listado, matrícula revisada y membership vigente). */
   private async resolvePublicMembership(tx: TenantTx, profileSlug: string): Promise<string> {
     const [row] = await tx
       .select({ membershipId: professionalProfiles.membershipId })
@@ -355,6 +355,7 @@ export class SchedulingService {
         and(
           eq(professionalProfiles.profileSlug, profileSlug),
           eq(professionalProfiles.isPubliclyListed, true),
+          eq(professionalProfiles.licenseStatus, "reviewed"),
           isNull(memberships.revokedAt),
         ),
       )

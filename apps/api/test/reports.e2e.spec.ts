@@ -37,7 +37,7 @@ function as<X>(userId: string, role: MembershipRole, fn: () => Promise<X>): Prom
   return tenantStorage.run(
     {
       context: { tenantId: T.id, orgId: T.id, region: T.region },
-      org: { id: T.id, name: T.name, slug: T.slug, region: T.region },
+      org: { id: T.id, name: T.name, slug: T.slug, region: T.region, status: T.status, kind: T.kind },
       user: { id: userId, role },
     },
     fn,

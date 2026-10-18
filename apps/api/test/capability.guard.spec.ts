@@ -26,7 +26,7 @@ function evaluate(role: MembershipRole | null, required: Capability[]): boolean 
   return tenantStorage.run(
     {
       user: { id: "u1", role },
-      org: { id: "o1", name: "Org", slug: "org", region: "us-east-1" },
+      org: { id: "o1", name: "Org", slug: "org", region: "us-east-1", status: "active", kind: "team" },
       context: { tenantId: "o1", orgId: "o1", region: "us-east-1" },
     },
     run,

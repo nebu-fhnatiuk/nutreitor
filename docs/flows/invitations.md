@@ -26,6 +26,11 @@ Admin: `apps/api/src/modules/invitations/invitations.admin.controller.ts`. Públ
 Los dos endpoints públicos tienen rate-limit por IP (lookup 30/min, accept 10/min;
 429 + `Retry-After`), ver [ADR 0017](../decisions/0017-rate-limiting-redis.md).
 
+**Org en revisión** ([ADR 0025](../decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)):
+mientras la org está `pending_review` se puede invitar al equipo, pero invitar a un
+**paciente** responde 403 ("Vas a poder invitar pacientes cuando aprobemos tu
+organización").
+
 ## Token y estados
 
 - Token opaco de 256 bits; en DB sólo el `sha256` (`token_hash`). El raw viaja sólo

@@ -117,10 +117,25 @@ TOCTOU (si se revocó entre el check y el commit, aborta).
 
 ## Ruteo por rol y re-validación
 
-`roleHome`: `admin → /admin`, `professional → /pro`, `patient → /app`. Post-login el
+`roleHome`: `admin → /admin`, `professional → /pro`, `patient → /app`. La admin
+también puede abrir `/pro/profile` y `/pro/agenda` (puede atender). Post-login el
 cliente navega ahí; las páginas re-validan contra `GET /auth/me` en el servidor
 (defensa en servidor, no sólo middleware). `/auth/me` devuelve `user`, `org`, `role`
 y `capabilities` (derivadas del rol).
+
+## Estado de la org
+
+Después de validar credenciales (login), al rotar el refresh y en cada request
+(`JwtAuthGuard`), `assertOrgUsable` corta con **403** si la org está `rejected` o
+`suspended` (con el motivo para mostrar). Una org `pending_review` entra normalmente.
+Ver [`onboarding.md`](./onboarding.md).
+
+## Sesión de plataforma (consola)
+
+Es otra sesión, no un rol de tenant: cookie `platform_token` host-only del dominio
+raíz, JWT con `aud: nutreitor-platform`, 2 h sin refresh, y `PlatformGuard`
+re-chequea `users.is_platform_admin` en cada request. Un token de tenant no sirve en
+la consola ni al revés. Detalle en [`onboarding.md`](./onboarding.md).
 
 ## Reemplazable por un IdP
 

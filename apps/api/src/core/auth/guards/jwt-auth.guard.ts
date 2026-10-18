@@ -8,7 +8,7 @@ import type { Request } from "express";
 
 import { tenantStorage } from "../../tenant/tenant-context.store.js";
 import type { AccessPayload } from "../auth.service.js";
-import { AuthService } from "../auth.service.js";
+import { AuthService, assertOrgUsable } from "../auth.service.js";
 import { TenantResolverService } from "../tenant-resolver.service.js";
 
 /**
@@ -45,6 +45,7 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     if (!org || org.id !== payload.org) {
       throw new UnauthorizedException("La sesión no corresponde a esta organización.");
     }
+    assertOrgUsable(org);
 
     const role = await this.auth.findMembershipRole(payload.sub, org.id);
     if (!role || role !== payload.role) {

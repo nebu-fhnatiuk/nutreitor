@@ -18,6 +18,7 @@ import { PortalModule } from "./modules/portal/portal.module.js";
 import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
 import { AgentsModule } from "./modules/agents/agents.module.js";
 import { FoodsModule } from "./modules/foods/foods.module.js";
+import { OnboardingModule } from "./modules/onboarding/onboarding.module.js";
 
 /**
  * Raíz de la API.
@@ -51,6 +52,7 @@ import { FoodsModule } from "./modules/foods/foods.module.js";
     SchedulingModule,
     AgentsModule,
     FoodsModule,
+    OnboardingModule,
   ],
 })
 export class AppModule {}

@@ -58,6 +58,14 @@ export class ProfessionalProfileService {
       if (dto.specialties !== undefined) patch.specialties = dto.specialties;
       if (dto.services !== undefined) patch.services = dto.services;
       if (dto.visibility !== undefined) patch.visibility = dto.visibility;
+      // Matrícula: sólo si cambió (un cambio la devuelve a revisión, vía trigger).
+      if (dto.licenseNumber !== undefined && dto.licenseNumber !== current.licenseNumber)
+        patch.licenseNumber = dto.licenseNumber;
+      if (
+        dto.licenseJurisdiction !== undefined &&
+        dto.licenseJurisdiction !== current.licenseJurisdiction
+      )
+        patch.licenseJurisdiction = dto.licenseJurisdiction;
 
       if (
         dto.profileSlug !== undefined &&
@@ -152,5 +160,9 @@ function toOwnProfile(
     services: row.services ?? [],
     visibility: (row.visibility ?? {}) as ProfileVisibility,
     isPubliclyListed: row.isPubliclyListed,
+    licenseNumber: row.licenseNumber,
+    licenseJurisdiction: row.licenseJurisdiction,
+    licenseStatus: row.licenseStatus,
+    licenseNote: row.licenseNote,
   };
 }

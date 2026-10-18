@@ -39,6 +39,8 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/admin/patients", label: "Pacientes", icon: Users },
     { href: "/admin/messages", label: "Mensajes", icon: MessageSquare, unread: true },
     { href: "/admin/members", label: "Miembros", icon: UsersRound },
+    { href: "/pro/agenda", label: "Mi agenda", icon: CalendarDays },
+    { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
     { href: "/admin/public", label: "Página pública", icon: Globe },
     { href: "/admin/settings", label: "Configuración", icon: Settings },
   ],

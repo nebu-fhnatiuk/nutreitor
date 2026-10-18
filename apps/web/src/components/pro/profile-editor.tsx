@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type {
+  LicenseStatus,
   OwnProfessionalProfile,
   ProfileVisibility,
   ProfileVisibilityField,
@@ -29,6 +30,12 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
     initial.services ?? [],
   );
   const [vis, setVis] = useState<ProfileVisibility>(initial.visibility ?? {});
+  const [licenseNumber, setLicenseNumber] = useState(initial.licenseNumber ?? "");
+  const [licenseJurisdiction, setLicenseJurisdiction] = useState(initial.licenseJurisdiction ?? "");
+  const [license, setLicense] = useState<{ status: LicenseStatus; note: string | null }>({
+    status: initial.licenseStatus,
+    note: initial.licenseNote,
+  });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -70,11 +77,19 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
           specialties: specialtiesArr,
           services: servicesArr,
           visibility: vis,
+          licenseNumber: licenseNumber.trim() || null,
+          licenseJurisdiction: licenseJurisdiction.trim() || null,
         }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
-      setMsg("Perfil actualizado. La vidriera ya refleja los cambios.");
+      const saved = d as Partial<OwnProfessionalProfile>;
+      if (saved.licenseStatus) setLicense({ status: saved.licenseStatus, note: saved.licenseNote ?? null });
+      setMsg(
+        saved.licenseStatus === "declared" && license.status !== "declared"
+          ? "Perfil actualizado. Vamos a revisar tu matrícula antes de mostrar tu perfil."
+          : "Perfil actualizado. La vidriera ya refleja los cambios.",
+      );
     } catch (e2) {
       setErr(errorMessage(e2));
     } finally {
@@ -90,6 +105,28 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
           perfil igual; aparecerá cuando te listen.
         </p>
       )}
+
+      <section className="rounded-2xl border border-stone-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-stone-800">Matrícula</h2>
+          <LicenseState status={license.status} />
+        </div>
+        <p className="mt-1 text-xs text-stone-500">
+          Tu perfil sólo es público con la matrícula revisada por Nutreitor. Si la
+          cambiás, la volvemos a revisar.
+        </p>
+        {license.status === "rejected" && license.note && (
+          <p className="mt-2 text-sm text-red-700">Motivo: {license.note}</p>
+        )}
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Número">
+            <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="MN 1234" maxLength={40} />
+          </Field>
+          <Field label="Jurisdicción">
+            <Input value={licenseJurisdiction} onChange={(e) => setLicenseJurisdiction(e.target.value)} placeholder="Nacional, CABA, Córdoba…" maxLength={80} />
+          </Field>
+        </div>
+      </section>
 
       <Field label="Dirección pública (slug)" hint="Tu URL: …/tu-slug">
         <Input
@@ -293,4 +330,16 @@ function ServicesEditor({
       </button>
     </div>
   );
+}
+
+const LICENSE_STATE: Record<LicenseStatus, { label: string; className: string }> = {
+  missing: { label: "Sin cargar", className: "bg-stone-100 text-stone-600" },
+  declared: { label: "En revisión", className: "bg-amber-50 text-amber-800" },
+  reviewed: { label: "Revisada", className: "bg-emerald-50 text-emerald-800" },
+  rejected: { label: "Rechazada", className: "bg-red-50 text-red-700" },
+};
+
+function LicenseState({ status }: { status: LicenseStatus }) {
+  const s = LICENSE_STATE[status];
+  return <span className={`rounded-full px-2.5 py-0.5 text-xs ${s.className}`}>{s.label}</span>;
 }

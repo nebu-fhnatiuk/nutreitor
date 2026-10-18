@@ -43,7 +43,14 @@ export type AuditAction =
   | "module.installed"
   | "module.uninstalled"
   | "roster.updated"
-  | "professional.profile_updated";
+  | "professional.profile_updated"
+  | "org.signed_up"
+  | "org.approved"
+  | "org.rejected"
+  | "org.suspended"
+  | "org.reactivated"
+  | "license.reviewed"
+  | "license.rejected";
 
 export interface AuditEvent {
   organizationId: string;

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -50,6 +51,12 @@ export class InvitationsService {
     const ctx = getTenantContext();
     const { user: actor, org } = getAuth();
     const email = dto.email.toLowerCase();
+    // En revisión se arma el equipo, pero todavía no se suman pacientes (ADR 0025).
+    if (dto.role === "patient" && org.status !== "active") {
+      throw new ForbiddenException(
+        "Vas a poder invitar pacientes cuando aprobemos tu organización.",
+      );
+    }
 
     const row = await this.runMappingConflict(async () =>
       this.tenantDb.run(async (tx) => {
@@ -358,6 +365,8 @@ export class InvitationsService {
         name: org.name,
         slug: org.slug,
         region: org.region,
+        status: org.status,
+        kind: org.kind,
       };
       return this.auth.issueFor(
         tx,
