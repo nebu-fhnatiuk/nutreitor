@@ -43,7 +43,10 @@ export function errorMessage(e: unknown, fallback = "Algo salió mal. Probá de 
   if (e instanceof ApiError) {
     if (e.status === 0) return "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.";
     if (e.status === 401) return "Tu sesión venció. Volvé a iniciar sesión.";
-    if (e.status === 403) return "No tenés permiso para hacer esto.";
+    // El 403 genérico de Nest ("Forbidden resource") se traduce; uno escrito para
+    // humanos (p. ej. "Vas a poder invitar pacientes cuando…") se respeta.
+    if (e.status === 403)
+      return e.message && !/^Forbidden/i.test(e.message) ? e.message : "No tenés permiso para hacer esto.";
     if (e.status === 404) return e.message && !/^(Not Found|Cannot )/i.test(e.message) ? e.message : "No encontramos lo que buscabas.";
     if (e.status === 429) return e.message || "Demasiados intentos. Esperá un momento.";
     if (e.status >= 500) return "Algo falló de nuestro lado. Probá de nuevo en un momento.";

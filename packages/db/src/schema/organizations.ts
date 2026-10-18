@@ -1,8 +1,19 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, text, index } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
 
 import { regionEnum } from "./_region.js";
 import { timestamps } from "./_shared.js";
+
+/** Ciclo de vida de una org (ADR 0025): el alta autoservicio queda en revisión. */
+export const orgStatus = pgEnum("org_status", [
+  "pending_review",
+  "active",
+  "rejected",
+  "suspended",
+]);
+
+/** Equipo, o profesional independiente (org de una persona). */
+export const orgKind = pgEnum("org_kind", ["team", "individual"]);
 
 /**
  * Tabla raíz de tenant. Cada organización ES un tenant en el modelo POOL.
@@ -33,6 +44,11 @@ export const organizations = pgTable(
     // Página pública de la org (capa de captación).
     publicHeadline: text("public_headline"),
     publicDescription: text("public_description"),
+    status: orgStatus("status").notNull().default("active"),
+    kind: orgKind("kind").notNull().default("team"),
+    /** Motivo del rechazo/suspensión (lo ve la admin de la org). */
+    reviewNote: text("review_note"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [index("organizations_slug_idx").on(table.slug)],

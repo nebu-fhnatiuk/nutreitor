@@ -121,6 +121,7 @@ export class MembersService {
           headline: professionalProfiles.headline,
           bio: professionalProfiles.bio,
           visibility: professionalProfiles.visibility,
+          licenseStatus: professionalProfiles.licenseStatus,
         })
         .from(professionalProfiles)
         .innerJoin(
@@ -139,6 +140,7 @@ export class MembersService {
       isPubliclyListed: r.isPubliclyListed,
       displayOrder: r.displayOrder,
       specialty: r.specialty,
+      licenseStatus: r.licenseStatus,
       hasPublicContent: hasPublicRosterContent({
         profileSlug: r.profileSlug,
         isPubliclyListed: r.isPubliclyListed,

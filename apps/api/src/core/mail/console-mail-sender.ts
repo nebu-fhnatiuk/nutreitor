@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 
-import type { InvitationEmail, MailSender } from "./mail-sender.js";
+import type { InvitationEmail, MailSender, PlainEmail } from "./mail-sender.js";
 
 /**
  * Adapter de desarrollo: en vez de enviar un mail, loguea el link de aceptación
@@ -14,5 +14,9 @@ export class ConsoleMailSender implements MailSender {
     this.logger.log(
       `[invitación] para ${email.to} (${email.role} @ ${email.orgName}) → ${email.acceptUrl}`,
     );
+  }
+
+  async send(email: PlainEmail): Promise<void> {
+    this.logger.log(`[mail] para ${email.to} — ${email.subject}\n${email.text}`);
   }
 }

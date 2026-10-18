@@ -115,10 +115,10 @@ function Nav() {
             Ingresar
           </a>
           <a
-            href="#probar"
+            href="/registro"
             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-cream transition hover:bg-ink/85"
           >
-            Probar Nutreitor
+            Crear mi espacio
           </a>
         </div>
       </div>
@@ -426,18 +426,16 @@ function CtaFinal() {
           <span className="text-brand">ágil y profesional</span>.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg text-ink/70">
-          Tu próxima consulta puede ser distinta. Pedí acceso y empezá a trabajar
-          con todo en un solo lugar.
+          Tu próxima consulta puede ser distinta. Creá tu espacio en minutos y
+          empezá a trabajar con todo en un solo lugar.
         </p>
         <div className="mt-9 flex justify-center">
-          {/* DEUDA (prod): destino temporal de dev. En producción esto va a un
-              formulario / inbox de captación real (CRM, Typeform, etc.), no a un
-              mail personal. Ver ADR 0010 (CTA hacia "solicitar acceso"). */}
+          {/* Alta autoservicio con aprobación (ADR 0025). */}
           <a
-            href="mailto:flopi.hnatiuk@gmail.com?subject=Quiero%20probar%20Nutreitor&body=Hola%2C%20me%20interesa%20probar%20Nutreitor."
+            href="/registro"
             className="rounded-full bg-clay px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            Solicitar acceso
+            Crear mi espacio
           </a>
         </div>
 

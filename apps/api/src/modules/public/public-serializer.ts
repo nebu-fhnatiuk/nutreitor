@@ -3,6 +3,7 @@ import type {
   PublicProfessional,
   PublicRosterEntry,
 } from "@nutreitor/shared";
+import { formatLicense } from "@nutreitor/shared";
 
 /** Forma mínima de fila de perfil que consumen los serializers (testeable sin DB). */
 export interface ProfileLike {
@@ -16,6 +17,9 @@ export interface ProfileLike {
   specialties: string[];
   services: { name: string; description?: string }[];
   visibility: Record<string, boolean>;
+  /** Matrícula: sólo llegan acá perfiles con matrícula revisada (filtro en SQL). */
+  licenseNumber?: string | null;
+  licenseJurisdiction?: string | null;
 }
 
 /** ¿El campo está marcado público? */
@@ -69,5 +73,7 @@ export function toPublicProfessional(
     credentials: isVisible(p, "credentials") ? p.credentials : null,
     specialties: isVisible(p, "specialties") ? (p.specialties ?? []) : [],
     services: isVisible(p, "services") ? (p.services ?? []) : [],
+    // La matrícula revisada es la señal de confianza: se muestra siempre.
+    license: formatLicense(p.licenseNumber ?? null, p.licenseJurisdiction ?? null),
   };
 }

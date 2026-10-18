@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   integer,
@@ -15,6 +16,14 @@ import { regionEnum } from "./_region.js";
 import { timestamps } from "./_shared.js";
 import { organizations } from "./organizations.js";
 import { memberships } from "./memberships.js";
+
+/** Matrícula: se declara y la plataforma la revisa (ADR 0025). */
+export const licenseStatus = pgEnum("license_status", [
+  "missing",
+  "declared",
+  "reviewed",
+  "rejected",
+]);
 
 type ProfileService = { name: string; description?: string };
 
@@ -51,6 +60,12 @@ export const professionalProfiles = pgTable(
       .$type<ProfileService[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    licenseNumber: text("license_number"),
+    licenseJurisdiction: text("license_jurisdiction"),
+    /** Sólo `reviewed` es público (roster, perfil y reserva). */
+    licenseStatus: licenseStatus("license_status").notNull().default("missing"),
+    /** Motivo del rechazo (lo ve el profesional). */
+    licenseNote: text("license_note"),
     visibility: jsonb("visibility")
       .$type<Record<string, boolean>>()
       .notNull()

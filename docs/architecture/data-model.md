@@ -18,8 +18,9 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 
 | Tabla | Clase | Discriminador de tenant | Notas |
 |---|---|---|---|
-| `users` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Identidad de plataforma. Email único global, sin PHI. El acceso se gatea por `memberships`. |
-| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). |
+| `users` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Identidad de plataforma. Email único global, sin PHI. El acceso se gatea por `memberships`. `is_platform_admin` marca a los operadores de la consola (ADR 0025; se otorga a mano). |
+| `org_signups` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Solicitudes de alta pendientes de verificar el email (token hasheado, vencen en 48 h, un solo uso). **Sin grants al rol app**: la opera sólo la conexión owner. |
+| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding y textos públicos** (GRANT por columna): el estado lo decide la plataforma. |
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | |
@@ -29,7 +30,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
-| `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. |
+| `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. Matrícula (`license_number`, `license_jurisdiction`, `license_status`, `license_note`): sólo `reviewed` es pública. El rol app no puede escribir `license_status`/`license_note` (GRANT por columna); el trigger `professional_profiles_license_reset` la devuelve a `declared` si cambia la matrícula. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
 | `availability_rules` | Tenant-scoped (RLS) | `tenant_id` | Disponibilidad semanal por `membership`, con huso IANA. |
 | `appointments` | Tenant-scoped (RLS) | `tenant_id` | Citas; `starts_at`/`ends_at` UTC. No-overlap por profesional vía `EXCLUDE gist`. Sin DELETE (se cancela). |
@@ -103,12 +104,13 @@ sin join contra `organizations`.
 ## Diagrama entidad-relación
 
 Mermaid no permite agrupar visualmente por aislamiento; la clasificación RLS vs
-global está en la tabla de arriba. En el diagrama, `users` es la única entidad de
-control plane — todas las demás son tenant-scoped.
+global está en la tabla de arriba. En el diagrama, `users` y `org_signups` son las
+entidades de control plane — todas las demás son tenant-scoped.
 
 ```mermaid
 erDiagram
   organizations ||--o{ memberships            : "has"
+  organizations |o--o| org_signups            : "created from"
   organizations ||--o{ refresh_tokens         : "scopes"
   organizations ||--o{ invitations            : "issues"
   organizations ||--o{ patients               : "owns"
@@ -187,6 +189,10 @@ erDiagram
     text display_name "branding"
     text brand_logo_url
     text public_headline
+    org_status status "pending_review|active|rejected|suspended"
+    org_kind kind "team|individual"
+    text review_note
+    timestamptz reviewed_at
     timestamptz created_at
   }
 
@@ -195,7 +201,21 @@ erDiagram
     text email UK "lowercase CHECK; GLOBAL"
     text hashed_password
     text full_name
+    boolean is_platform_admin
     timestamptz created_at
+  }
+
+  org_signups {
+    uuid id PK
+    text email
+    text org_name
+    text slug
+    org_kind kind
+    text license_number
+    text token_hash UK
+    timestamptz expires_at
+    timestamptz completed_at "un solo uso"
+    uuid organization_id FK "al confirmar"
   }
 
   memberships {
@@ -351,6 +371,10 @@ erDiagram
     jsonb specialties
     jsonb services
     jsonb visibility "qué campos son públicos"
+    text license_number
+    text license_jurisdiction
+    license_status license_status "missing|declared|reviewed|rejected"
+    text license_note
     timestamptz created_at
   }
 

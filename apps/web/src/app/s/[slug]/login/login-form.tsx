@@ -7,8 +7,8 @@ import { useState } from "react";
  * dentro del tenant (slug del subdominio) y setea las cookies httpOnly. En éxito,
  * navega al destino por rol que devuelve la API.
  */
-export function LoginForm() {
-  const [email, setEmail] = useState("");
+export function LoginForm({ initialEmail }: { initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +24,12 @@ export function LoginForm() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+      if (r.status === 403) {
+        // Org rechazada o suspendida: el motivo viene de la API.
+        const d = (await r.json().catch(() => ({}))) as { message?: string };
+        setError(d.message ?? "Esta organización no está habilitada.");
+        return;
+      }
       if (!r.ok) {
         setError(
           r.status === 401

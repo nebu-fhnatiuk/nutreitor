@@ -16,4 +16,12 @@ export interface InvitationEmail {
  */
 export interface MailSender {
   sendInvitation(email: InvitationEmail): Promise<void>;
+  /** Mail transaccional de texto plano (alta de org, decisiones de la plataforma). */
+  send(email: PlainEmail): Promise<void>;
+}
+
+export interface PlainEmail {
+  to: string;
+  subject: string;
+  text: string;
 }

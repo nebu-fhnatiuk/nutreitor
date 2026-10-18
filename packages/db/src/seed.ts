@@ -25,18 +25,24 @@ export const SEED = {
     name: "NutriClinic Norte",
     slug: "nutriclinic-norte",
     region: "eu-central-1",
+    status: "active",
+    kind: "team",
   },
   orgB: {
     id: "00000000-0000-0000-0000-00000000000b",
     name: "Gimnasio Sur",
     slug: "gimnasio-sur",
     region: "us-east-1",
+    status: "active",
+    kind: "team",
   },
   orgDemo: {
     id: "00000000-0000-0000-0000-0000000000de",
     name: "Demo",
     slug: "demo",
     region: "us-east-1",
+    status: "active",
+    kind: "team",
   },
 } as const;
 
@@ -59,6 +65,13 @@ const DEMO_USERS = [
   { id: "00000000-0000-0000-0000-0000000000f3", membershipId: "00000000-0000-0000-0000-0000000000c3", email: "patient@demo.test", fullName: "Paciente Demo", role: "patient" as const },
 ];
 
+/** Operador de la plataforma (consola de aprobación en el dominio raíz). */
+export const PLATFORM_ADMIN = {
+  id: "00000000-0000-0000-0000-0000000000ff",
+  email: "plataforma@nutreitor.test",
+  fullName: "Operación Nutreitor",
+} as const;
+
 /**
  * Perfiles públicos demo:
  *  - pro: con contenido público → aparece en el roster (y dispara modo perfil-único).
@@ -74,6 +87,8 @@ const DEMO_PROFILES = [
     specialty: "Nutrición deportiva",
     specialties: ["Nutrición deportiva", "Nutrición clínica"],
     visibility: { headline: true, bio: true, specialties: true } as Record<string, boolean>,
+    licenseNumber: "MN 1234",
+    licenseJurisdiction: "Nacional",
   },
   {
     id: "00000000-0000-0000-0000-0000000000e1",
@@ -84,6 +99,8 @@ const DEMO_PROFILES = [
     specialty: null,
     specialties: [] as string[],
     visibility: {} as Record<string, boolean>,
+    licenseNumber: null,
+    licenseJurisdiction: null,
   },
 ];
 
@@ -125,6 +142,11 @@ export async function runSeed(connectionString: string): Promise<void> {
       .onConflictDoNothing();
 
     await db
+      .insert(users)
+      .values({ ...PLATFORM_ADMIN, hashedPassword, isPlatformAdmin: true })
+      .onConflictDoNothing();
+
+    await db
       .insert(memberships)
       .values(
         DEMO_USERS.map((u) => ({
@@ -163,6 +185,10 @@ export async function runSeed(connectionString: string): Promise<void> {
               specialty: p.specialty,
               specialties: p.specialties,
               visibility: p.visibility,
+              licenseNumber: p.licenseNumber,
+              licenseJurisdiction: p.licenseJurisdiction,
+              // Demo: matrícula ya revisada (si no, la vidriera quedaría vacía).
+              licenseStatus: "reviewed" as const,
             },
           ]
         : [];

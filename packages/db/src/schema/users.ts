@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, uuid, text } from "drizzle-orm/pg-core";
+import { boolean, pgTable, uuid, text } from "drizzle-orm/pg-core";
 
 import { timestamps } from "./_shared.js";
 
@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   hashedPassword: text("hashed_password").notNull(),
   fullName: text("full_name").notNull(),
+  /** Operador de la plataforma (consola de aprobación). Se otorga a mano, nunca por API. */
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
   ...timestamps,
 });
 

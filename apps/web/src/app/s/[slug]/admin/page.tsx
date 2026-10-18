@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { OnboardingChecklist } from "@/components/admin/onboarding-checklist";
 import { AdminOverview } from "@/components/admin/overview";
 import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -22,7 +23,10 @@ export default async function AdminPage({
         title={`Panel de ${me.org.name}`}
         description={`Hola, ${me.user.fullName.split(" ")[0]}. Desde acá administrás el equipo, los pacientes y cómo se ve tu organización.`}
       />
-      <AdminOverview />
+      <div className="space-y-6">
+        <OnboardingChecklist />
+        <AdminOverview />
+      </div>
     </WorkspaceShell>
   );
 }

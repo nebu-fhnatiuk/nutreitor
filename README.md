@@ -38,6 +38,10 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 
 - **Landing de producto** en el dominio raíz, que vende la plataforma al
   nutricionista.
+- **Alta autoservicio** (`/registro`): un equipo o un profesional independiente se
+  registra, confirma el email y entra a configurar. La organización queda **en
+  revisión** hasta que la plataforma la aprueba (sin vidriera ni pacientes mientras
+  tanto). La matrícula se declara y se revisa antes de publicar el perfil.
 - **Vidriera del consultorio y de cada profesional** (SSR, indexable, sitemap y
   robots por tenant), con **visibilidad por campo** de lo que se publica.
 - **Reserva de turno pública**: un lead elige un horario libre y queda como cita
@@ -77,6 +81,14 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 - **Mensajes** con cada profesional. La admin **no** ve las conversaciones con
   pacientes.
 - **Audit log** append-only.
+- **Primeros pasos**: checklist derivada de los datos (perfil, matrícula, marca,
+  horarios, equipo) y aviso de "en revisión" hasta que aprueben el alta.
+
+### Operación de la plataforma (`nutreitor.com/plataforma`)
+
+- **Consola** con sesión propia (no es un rol de ninguna organización): aprobar,
+  rechazar, suspender o reactivar organizaciones y revisar matrículas. Nunca muestra
+  datos de pacientes.
 
 ### En segundo plano
 
@@ -293,6 +305,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0022](docs/decisions/0022-chat-profesional-paciente-polling.md) | Chat append-only con polling |
 | [0023](docs/decisions/0023-worker-de-notificaciones.md) | Worker de notificaciones (BullMQ, rol sin BYPASSRLS, SES) |
 | [0024](docs/decisions/0024-conversaciones-privadas.md) | Conversaciones privadas por par |
+| [0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md) | Alta autoservicio con aprobación y consola de plataforma |
 
 </details>
 
@@ -341,7 +354,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0024
+  decisions/     ADRs 0001–0025
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -379,6 +392,10 @@ El primer arranque instala dependencias, compila, migra y siembra la base.
 | `admin@demo.test` | admin | `/admin` |
 | `pro@demo.test` | profesional | `/pro` |
 | `patient@demo.test` | paciente | `/app` |
+| `plataforma@nutreitor.test` | operador de plataforma | `localhost:3000/plataforma` |
+
+Para probar el alta: `localhost:3000/registro`. El link de confirmación sale en
+`docker compose logs api` (el mail de dev va a la consola).
 
 `*.localhost` resuelve solo en Chrome y Firefox (en Safari puede requerir
 `/etc/hosts`). Los asistentes de IA son un complemento: se instalan como admin en
@@ -406,7 +423,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (222 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (235 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (6 tests)
 ```
 
@@ -448,8 +465,11 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (6 tests
 
 ### 1. Antes de producción (bloquea el despliegue)
 
-- [ ] **Control de acceso al panel de plataforma** (`/admin/organizations`, alta de
-  organizaciones): hoy no tiene guard. **No desplegar así.**
+- [x] ~~Control de acceso al panel de plataforma~~: resuelto con la sesión de
+  plataforma ([ADR 0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)).
+- [ ] **Textos legales** (términos y privacidad) que acepta el formulario de alta.
+- [ ] Adapter de **SES en la API** para los mails transaccionales (invitaciones, alta,
+  decisiones de la plataforma); hoy salen por consola.
 - [ ] Contraseñas **bcryptjs → argon2id**, con migración transparente al próximo login.
 - [ ] Cookies `Secure`, dominio raíz + DNS/certificado wildcard,
   `TRUSTED_PROXY_HOPS` según lo que haya delante de la web.
@@ -507,6 +527,7 @@ Google/Outlook Calendar.
 | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) | modelo de datos (erDiagram), RLS y GRANTs por tabla |
 | [`docs/decisions/`](docs/decisions/) | los 24 ADRs |
 | [`docs/flows/auth.md`](docs/flows/auth.md) · [`invitations.md`](docs/flows/invitations.md) | login, sesión, invitaciones |
+| [`docs/flows/onboarding.md`](docs/flows/onboarding.md) | alta de organizaciones, matrícula, consola de plataforma |
 | [`docs/flows/patients.md`](docs/flows/patients.md) | ficha, planes, adherencia, mensajes, portal |
 | [`docs/flows/foods.md`](docs/flows/foods.md) | base de alimentos, recetas, intercambios |
 | [`docs/flows/scheduling.md`](docs/flows/scheduling.md) | agenda y reserva pública |

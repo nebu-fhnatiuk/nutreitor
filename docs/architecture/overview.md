@@ -19,10 +19,13 @@ apps/
                database (RLS app-db / owner admin-db) · security (edge secret) ·
                crypto · mail · config
     modules/   organizations · members · invitations · patients · portal ·
-               professionals · public · scheduling (placeholder)
+               professionals · public · scheduling · foods · agents ·
+               onboarding (alta autoservicio + consola de plataforma)
     agents/    slot vacío (servicio Python a futuro)
   web/   Next.js 15 (App Router) + Tailwind — frontend + edge
     app/page.tsx          landing de producto (host raíz)
+    app/registro/         alta autoservicio de organizaciones (host raíz)
+    app/plataforma/       consola de plataforma, sesión propia (host raíz)
     middleware.ts         resuelve subdominio → /s/[slug] + x-tenant-slug
     app/api/[...path]      proxy server-side a la API (cookies first-party)
     app/s/[slug]/          workspace del tenant: login · admin · pro · app (portal)
@@ -89,10 +92,15 @@ flowchart TB
 - **Borde de tenant (RLS)**: el runtime usa el rol `nutreitor_app` (sin `BYPASSRLS`).
   Toda lectura/escritura de tablas de negocio pasa por `TenantDbService`, que setea
   `app.current_tenant_id` por transacción y deja que la policy RLS filtre.
-- **Borde de control plane**: el alta/listado de organizaciones (operación de
-  plataforma, sin tenant) usa `AdminDbService` con el rol `nutreitor_owner`
-  (bypassa RLS) — explícitamente fuera del perímetro de tenant. Hoy **sin authz de
-  PLATFORM-ADMIN** (deuda consciente, no desplegar así).
+- **Borde de control plane**: el alta de organizaciones y la consola de plataforma
+  (operaciones sin tenant) usan `AdminDbService` con el rol `nutreitor_owner`
+  (bypassa RLS) — explícitamente fuera del perímetro de tenant. El alta autoservicio
+  (`/signup`) es pública y rate-limitada; la consola (`/platform/*` y el viejo
+  `/admin/organizations`) exige la **sesión de plataforma**: cookie host-only del
+  dominio raíz, JWT con `aud` propio y `users.is_platform_admin` re-chequeado en cada
+  request. Lee sólo metadatos de orgs, admins y matrículas, nunca datos de pacientes.
+  Ver [ADR 0025](../decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)
+  y [`flows/onboarding.md`](../flows/onboarding.md).
 - **Rate-limiting (sin sesión)**: login, invitaciones y la reserva pública cuentan
   hits por IP (y por email en el login) en Redis; 429 al pasarse. Si Redis no
   responde, deja pasar. La IP real la resuelve el edge desde `X-Forwarded-For`. Ver

@@ -14,7 +14,8 @@ export default async function ProProfilePage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "professional") redirect(roleHome[me.role]);
+  // La admin también atiende (y en una org de una persona es la única que atiende).
+  if (me.role === "patient") redirect(roleHome[me.role]);
 
   const profile = await fetchOwnProfile(slug);
 

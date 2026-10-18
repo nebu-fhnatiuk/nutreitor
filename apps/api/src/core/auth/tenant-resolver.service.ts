@@ -27,6 +27,16 @@ export class TenantResolverService {
     return org ? this.toAuthOrg(org) : null;
   }
 
+  /**
+   * Org por slug SÓLO si está aprobada: lo usan las rutas públicas (vidriera,
+   * slots, reserva). Una org en revisión, rechazada o suspendida no existe para
+   * el público (404, sin distinguir el motivo).
+   */
+  async publicBySlug(slug: string): Promise<AuthOrg | null> {
+    const org = await this.bySlug(slug);
+    return org?.status === "active" ? org : null;
+  }
+
   /** Org por id (p. ej. al rotar un refresh token que ya tiene la org). */
   async byId(id: string): Promise<AuthOrg | null> {
     const [org] = await this.admin.db
@@ -57,7 +67,14 @@ export class TenantResolverService {
   }
 
   private toAuthOrg(org: OrgRow): AuthOrg {
-    return { id: org.id, name: org.name, slug: org.slug, region: org.region };
+    return {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      region: org.region,
+      status: org.status,
+      kind: org.kind,
+    };
   }
 }
 

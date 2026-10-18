@@ -37,6 +37,8 @@ export interface PublicProfessional {
   credentials: string | null;
   specialties: string[];
   services: PublicService[];
+  /** Matrícula revisada por la plataforma ("MN 1234 · Nacional"); siempre pública. */
+  license: string | null;
 }
 
 /** Página pública de la organización. */
@@ -52,6 +54,16 @@ export interface PublicOrg {
   roster: PublicRosterEntry[];
   /** true si hay exactamente un profesional listado → modo perfil-único. */
   singleProfessional: boolean;
+}
+
+/** Estado de la matrícula (espeja el enum de la DB). Sólo `reviewed` es público. */
+export const licenseStatuses = ["missing", "declared", "reviewed", "rejected"] as const;
+export type LicenseStatus = (typeof licenseStatuses)[number];
+
+/** Texto público de la matrícula. */
+export function formatLicense(number: string | null, jurisdiction: string | null): string | null {
+  if (!number) return null;
+  return jurisdiction ? `${number} · ${jurisdiction}` : number;
 }
 
 // ── Edición (PR 2) ────────────────────────────────────────────────────────────
@@ -81,6 +93,9 @@ export const updateProfessionalProfileSchema = z.object({
   specialties: z.array(z.string().min(1).max(80)).max(30).optional(),
   services: servicesSchema.optional(),
   visibility: z.record(z.enum(profileVisibilityFields), z.boolean()).optional(),
+  // Cambiar la matrícula la vuelve a `declared` (la plataforma la revisa de nuevo).
+  licenseNumber: z.string().trim().min(2).max(40).nullish(),
+  licenseJurisdiction: z.string().trim().min(2).max(80).nullish(),
 });
 export type UpdateProfessionalProfileDto = z.infer<
   typeof updateProfessionalProfileSchema
@@ -106,6 +121,8 @@ export interface RosterAdminEntry {
   displayOrder: number;
   specialty: string | null;
   hasPublicContent: boolean;
+  /** Sin matrícula revisada el perfil no es público, aunque esté listado. */
+  licenseStatus: LicenseStatus;
 }
 
 /** Curaduría del roster (admin), por membership. */
@@ -128,4 +145,9 @@ export interface OwnProfessionalProfile {
   services: PublicService[];
   visibility: ProfileVisibility;
   isPubliclyListed: boolean;
+  licenseNumber: string | null;
+  licenseJurisdiction: string | null;
+  licenseStatus: LicenseStatus;
+  /** Motivo si la plataforma la rechazó. */
+  licenseNote: string | null;
 }

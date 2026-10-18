@@ -51,7 +51,7 @@ function as<T>(userId: string, role: MembershipRole, fn: () => Promise<T>): Prom
   return tenantStorage.run(
     {
       context: { tenantId: SEED.orgDemo.id, orgId: SEED.orgDemo.id, region: SEED.orgDemo.region },
-      org: { id: SEED.orgDemo.id, name: SEED.orgDemo.name, slug: SEED.orgDemo.slug, region: SEED.orgDemo.region },
+      org: { id: SEED.orgDemo.id, name: SEED.orgDemo.name, slug: SEED.orgDemo.slug, region: SEED.orgDemo.region, status: SEED.orgDemo.status, kind: SEED.orgDemo.kind },
       user: { id: userId, role },
     },
     fn,

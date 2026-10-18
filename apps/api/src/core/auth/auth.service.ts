@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Inject,
   Injectable,
   ServiceUnavailableException,
@@ -61,6 +62,21 @@ const NIL_UUID = "00000000-0000-0000-0000-000000000000";
  */
 const REUSE_GRACE_MS = 30_000;
 
+/**
+ * Org rechazada o suspendida: no se entra al workspace. Se chequea DESPUÉS de
+ * validar credenciales (no le dice nada a quien no sabe la contraseña). Una org en
+ * revisión sí entra: se configura mientras la plataforma la aprueba (ADR 0025).
+ */
+export function assertOrgUsable(org: AuthOrg): void {
+  if (org.status === "rejected" || org.status === "suspended") {
+    throw new ForbiddenException(
+      org.status === "rejected"
+        ? "La solicitud de esta organización fue rechazada."
+        : "Esta organización está suspendida. Escribinos para reactivarla.",
+    );
+  }
+}
+
 /** Error genérico de credenciales (anti-enumeración: no revela qué falló). */
 const invalid = (): UnauthorizedException =>
   new UnauthorizedException("Credenciales inválidas.");
@@ -113,6 +129,7 @@ export class AuthService {
     ]);
 
     if (!org || !user || !role || !ok) throw invalid();
+    assertOrgUsable(org);
 
     return this.issue(
       this.admin.db,
@@ -173,6 +190,7 @@ export class AuthService {
       throw new ServiceUnavailableException("Servicio no disponible, reintentá.");
     }
     if (!org || !user) throw invalid();
+    assertOrgUsable(org);
 
     // Revocación del viejo (atómica, encadenada) + emisión del nuevo, en una tx.
     // El rol se re-verifica DENTRO de la tx (cierra el TOCTOU: un membership

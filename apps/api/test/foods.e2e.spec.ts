@@ -40,7 +40,7 @@ function as<T>(tenant: "demo" | "orgA", userId: string, role: MembershipRole, fn
   return tenantStorage.run(
     {
       context: { tenantId: org.id, orgId: org.id, region: org.region },
-      org: { id: org.id, name: org.name, slug: org.slug, region: org.region },
+      org: { id: org.id, name: org.name, slug: org.slug, region: org.region, status: org.status, kind: org.kind },
       user: { id: userId, role },
     },
     fn,

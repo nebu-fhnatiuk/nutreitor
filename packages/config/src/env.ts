@@ -48,6 +48,12 @@ export const apiEnvSchema = z
     // reemplaza por el slug de la org. En prod: https://{slug}.nutreitor.com
     WEB_ORIGIN_TEMPLATE: z.string().default("http://{slug}.localhost:3000"),
     INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
+    // Origen web del dominio raíz (alta de orgs y consola de plataforma, ADR 0025).
+    // En prod: https://nutreitor.com
+    WEB_ROOT_ORIGIN: z.string().default("http://localhost:3000"),
+    SIGNUP_TTL_HOURS: z.coerce.number().int().positive().default(48),
+    // Sesión de la consola de plataforma: corta y sin refresh.
+    PLATFORM_SESSION_TTL: z.string().default("7200s"),
     // Servicio de agentes (Python). El gateway Nest le reenvía con un contexto de
     // tenant FIRMADO (HMAC). Defaults de dev para que la API booteé aunque el
     // servicio no esté arriba; en prod se inyectan por Secrets Manager.

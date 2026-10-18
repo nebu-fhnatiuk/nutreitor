@@ -13,7 +13,8 @@ export default async function ProAgendaPage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "professional") redirect(roleHome[me.role]);
+  // La admin también atiende (y en una org de una persona es la única que atiende).
+  if (me.role === "patient") redirect(roleHome[me.role]);
 
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>

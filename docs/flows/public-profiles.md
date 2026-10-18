@@ -44,6 +44,14 @@ de confianza. La lectura real va por `TenantDbService.runAs(org.id, …)`, misma
 arquitectura de aislamiento que una request autenticada: **no hay ruta de negocio
 exenta de RLS**. "Público" significa sin JWT, no sin `x-internal-secret`.
 
+**Sólo orgs aprobadas y matrículas revisadas** ([ADR 0025](../decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)):
+las rutas públicas resuelven la org con `TenantResolverService.publicBySlug`, que
+devuelve `null` (→ 404) si la org no está `active`. Y un perfil sólo entra al roster,
+a su página y a la reserva pública si `license_status = 'reviewed'` (filtro en SQL).
+La matrícula revisada se muestra siempre ("Matrícula MN 1234 · Nacional"), sin toggle
+de visibilidad: es la señal de confianza de la vidriera. Ver
+[`onboarding.md`](./onboarding.md).
+
 ## Visibilidad por campo
 
 `professional_profiles.visibility` es un `Record<field, boolean>` (default `{}` =
@@ -54,8 +62,8 @@ filtra antes de responder: un campo cuyo `visibility[field] !== true` sale como
 
 Reglas del roster:
 
-- Una entrada aparece sólo si `is_publicly_listed = true` **y** tiene contenido
-  público mínimo (headline o bio, visible y no vacío) — evita tarjetas vacías.
+- Una entrada aparece sólo si `is_publicly_listed = true`, la matrícula está
+  `reviewed` **y** tiene contenido público mínimo (headline o bio, visible y no vacío) — evita tarjetas vacías.
 - Orden: `display_order ASC, full_name ASC`.
 - Acceso directo por URL a un perfil sin contenido público → 404.
 

@@ -27,11 +27,21 @@ export interface AuthUser {
   fullName: string;
 }
 
+/** Ciclo de vida de una org (espeja el enum de la DB, ADR 0025). */
+export const orgStatuses = ["pending_review", "active", "rejected", "suspended"] as const;
+export type OrgStatus = (typeof orgStatuses)[number];
+
+/** Equipo o profesional independiente (org de una persona). */
+export const orgKinds = ["team", "individual"] as const;
+export type OrgKind = (typeof orgKinds)[number];
+
 export interface AuthOrg {
   id: string;
   name: string;
   slug: string;
   region: Region;
+  status: OrgStatus;
+  kind: OrgKind;
 }
 
 /** Respuesta de /auth/me y /auth/login (sin tokens: van en cookies httpOnly). */
