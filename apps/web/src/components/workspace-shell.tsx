@@ -8,6 +8,7 @@ import {
   Home,
   LayoutDashboard,
   Settings,
+  ShoppingCart,
   Sun,
   UserRound,
   Users,
@@ -47,6 +48,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
   patient: [
     { href: "/app", label: "Inicio", icon: Home },
     { href: "/app/plan", label: "Mi plan", icon: ClipboardList },
+    { href: "/app/compras", label: "Compras", icon: ShoppingCart },
   ],
 };
 

@@ -1,5 +1,7 @@
 import {
   dayMacros,
+  fmtGrams,
+  shoppingList,
   macroCoverage,
   mealsForDate,
   weekdayOf,
@@ -134,5 +136,78 @@ describe("macroCoverage (total completo o parcial)", () => {
   it("es completo si todos tienen kcal; un día vacío no cuenta como completo", () => {
     expect(macroCoverage({ meals: [{ name: "A", items: [{ text: "x", macros: { kcal: 1 } }] }] }).complete).toBe(true);
     expect(macroCoverage({ meals: [] }).complete).toBe(false);
+  });
+});
+
+describe("shoppingList (lista de compras de la semana)", () => {
+  const ref = (id: string, grams: number, group: string) => ({
+    source: "catalog" as const,
+    id,
+    grams,
+    per100g: RICE,
+    group,
+  });
+
+  it("día-tipo: multiplica por 7 y agrupa por grupo; las alternativas no suman", () => {
+    const body = {
+      layout: "day" as const,
+      day: {
+        meals: [
+          {
+            name: "Almuerzo",
+            items: [
+              { text: "Arroz", food: ref(UUID, 160, "Cereales"), alternatives: [{ text: "Fideos" }] },
+              { text: "Ensalada a gusto" },
+            ],
+          },
+          { name: "Cena", items: [{ text: "Arroz", food: ref(UUID, 100, "Cereales") }] },
+        ],
+      },
+    };
+    expect(shoppingList(body)).toEqual([
+      { group: "Cereales", items: [{ name: "Arroz", grams: (160 + 100) * 7 }] },
+      { group: "A criterio (sin cantidad calculada)", items: [{ name: "Ensalada a gusto", times: 7 }] },
+    ]);
+  });
+
+  it("semanal: suma sólo los días cargados; un vínculo viejo sin grupo va a 'Otros' al final", () => {
+    const old = { source: "catalog" as const, id: UUID, grams: 50, per100g: RICE };
+    const body = {
+      layout: "week" as const,
+      days: {
+        mon: { meals: [{ name: "A", items: [{ text: "Banana", food: ref("22222222-2222-2222-2222-222222222222", 118, "Frutas") }, { text: "Avena", food: old }] }] },
+        tue: { meals: [{ name: "A", items: [{ text: "Banana", food: ref("22222222-2222-2222-2222-222222222222", 118, "Frutas") }] }] },
+      },
+    };
+    expect(shoppingList(body)).toEqual([
+      { group: "Frutas", items: [{ name: "Banana", grams: 236 }] },
+      { group: "Otros", items: [{ name: "Avena", grams: 50 }] },
+    ]);
+  });
+
+  it("formatea en kg desde 1000 g", () => {
+    expect(fmtGrams(350)).toBe("350 g");
+    expect(fmtGrams(1820)).toBe("1,8 kg");
+  });
+});
+
+describe("shoppingList con recetas", () => {
+  it("una receta se expande en sus ingredientes (no se compra 'la receta')", () => {
+    const guiso = {
+      source: "library" as const,
+      id: UUID,
+      grams: 500, // 1 porción
+      per100g: RICE,
+      group: "Platos principales",
+      ingredients: [
+        { name: "Lentejas, cocidas", group: "Legumbres", gramsPer100g: 30 },
+        { name: "Zapallo / calabaza, cocido", group: "Verduras", gramsPer100g: 15 },
+      ],
+    };
+    const body = { layout: "day" as const, day: { meals: [{ name: "Cena", items: [{ text: "Guiso", food: guiso }] }] } };
+    expect(shoppingList(body)).toEqual([
+      { group: "Legumbres", items: [{ name: "Lentejas, cocidas", grams: 150 * 7 }] },
+      { group: "Verduras", items: [{ name: "Zapallo / calabaza, cocido", grams: 75 * 7 }] },
+    ]);
   });
 });

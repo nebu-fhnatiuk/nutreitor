@@ -28,6 +28,7 @@ type NutrientRow = {
   satFatG: string | null;
   sodiumMg: string | null;
   name: string;
+  foodGroup: string;
   portions: { label: string; grams: number }[];
 };
 
@@ -61,7 +62,7 @@ export async function computeRecipes(
       totalGrams += ing.grams;
       if (!food) {
         missing++;
-        return { kind: ing.kind, ref, grams: ing.grams, name: null, portions: [], per100g: null };
+        return { kind: ing.kind, ref, grams: ing.grams, name: null, group: null, portions: [], per100g: null };
       }
       const f = ing.grams / 100;
       for (const k of KEYS) {
@@ -74,6 +75,7 @@ export async function computeRecipes(
         ref,
         grams: ing.grams,
         name: food.name,
+        group: food.foodGroup,
         portions: food.portions,
         per100g: {
           kcal: Number(food.energyKcal),

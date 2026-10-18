@@ -30,6 +30,8 @@ export interface RecipeIngredientDto {
   grams: number;
   /** Nombre resuelto; null si el ingrediente ya no existe. */
   name: string | null;
+  /** Grupo del alimento (góndola), null si no existe. */
+  group: string | null;
   /** Medidas caseras del ingrediente (para el editor de la receta). */
   portions: { label: string; grams: number }[];
   /** Valores por 100 g (para recalcular en vivo en el editor); null si no existe. */

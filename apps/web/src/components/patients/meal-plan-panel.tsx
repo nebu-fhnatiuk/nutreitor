@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutTemplate } from "lucide-react";
+import { LayoutTemplate, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   dayMacros,
@@ -24,6 +24,7 @@ import {
 
 import { api, errorMessage } from "@/lib/api";
 import { FoodPicker } from "./food-picker";
+import { ShoppingListView } from "./shopping-list";
 import { Alert, Button, Input, Label, Modal, useFeedback } from "@/components/ui";
 
 const inputCls =
@@ -104,6 +105,7 @@ export function MealPlanPanel({
   const active = plans.find((p) => p.status === "active") ?? null;
   const history = plans.filter((p) => p.status !== "active");
   const { confirm, toast } = useFeedback();
+  const [shopping, setShopping] = useState(false);
 
   async function archive() {
     const ok = await confirm({
@@ -130,21 +132,34 @@ export function MealPlanPanel({
           Plan alimentario
           {loading && <span className="ml-2 text-stone-500">cargando…</span>}
         </h2>
-        {canWrite && !editing && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setEditing(true)}
-              className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-brand-fg transition hover:brightness-110"
-            >
-              {active ? "Revisar plan" : "Crear plan"}
-            </button>
+        {!editing && (
+          <div className="flex flex-wrap gap-2">
             {active && (
               <button
-                onClick={archive}
-                className="rounded-lg px-3 py-1.5 text-sm text-stone-500 transition hover:bg-stone-100"
+                onClick={() => setShopping(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-stone-600 transition hover:bg-stone-100"
               >
-                Archivar
+                <ShoppingCart className="h-4 w-4" aria-hidden />
+                Lista de compras
               </button>
+            )}
+            {canWrite && (
+              <>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="rounded-lg bg-brand px-4 py-1.5 text-sm font-medium text-brand-fg transition hover:brightness-110"
+                >
+                  {active ? "Revisar plan" : "Crear plan"}
+                </button>
+                {active && (
+                  <button
+                    onClick={archive}
+                    className="rounded-lg px-3 py-1.5 text-sm text-stone-500 transition hover:bg-stone-100"
+                  >
+                    Archivar
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -175,6 +190,10 @@ export function MealPlanPanel({
           Este paciente todavía no tiene un plan activo.
         </p>
       )}
+
+      <Modal open={shopping} onClose={() => setShopping(false)} title="Lista de compras (1 semana)" className="max-w-2xl">
+        {active && <ShoppingListView body={active.body} />}
+      </Modal>
 
       {history.length > 0 && !editing && (
         <div className="mt-5 border-t border-stone-100 pt-4">
@@ -1025,6 +1044,8 @@ function linkFood(f: FoodDto): FoodRef {
       fat_g: f.per100g.fatG,
     },
     attribution: f.attribution,
+    group: f.group,
+    ...(f.recipe?.ingredients.length ? { ingredients: f.recipe.ingredients } : {}),
   };
 }
 
