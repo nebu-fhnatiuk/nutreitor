@@ -100,3 +100,27 @@ export function adherenceScore(logs: Pick<MealLogDto, "status">[]): {
     pct: logs.length ? Math.round(((done + partial / 2) / logs.length) * 100) : null,
   };
 }
+
+/** Recordatorio diario de registro (opt-in del paciente; lo manda el worker). */
+export const notificationPreferencesSchema = z.object({
+  adherenceReminder: z.boolean(),
+  /** Hora local (0–23) a partir de la cual se recuerda si no marcó nada en el día. */
+  adherenceReminderHour: z.number().int().min(0).max(23),
+  timezone: z.string().min(1).max(64).refine(isValidTimeZone, "Zona horaria inválida."),
+});
+export type NotificationPreferencesDto = z.infer<typeof notificationPreferencesSchema>;
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferencesDto = {
+  adherenceReminder: false,
+  adherenceReminderHour: 21,
+  timezone: "America/Argentina/Buenos_Aires",
+};
+
+function isValidTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}

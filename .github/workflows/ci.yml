@@ -59,6 +59,8 @@ jobs:
       # Corre auth-timing (unit) + rls-isolation (e2e contra el service container).
       # Rompe el build si el aislamiento multi-tenant se quiebra.
       - run: pnpm --filter @nutreitor/api test
+      # Worker de notificaciones: genera/entrega bajo RLS con su rol (sin BYPASSRLS).
+      - run: pnpm --filter @nutreitor/worker test
 
   docker:
     name: Build de imágenes Docker
@@ -69,3 +71,5 @@ jobs:
         run: docker build --target runtime -f apps/api/Dockerfile -t nutreitor-api:ci .
       - name: Build Web image (target runtime)
         run: docker build --target runtime -f apps/web/Dockerfile -t nutreitor-web:ci .
+      - name: Build Worker image (target runtime)
+        run: docker build --target runtime -f apps/worker/Dockerfile -t nutreitor-worker:ci .

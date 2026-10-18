@@ -7,9 +7,10 @@ import {
   type AdherenceDto,
   type AdherenceStatus,
   type CheckinRecordDto,
+  type NotificationPreferencesDto,
 } from "@nutreitor/shared";
 
-import { cn, useFeedback } from "@/components/ui";
+import { cn, Toggle, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 
 /**
@@ -179,6 +180,78 @@ export function DayCheckin({
         placeholder="Algo que quieras contarle a tu profesional (opcional)"
         className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
+    </div>
+  );
+}
+
+/**
+ * Recordatorio diario (opt-in): a la hora elegida, si no marcó ninguna comida del
+ * día, le llega un email. Toma la zona horaria del dispositivo.
+ */
+export function DailyReminder() {
+  const [prefs, setPrefs] = useState<NotificationPreferencesDto | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { toast } = useFeedback();
+
+  useEffect(() => {
+    api<NotificationPreferencesDto>("portal/me/notification-preferences")
+      .then(setPrefs)
+      .catch(() => {});
+  }, []);
+  if (!prefs) return null;
+
+  async function save(patch: Partial<NotificationPreferencesDto>) {
+    const next = {
+      ...prefs!,
+      ...patch,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || prefs!.timezone,
+    };
+    setBusy(true);
+    try {
+      setPrefs(
+        await api<NotificationPreferencesDto>("portal/me/notification-preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        }),
+      );
+      if (patch.adherenceReminder !== undefined) {
+        toast(patch.adherenceReminder ? "Listo: te vamos a recordar registrar" : "Recordatorio desactivado");
+      }
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-stone-100 pt-4 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-stone-900">Recordatorio diario por email</span>
+        <Toggle
+          on={prefs.adherenceReminder}
+          busy={busy}
+          label="Recordatorio diario para registrar mis comidas"
+          onChange={() => void save({ adherenceReminder: !prefs.adherenceReminder })}
+        />
+      </div>
+      <label className="mt-1 flex flex-wrap items-center gap-2 text-stone-600">
+        Si no registré nada, avisarme a las
+        <select
+          value={prefs.adherenceReminderHour}
+          disabled={busy || !prefs.adherenceReminder}
+          onChange={(e) => void save({ adherenceReminderHour: Number(e.target.value) })}
+          aria-label="Hora del recordatorio"
+          className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm disabled:opacity-50"
+        >
+          {[18, 19, 20, 21, 22, 23].map((h) => (
+            <option key={h} value={h}>
+              {h}:00
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }

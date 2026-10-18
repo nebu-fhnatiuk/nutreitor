@@ -8,6 +8,7 @@ import {
   adherenceCheckins,
   adherenceMealLogs,
   mealPlans,
+  notificationPreferences,
   patients,
   type TenantTx,
 } from "@nutreitor/db";
@@ -22,6 +23,8 @@ import {
   type LogMealDto,
   type MealLogDto,
   type MealPlanBody,
+  type NotificationPreferencesDto,
+  DEFAULT_NOTIFICATION_PREFERENCES,
 } from "@nutreitor/shared";
 import { and, asc, between, eq, sql } from "drizzle-orm";
 
@@ -83,6 +86,38 @@ export class AdherenceService {
         })
         .returning();
       return toLog(row!);
+    });
+  }
+
+  /** Recordatorio diario de registro (lo envía el worker; ADR 0023). */
+  preferences(): Promise<NotificationPreferencesDto> {
+    return this.tenantDb.run(async (tx) => {
+      await myPatient(tx);
+      const { user } = getAuth();
+      const [p] = await tx
+        .select()
+        .from(notificationPreferences)
+        .where(eq(notificationPreferences.userId, user.id))
+        .limit(1);
+      return p
+        ? { adherenceReminder: p.adherenceReminder, adherenceReminderHour: p.adherenceReminderHour, timezone: p.timezone }
+        : DEFAULT_NOTIFICATION_PREFERENCES;
+    });
+  }
+
+  savePreferences(dto: NotificationPreferencesDto): Promise<NotificationPreferencesDto> {
+    return this.tenantDb.run(async (tx) => {
+      await myPatient(tx);
+      const { user } = getAuth();
+      const ctx = getTenantContext();
+      await tx
+        .insert(notificationPreferences)
+        .values({ tenantId: ctx.tenantId, region: ctx.region, userId: user.id, ...dto })
+        .onConflictDoUpdate({
+          target: [notificationPreferences.tenantId, notificationPreferences.userId],
+          set: { ...dto, updatedAt: sql`now()` },
+        });
+      return dto;
     });
   }
 

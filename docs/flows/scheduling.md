@@ -106,6 +106,9 @@ cada 10 minutos por IP, y los slots públicos 60 consultas por minuto (429 +
 
 ## Fuera de alcance (deuda consciente)
 
-Sync con Google/Outlook Calendar; **recordatorios** (necesitan cron/worker — sólo
-hay confirmación al reservar); email real (reusa `ConsoleMailSender`, como
-invitaciones); dedupe de leads; reserva del admin en nombre de un profesional.
+Sync con Google/Outlook Calendar; la confirmación al reservar sigue saliendo por
+`ConsoleMailSender` (el email real llegó con el worker, ver abajo); dedupe de leads;
+reserva del admin en nombre de un profesional.
+
+**Recordatorios**: los manda el worker ~24 h antes (fecha, hora y profesional). Ver
+[`notifications.md`](notifications.md).

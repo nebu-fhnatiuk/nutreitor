@@ -140,6 +140,34 @@ services:
              pnpm --filter @nutreitor/shared build &&
              pnpm --filter @nutreitor/web dev"
 
+  # Worker de notificaciones (BullMQ sobre Redis, ADR 0023): recordatorios de turno,
+  # avisos de mensajes sin leer y recordatorio diario de registro. Rol propio
+  # `nutreitor_worker` (sin BYPASSRLS). En dev el email sale por consola y escanea
+  # cada minuto. Reusa los node_modules que instala `api` (arranca cuando está sana).
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      target: dev
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_WORKER_URL: postgresql://nutreitor_worker:worker_dev_pwd@db:5432/nutreitor
+      REDIS_URL: redis://redis:6379
+      WEB_URL_TEMPLATE: http://{slug}.localhost:3000
+      MAIL_PROVIDER: console
+      SCAN_EVERY_MS: "60000"
+    volumes:
+      - ./:/app
+      - api_root_node_modules:/app/node_modules
+      - api_config_node_modules:/app/packages/config/node_modules
+      - api_shared_node_modules:/app/packages/shared/node_modules
+      - api_db_node_modules:/app/packages/db/node_modules
+    command: sh -c "corepack enable && pnpm --filter @nutreitor/worker dev"
+
   # Servicio de agentes (Python/FastAPI). Proceso separado; consume el mismo
   # Postgres bajo RLS con el rol nutreitor_agents (sin BYPASSRLS). Provider de
   # inferencia STUB en dev (sin nube/PHI); Anthropic real iría detrás del BAA.

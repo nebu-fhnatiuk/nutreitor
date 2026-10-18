@@ -46,6 +46,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `adherence_checkins` | Tenant-scoped (RLS) | `tenant_id` | Cómo se sintió el paciente en el día: hambre/energía/ánimo 1–5 (CHECK) + nota; (paciente, fecha) único, upsert, sin `DELETE`. |
 | `patient_messages` | Tenant-scoped (RLS) | `tenant_id` | Chat paciente ↔ equipo (ADR 0022): autor = membership, cuerpo ≤ 2000. **Append-only** por GRANT. |
 | `message_reads` | Tenant-scoped (RLS) | `tenant_id` | Hasta dónde leyó cada participante la conversación de un paciente (PK paciente + membership). |
+| `notifications` | Tenant-scoped (RLS) | `tenant_id` | Registro de avisos del worker (ADR 0023), **sin contenido**: tipo, `ref_key`, destinatario, canal, estado e intentos. `UNIQUE (tenant, kind, ref_key, destinatario, canal)` = idempotencia. Escribe sólo `nutreitor_worker`; la app sólo lee. |
+| `notification_preferences` | Tenant-scoped (RLS) | `tenant_id` | Opt-in del recordatorio diario de registro por usuario (hora 0–23 + zona horaria). PK (tenant, user). |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
 > Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
@@ -59,6 +61,11 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 > policies de RLS. Ver flujo [`../flows/agents.md`](../flows/agents.md) y ADRs 0013–0015.
 > Además lee `food_catalog` (sólo `SELECT`, dato de referencia) para el borrador de
 > plan de NUTRI (ADR 0020).
+>
+> El **worker de notificaciones** usa el rol `nutreitor_worker` (sin `BYPASSRLS`):
+> `SELECT` acotado a lo que necesita para decidir y redactar, `SELECT/INSERT/UPDATE`
+> sólo en `notifications`. Recorre los consultorios fijando el tenant; la lista de
+> ids sale de `worker_tenant_ids()` (SECURITY DEFINER, sólo ids). ADR 0023.
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
 > demás tablas referencian su `id` como `tenant_id` / `organization_id`.
 
@@ -123,6 +130,8 @@ erDiagram
   organizations ||--o{ adherence_meal_logs    : "scopes"
   organizations ||--o{ adherence_checkins     : "scopes"
   organizations ||--o{ patient_messages       : "scopes"
+  organizations ||--o{ notifications          : "scopes"
+  organizations ||--o{ notification_preferences : "scopes"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -150,6 +159,8 @@ erDiagram
   patients ||--o{ patient_messages    : "talks"
   patients ||--o{ message_reads       : "read by"
   memberships ||--o{ patient_messages : "writes"
+  users |o--o{ notifications            : "recipient (SET NULL)"
+  users ||--o{ notification_preferences : "prefers"
   meal_plans |o--o{ adherence_meal_logs : "version (SET NULL)"
   patients ||--o{ appointments     : "books"
   patients ||--o{ agent_conversations : "subject of"
@@ -447,6 +458,28 @@ erDiagram
     int servings
     jsonb ingredients "[{kind:catalog, slug, grams}]"
     text steps
+  }
+
+  notifications {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    notification_kind kind "appointment_reminder | unread_message | adherence_reminder"
+    text ref_key "UQ con tenant + kind + email + canal"
+    uuid recipient_user_id FK
+    text recipient_email
+    text channel "email"
+    notification_status status "pending | sent | failed"
+    int attempts
+  }
+
+  notification_preferences {
+    uuid tenant_id PK
+    uuid user_id PK
+    region region
+    boolean adherence_reminder
+    smallint adherence_reminder_hour "0-23"
+    text timezone
   }
 
   patient_messages {
