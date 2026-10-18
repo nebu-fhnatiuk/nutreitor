@@ -28,6 +28,7 @@ let worker: Database;
 let workerPool: pg.Pool;
 let appointmentId: string;
 let conversationId: string;
+let reportId: string;
 const now = new Date();
 const opts = (enqueue: (d: Delivery[]) => Promise<void> = async () => {}) => ({
   webUrlTemplate: "http://{slug}.localhost:3000",
@@ -77,6 +78,12 @@ beforeAll(async () => {
     await owner.execute(sql`insert into meal_plans (tenant_id, region, patient_id, author_membership_id, version, title, body)
       values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, ${PRO_MEMBERSHIP}, 1, 'Plan worker', '{"layout":"day","day":{"meals":[]}}'::jsonb)`);
   }
+  // Reporte de julio publicado recién → aviso al paciente.
+  await owner.execute(sql`delete from patient_reports where patient_id = ${D1} and period = '2026-07-01'`);
+  const rep = await owner.execute(sql`insert into patient_reports (tenant_id, region, patient_id, period, status, data, author_membership_id, published_at)
+    values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, '2026-07-01', 'published', '{}'::jsonb, ${PRO_MEMBERSHIP}, now()) returning id`);
+  reportId = (rep.rows[0] as { id: string }).id;
+
   const today = now.toISOString().slice(0, 10);
   await owner.execute(sql`delete from adherence_meal_logs where patient_id = ${D1} and date = ${today}`);
   await owner.execute(sql`delete from notifications where kind = 'adherence_reminder' and ref_key = ${`${D1}:${today}`}`);
@@ -114,6 +121,9 @@ describe("Worker — generación", () => {
     expect(unread!.text).not.toContain(SECRET_BODY);
     expect(unread!.text).toContain(`/pro/patients/${D1}?tab=mensajes`);
     expect(adherence).toMatchObject({ to: "patient@demo.test" });
+    const report = deliveries.find((d) => d.subject === "Tu reporte de julio está listo");
+    expect(report).toMatchObject({ to: "patient@demo.test" });
+    expect(report!.text).toContain(`/app/reportes/${reportId}`);
     // La admin no recibe avisos del chat clínico (ADR 0024).
     expect(deliveries.some((d) => d.to === "admin@demo.test" && d.subject.startsWith("Tenés un mensaje"))).toBe(false);
   });
