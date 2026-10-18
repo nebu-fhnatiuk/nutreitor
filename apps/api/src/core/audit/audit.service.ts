@@ -24,6 +24,8 @@ export type AuditAction =
   | "metric.deleted"
   | "plan.saved"
   | "plan.archived"
+  | "report.created"
+  | "report.published"
   | "food.created"
   | "food.updated"
   | "food.archived"

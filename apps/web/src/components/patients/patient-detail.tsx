@@ -20,6 +20,7 @@ import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
 import { MemberSelect } from "./member-select";
 import { PatientConversation } from "@/components/messages/conversations";
+import { ReportsPanel } from "@/components/reports/reports-panel";
 import { AdherencePanel } from "./adherence-panel";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -59,8 +60,8 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "evolucion" | "ficha" | "notas" | "mensajes" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "ficha", "notas", "mensajes", "asistentes"];
+type TabId = "resumen" | "plan" | "evolucion" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "reportes", "ficha", "notas", "mensajes", "asistentes"];
 
 /**
  * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
@@ -207,6 +208,7 @@ export function PatientDetail({
           { id: "resumen", label: "Resumen" },
           { id: "plan", label: "Plan" },
           { id: "evolucion", label: "Evolución" },
+          { id: "reportes", label: "Reportes" },
           { id: "ficha", label: "Ficha clínica" },
           { id: "notas", label: "Notas", count: p.notes.length },
           ...(canMessage ? [{ id: "mensajes", label: "Mensajes" } as TabItem<TabId>] : []),
@@ -233,6 +235,7 @@ export function PatientDetail({
             <MetricsPanel patientId={p.id} canRecord={canRecord} />
           </div>
         )}
+        {tab === "reportes" && <ReportsPanel patientId={p.id} canWrite={canWritePlan} />}
         {tab === "ficha" && (
           <div className="space-y-6">
             {editing ? (

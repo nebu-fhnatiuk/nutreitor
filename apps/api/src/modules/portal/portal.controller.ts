@@ -18,6 +18,7 @@ import {
   type MessageDto,
   type MessagesQueryDto,
   type NotificationPreferencesDto,
+  type PatientReportDto,
   type SendMessageDto,
   type ThreadDto,
   type PatientMetricDto,
@@ -31,6 +32,7 @@ import { RequireCapability } from "../../core/auth/require-capability.decorator.
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AdherenceService } from "../patients/adherence.service.js";
 import { ConversationsService } from "../patients/conversations.service.js";
+import { ReportsService } from "../patients/reports.service.js";
 import { PortalService } from "./portal.service.js";
 
 /**
@@ -44,6 +46,7 @@ export class PortalController {
     private readonly portal: PortalService,
     private readonly adherence: AdherenceService,
     private readonly conversations: ConversationsService,
+    private readonly reports: ReportsService,
   ) {}
 
   @Get("me")
@@ -72,6 +75,19 @@ export class PortalController {
   @RequireCapability("portal:self_report")
   checkin(@Body(new ZodValidationPipe(checkinSchema)) dto: CheckinDto): Promise<CheckinRecordDto> {
     return this.adherence.checkin(dto);
+  }
+
+  /** Sus reportes mensuales PUBLICADOS. */
+  @Get("me/reports")
+  @RequireCapability("portal:read")
+  myReports(): Promise<PatientReportDto[]> {
+    return this.reports.minePublished();
+  }
+
+  @Get("me/reports/:id")
+  @RequireCapability("portal:read")
+  myReport(@Param("id", new ParseUUIDPipe()) id: string): Promise<PatientReportDto> {
+    return this.reports.mine(id);
   }
 
   @Get("me/notification-preferences")

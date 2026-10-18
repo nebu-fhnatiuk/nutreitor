@@ -20,6 +20,7 @@ export * from "./recipes.js";
 export * from "./plan-templates.js";
 export * from "./adherence.js";
 export * from "./conversations.js";
+export * from "./patient-reports.js";
 export * from "./notifications.js";
 
 import { organizations } from "./organizations.js";
@@ -43,6 +44,7 @@ import { recipeLibrary, tenantRecipes } from "./recipes.js";
 import { planTemplates } from "./plan-templates.js";
 import { adherenceCheckins, adherenceMealLogs } from "./adherence.js";
 import { conversationReads, conversations, messages } from "./conversations.js";
+import { patientReports } from "./patient-reports.js";
 import { notificationPreferences } from "./notifications.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
@@ -77,5 +79,6 @@ export const schema = {
   conversations,
   messages,
   conversationReads,
+  patientReports,
   notificationPreferences,
 };

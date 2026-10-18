@@ -49,6 +49,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `conversation_reads` | Tenant-scoped (RLS) | `tenant_id` | Hasta dónde leyó cada participante (PK conversación + membership). |
 | `notifications` | Tenant-scoped (RLS) | `tenant_id` | Registro de avisos del worker (ADR 0023), **sin contenido**: tipo, `ref_key`, destinatario, canal, estado e intentos. `UNIQUE (tenant, kind, ref_key, destinatario, canal)` = idempotencia. Escribe sólo `nutreitor_worker`; la app sólo lee. |
 | `notification_preferences` | Tenant-scoped (RLS) | `tenant_id` | Opt-in del recordatorio diario de registro por usuario (hora 0–23 + zona horaria). PK (tenant, user). |
+| `patient_reports` | Tenant-scoped (RLS) | `tenant_id` | Reporte mensual del paciente: `period` (1.º del mes, único por paciente), `status` draft/published, `data` (foto de los números del mes), comentario del profesional. Publicado = fijo. Ver `flows/reports.md`. |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
 > Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
@@ -79,7 +80,7 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
-- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`, `adherence_meal_logs`, `adherence_checkins`, `conversation_reads`: `SELECT` + `INSERT` + `UPDATE`, `conversations`: `SELECT` + `INSERT`,
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`, `adherence_meal_logs`, `adherence_checkins`, `conversation_reads`, `patient_reports`: `SELECT` + `INSERT` + `UPDATE`, `conversations`: `SELECT` + `INSERT`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -158,6 +159,7 @@ erDiagram
   patients ||--o{ adherence_meal_logs : "logs"
   patients ||--o{ adherence_checkins  : "checks in"
   patients |o--o{ conversations       : "talks (patient_professional)"
+  patients ||--o{ patient_reports     : "monthly report"
   memberships ||--o{ conversations    : "professional"
   conversations ||--o{ messages       : "contains"
   conversations ||--o{ conversation_reads : "read by"
@@ -469,7 +471,7 @@ erDiagram
     uuid id PK
     uuid tenant_id FK
     region region
-    notification_kind kind "appointment_reminder | unread_message | adherence_reminder"
+    notification_kind kind "appointment_reminder | unread_message | adherence_reminder | report_published"
     text ref_key "UQ con tenant + kind + email + canal"
     uuid recipient_user_id FK
     text recipient_email
@@ -485,6 +487,18 @@ erDiagram
     boolean adherence_reminder
     smallint adherence_reminder_hour "0-23"
     text timezone
+  }
+
+  patient_reports {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK "UQ con period"
+    date period "1.º del mes"
+    patient_report_status status "draft | published"
+    jsonb data "foto de los números del mes"
+    text comment
+    uuid author_membership_id FK
+    timestamptz published_at
   }
 
   conversations {

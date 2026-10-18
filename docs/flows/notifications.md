@@ -38,6 +38,9 @@ sequenceDiagram
   del dispositivo): pasada esa hora local, si tiene plan activo y no marcó ninguna
   comida del día. Llave: paciente + fecha.
 
+- **Reporte publicado** (al paciente): cuando su profesional publica el reporte del
+  mes (últimas 48 h). Sólo el link, sin datos. Llave: id del reporte.
+
 ## Preferencias
 
 `GET/PUT /portal/me/notification-preferences` (`portal:read` / `portal:self_report`)

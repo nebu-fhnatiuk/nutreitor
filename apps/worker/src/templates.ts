@@ -59,3 +59,18 @@ export function adherenceReminder(p: { patientName: string; orgName: string; lin
       `Podés desactivar este recordatorio desde tu portal (${p.orgName}).\n`,
   };
 }
+
+const monthName = (month: string) => {
+  const [y, m] = month.split("-").map(Number);
+  return DateTime.fromObject({ year: y, month: m }).setLocale("es-AR").toFormat("LLLL");
+};
+
+export function reportPublished(p: { patientName: string; month: string; orgName: string; link: string }): Rendered {
+  return {
+    subject: `Tu reporte de ${monthName(p.month)} está listo`,
+    text:
+      `Hola ${firstName(p.patientName)}:\n\n` +
+      `Tu profesional de ${p.orgName} publicó el resumen de tu mes de ${monthName(p.month)}: ` +
+      `cómo te fue con el plan, tu evolución y sus comentarios. Miralo en ${p.link}\n`,
+  };
+}

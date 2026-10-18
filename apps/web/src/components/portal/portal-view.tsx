@@ -19,6 +19,7 @@ import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { DailyReminder, DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
 import { PortalAppointments } from "./portal-appointments";
+import { PortalReportsCard } from "./portal-reports";
 import { PortalAssistant } from "./portal-assistant";
 
 const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("es-AR");
@@ -75,6 +76,8 @@ export function PortalView() {
       <TodayMeals plan={me.plan} canSelfReport={me.canSelfReport} />
 
       <PortalAppointments />
+
+      <PortalReportsCard />
 
       <Card>
         <SectionHeading className="mb-4">Tu evolución</SectionHeading>

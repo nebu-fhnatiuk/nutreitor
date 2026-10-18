@@ -160,6 +160,8 @@ services:
       WEB_URL_TEMPLATE: http://{slug}.localhost:3000
       MAIL_PROVIDER: console
       SCAN_EVERY_MS: "60000"
+      # colima/macOS: el watcher de tsx no ve los cambios del bind-mount sin polling.
+      CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./:/app
       - api_root_node_modules:/app/node_modules
