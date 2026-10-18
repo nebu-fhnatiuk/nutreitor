@@ -106,9 +106,10 @@ flowchart TB
 ## Despliegue
 
 - **Dev**: `docker compose up` levanta `db` (Postgres 17) + `redis` + `api` + `web`
-  (+ `agents`) con hot-reload. La API migra al arrancar (conveniencia de dev).
+  (+ `agents` + `worker`) con hot-reload. La API migra al arrancar (conveniencia de dev).
 - **Prod (objetivo)**: Fargate; API en subnet privada detrás del edge/ALB;
-  migraciones como job separado; ElastiCache (Redis 7) para el rate-limiting; secrets
+  migraciones como job separado; ElastiCache (Redis 7) para el rate-limiting y la cola
+  del worker; el worker como tarea aparte (sin puertos); email por Amazon SES; secrets
   desde AWS Secrets Manager / SSM. Ver las
   "Notas para producción" del [README](../../README.md).
 
@@ -128,5 +129,9 @@ para esa extracción. Reglas, disparadores y orden en el ADR
   (`nutreitor_agents`). La API es su gateway (`modules/agents`): firma un contexto de
   tenant HMAC + TTL y aplica el consentimiento y el tope de costo antes de egresar.
   Ver [`../flows/agents.md`](../flows/agents.md) y los ADR 0013–0016.
+- **Worker de notificaciones**: proceso Node aparte (`apps/worker`) con BullMQ sobre
+  Redis. Rol propio `nutreitor_worker` sin BYPASSRLS: recorre los consultorios con
+  `withTenant`; la lista de ids sale de una función SECURITY DEFINER. Ver
+  [`../flows/notifications.md`](../flows/notifications.md) y el ADR 0023.
 - **Agendamiento**: motor propio dentro de la API (`modules/scheduling`), no Cal.com.
   Ver [`../flows/scheduling.md`](../flows/scheduling.md) y el ADR 0011.

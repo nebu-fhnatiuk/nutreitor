@@ -17,7 +17,7 @@ import {
 import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, buttonClass } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
-import { DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
+import { DailyReminder, DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
 import { PortalAppointments } from "./portal-appointments";
 import { PortalAssistant } from "./portal-assistant";
 
@@ -203,6 +203,7 @@ function TrackedMeals({ date, meals }: { date: string; meals: PlanMeal[] }) {
         ))}
       </ol>
       <DayCheckin checkin={checkin} onSave={(p) => void saveCheckin(p)} />
+      <DailyReminder />
     </>
   );
 }

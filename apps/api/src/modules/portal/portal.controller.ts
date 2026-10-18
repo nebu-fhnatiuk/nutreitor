@@ -4,6 +4,7 @@ import {
   checkinSchema,
   logMealSchema,
   messagesQuerySchema,
+  notificationPreferencesSchema,
   recordMetricSchema,
   sendMessageSchema,
   type AdherenceDto,
@@ -14,6 +15,7 @@ import {
   type MealLogDto,
   type MessageDto,
   type MessagesQueryDto,
+  type NotificationPreferencesDto,
   type SendMessageDto,
   type ThreadDto,
   type PatientMetricDto,
@@ -68,6 +70,20 @@ export class PortalController {
   @RequireCapability("portal:self_report")
   checkin(@Body(new ZodValidationPipe(checkinSchema)) dto: CheckinDto): Promise<CheckinRecordDto> {
     return this.adherence.checkin(dto);
+  }
+
+  @Get("me/notification-preferences")
+  @RequireCapability("portal:read")
+  preferences(): Promise<NotificationPreferencesDto> {
+    return this.adherence.preferences();
+  }
+
+  @Put("me/notification-preferences")
+  @RequireCapability("portal:self_report")
+  savePreferences(
+    @Body(new ZodValidationPipe(notificationPreferencesSchema)) dto: NotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    return this.adherence.savePreferences(dto);
   }
 
   /** Conversación con su equipo (polling con `after`). */
