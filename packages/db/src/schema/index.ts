@@ -18,6 +18,7 @@ export * from "./org-modules.js";
 export * from "./foods.js";
 export * from "./recipes.js";
 export * from "./plan-templates.js";
+export * from "./adherence.js";
 
 import { organizations } from "./organizations.js";
 import { locations } from "./locations.js";
@@ -38,6 +39,7 @@ import { orgModules } from "./org-modules.js";
 import { foodCatalog, tenantFoods } from "./foods.js";
 import { recipeLibrary, tenantRecipes } from "./recipes.js";
 import { planTemplates } from "./plan-templates.js";
+import { adherenceCheckins, adherenceMealLogs } from "./adherence.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -66,4 +68,6 @@ export const schema = {
   recipeLibrary,
   tenantRecipes,
   planTemplates,
+  adherenceMealLogs,
+  adherenceCheckins,
 };
