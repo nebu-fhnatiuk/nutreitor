@@ -85,3 +85,60 @@ export const foodSearchSchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 export type FoodSearchQuery = z.infer<typeof foodSearchSchema>;
+
+// ── Intercambios (Fase 4.2) ──────────────────────────────────────────────────
+
+export interface FoodSwapDto {
+  food: FoodDto;
+  /** Gramos del candidato que dan las mismas kcal que el original. */
+  grams: number;
+  /** Diferencia de macros respecto del original, en gramos (candidato − original). */
+  delta: { proteinG: number; carbsG: number; fatG: number };
+}
+
+/**
+ * Intercambios por equivalencia calculada: candidatos del MISMO grupo con la
+ * cantidad ajustada para dar las mismas kcal que `grams` del original. Ordena por
+ * parecido del reparto de macros (% de energía de P/C/G), así "arroz → fideos" va
+ * antes que "arroz → pan con manteca". Descarta cantidades poco realistas (menos de
+ * 5 g o más de 3× la original) y candidatos sin energía.
+ */
+export function equivalentSwaps(
+  original: FoodDto,
+  grams: number,
+  candidates: FoodDto[],
+  limit = 8,
+): FoodSwapDto[] {
+  const kcal = (original.per100g.energyKcal * grams) / 100;
+  if (kcal <= 0) return [];
+  const share = (f: FoodDto) => {
+    const p = f.per100g.proteinG * 4;
+    const c = f.per100g.carbsG * 4;
+    const g = f.per100g.fatG * 9;
+    const t = p + c + g || 1;
+    return [p / t, c / t, g / t] as const;
+  };
+  const target = share(original);
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return candidates
+    .filter((c) => !(c.source === original.source && c.id === original.id) && c.per100g.energyKcal > 0)
+    .map((c) => {
+      const g = Math.round((kcal / c.per100g.energyKcal) * 100);
+      const s = share(c);
+      const distance = Math.abs(s[0] - target[0]) + Math.abs(s[1] - target[1]) + Math.abs(s[2] - target[2]);
+      return {
+        food: c,
+        grams: g,
+        distance,
+        delta: {
+          proteinG: r1((c.per100g.proteinG * g) / 100 - (original.per100g.proteinG * grams) / 100),
+          carbsG: r1((c.per100g.carbsG * g) / 100 - (original.per100g.carbsG * grams) / 100),
+          fatG: r1((c.per100g.fatG * g) / 100 - (original.per100g.fatG * grams) / 100),
+        },
+      };
+    })
+    .filter((x) => x.grams >= 5 && x.grams <= grams * 3)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit)
+    .map(({ food, grams: g, delta }) => ({ food, grams: g, delta }));
+}

@@ -13,6 +13,7 @@ import {
   type DayPlan,
   type FoodDto,
   type FoodRef,
+  type FoodSwapDto,
   type Macros,
   type MealItem,
   type MealPlanBody,
@@ -886,6 +887,7 @@ function ItemEditor({
 }) {
   const hasDetail = Boolean(item.alternatives?.length || (item.macros && !item.food));
   const [open, setOpen] = useState(hasDetail);
+  const [swapsOpen, setSwapsOpen] = useState(false);
   const food = item.food;
   return (
     <div className="rounded-lg bg-stone-50/60 p-2">
@@ -945,7 +947,28 @@ function ItemEditor({
           >
             desvincular
           </button>
+          <button
+            type="button"
+            onClick={() => setSwapsOpen((o) => !o)}
+            className={`transition ${swapsOpen ? "text-brand" : "hover:text-brand"}`}
+            aria-expanded={swapsOpen}
+          >
+            intercambios
+          </button>
         </div>
+      )}
+      {food && swapsOpen && (
+        <SwapSuggestions
+          food={food}
+          onReplace={(s) => {
+            onChange({ text: s.food.name, ...withFood(swapLink(s)) });
+            setSwapsOpen(false);
+          }}
+          onAddAlternative={(s) => {
+            onChange({ alternatives: [...(item.alternatives ?? []), { text: s.food.name, qty: s.grams, unit: "g" }] });
+            setOpen(true);
+          }}
+        />
       )}
       {open && (
         <div className="mt-2 space-y-2 pl-1">
@@ -1025,6 +1048,78 @@ function ItemEditor({
 
 // ── vínculo con la base de alimentos (ADR 0018) ────────────────────────────
 
+/** Vínculo de un intercambio: el alimento sugerido en los gramos que igualan las kcal. */
+function swapLink(s: FoodSwapDto): FoodRef {
+  const { portion: _p, count: _c, ...rest } = linkFood(s.food);
+  return { ...rest, grams: s.grams };
+}
+
+const signed = (n: number) => {
+  const r = Math.round(n);
+  return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)}`;
+};
+
+/**
+ * Intercambios por equivalencia calculada (Fase 4.2): alimentos del mismo grupo en
+ * la cantidad que da las mismas kcal, ordenados por parecido de macros. Se puede
+ * reemplazar el item o sumar la sugerencia como alternativa para el paciente.
+ */
+function SwapSuggestions({
+  food,
+  onReplace,
+  onAddAlternative,
+}: {
+  food: FoodRef;
+  onReplace: (s: FoodSwapDto) => void;
+  onAddAlternative: (s: FoodSwapDto) => void;
+}) {
+  const [swaps, setSwaps] = useState<FoodSwapDto[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const grams = Math.round(food.grams);
+  useEffect(() => {
+    let alive = true;
+    setSwaps(null);
+    setError(null);
+    api<FoodSwapDto[]>(`foods/${food.source}/${food.id}/swaps?grams=${grams}`)
+      .then((r) => alive && setSwaps(r))
+      .catch((e) => alive && setError(errorMessage(e)));
+    return () => {
+      alive = false;
+    };
+  }, [food.source, food.id, grams]);
+
+  return (
+    <div className="mt-2 rounded-lg border border-stone-200 bg-white p-2 text-xs">
+      <p className="mb-1.5 text-stone-500">
+        Mismo grupo{food.group ? ` (${food.group})` : ""}, mismas kcal que {grams} g. Diferencia de macros en g.
+      </p>
+      {error && <p className="text-red-600">{error}</p>}
+      {!error && !swaps && <p className="text-stone-400">Buscando intercambios…</p>}
+      {swaps && swaps.length === 0 && <p className="text-stone-500">No hay intercambios equivalentes en este grupo.</p>}
+      {swaps && swaps.length > 0 && (
+        <ul className="divide-y divide-stone-100">
+          {swaps.map((s) => (
+            <li key={`${s.food.source}:${s.food.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium text-stone-700">{s.grams} g</span> {s.food.name}
+                <span className="ml-2 text-stone-400">
+                  P {signed(s.delta.proteinG)} · C {signed(s.delta.carbsG)} · G {signed(s.delta.fatG)}
+                </span>
+              </span>
+              <button type="button" onClick={() => onReplace(s)} className="text-brand hover:underline">
+                Reemplazar
+              </button>
+              <button type="button" onClick={() => onAddAlternative(s)} className="text-stone-500 hover:text-brand">
+                Sumar como alternativa
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** Unidad legible de una medida casera: "1 taza" → "taza", "1/2 taza" queda igual. */
 const portionUnit = (label: string) => label.replace(/^1\s+/, "");
 
@@ -1083,7 +1178,9 @@ function LinkedQuantity({ food, onChange }: { food: FoodRef; onChange: (f: FoodR
     <>
       <input
         defaultValue={String(qty)}
-        key={`${food.portion?.label ?? "g"}`}
+        // Remonta al cambiar de alimento o de unidad (input no controlado para no
+        // pelear con lo que se está tipeando).
+        key={`${food.source}:${food.id}:${food.portion?.label ?? "g"}`}
         onChange={(e) => setQty(e.target.value)}
         inputMode="decimal"
         aria-label="Cantidad"

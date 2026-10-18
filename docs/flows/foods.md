@@ -105,6 +105,24 @@ sequenceDiagram
   `pnpm --filter @nutreitor/db recipes:build` desde
   `packages/db/catalog/recipes-ar.curation.json` (14 recetas, **borrador a validar**).
 
+## Intercambios por equivalencia calculada
+
+`GET /foods/{source}/{id}/swaps?grams=N` (`food:read`) sugiere hasta 8 reemplazos
+para un item vinculado:
+
+- **Mismo grupo** del original (para un alimento: catálogo + propios activos; para
+  una receta: biblioteca + recetas propias activas de la misma categoría).
+- **Mismas kcal**: los gramos del sugerido se calculan para igualar la energía del
+  original (`equivalentSwaps`, lógica pura en `@nutreitor/shared`).
+- **Orden por parecido de macros**: distancia entre los repartos de energía
+  (proteína / carbohidratos / grasa); se informa la diferencia en gramos de cada uno.
+- Se descartan el mismo alimento, los sin energía y las cantidades irreales (menos de
+  5 g o más del triple del original).
+
+En el editor, **intercambios** debajo del item abre las sugerencias: **Reemplazar**
+re-vincula el item al sugerido (en gramos) y **Sumar como alternativa** lo agrega a
+las alternativas que ve el paciente ("o: 57 g Pan blanco").
+
 ## Capacidades
 
 `food:read` y `food:manage`: admin y profesional. El paciente no accede a la base de
