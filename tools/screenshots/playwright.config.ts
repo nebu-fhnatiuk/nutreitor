@@ -12,6 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: "shots.spec.ts",
+  globalSetup: "./auth.setup.ts",
   timeout: 120_000,
   fullyParallel: false,
   workers: 1,
