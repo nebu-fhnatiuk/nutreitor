@@ -32,6 +32,8 @@ export interface RecipeIngredientDto {
   name: string | null;
   /** Medidas caseras del ingrediente (para el editor de la receta). */
   portions: { label: string; grams: number }[];
+  /** Valores por 100 g (para recalcular en vivo en el editor); null si no existe. */
+  per100g: { kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null;
 }
 
 export interface RecipeDto {

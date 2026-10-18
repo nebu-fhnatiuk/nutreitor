@@ -31,6 +31,8 @@ export interface FoodNutrients {
 export interface FoodDto {
   /** Referencia estable para el plan: `source` + `id`. */
   id: string;
+  /** Sólo en el catálogo: clave estable entre bases (las recetas la usan, ADR 0019). */
+  slug?: string;
   source: FoodSource;
   name: string;
   group: string;

@@ -17,11 +17,14 @@ export function FoodPicker({
   onText,
   onPick,
   className,
+  allowRecipes = true,
 }: {
   value: string;
   onText: (text: string) => void;
   onPick: (food: FoodDto) => void;
   className?: string;
+  /** false en el editor de recetas: una receta no puede ser ingrediente de otra. */
+  allowRecipes?: boolean;
 }) {
   const [hits, setHits] = useState<FoodDto[]>([]);
   const [open, setOpen] = useState(false);
@@ -42,7 +45,7 @@ export function FoodPicker({
       try {
         const res = await api<FoodDto[]>(`foods?q=${encodeURIComponent(q)}&limit=8`);
         if (!cancelled) {
-          setHits(res);
+          setHits(allowRecipes ? res : res.filter((f) => f.source === "catalog" || f.source === "tenant"));
           setActive(0);
           setOpen(true);
         }
@@ -53,7 +56,7 @@ export function FoodPicker({
     return () => {
       cancelled = true;
     };
-  }, [query]);
+  }, [query, allowRecipes]);
 
   function pick(food: FoodDto) {
     setOpen(false);
@@ -113,14 +116,16 @@ export function FoodPicker({
             >
               <span className="text-stone-800">
                 {f.name}
-                {f.source === "tenant" && (
-                  <span className="ml-1.5 rounded-full bg-stone-100 px-1.5 text-[10px] uppercase tracking-wide text-stone-500">
-                    propio
+                {f.source !== "catalog" && (
+                  <span className="ml-1.5 rounded-full bg-stone-100 px-1.5 text-[10px] uppercase tracking-wide text-stone-600">
+                    {f.source === "tenant" ? "propio" : f.source === "recipe" ? "mi receta" : "receta"}
                   </span>
                 )}
               </span>
               <span className="shrink-0 text-xs text-stone-500">
-                {Math.round(f.per100g.energyKcal)} kcal/100 g
+                {f.recipe && f.portions[0]
+                  ? `${Math.round((f.per100g.energyKcal * f.portions[0].grams) / 100)} kcal/porción`
+                  : `${Math.round(f.per100g.energyKcal)} kcal/100 g`}
               </span>
             </li>
           ))}

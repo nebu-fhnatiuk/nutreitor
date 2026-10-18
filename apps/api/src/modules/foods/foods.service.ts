@@ -199,6 +199,7 @@ function nutrients(r: CatalogRow | TenantRow): FoodNutrients {
 function fromCatalog(r: CatalogRow): FoodDto {
   return {
     id: r.id,
+    slug: r.slug,
     source: "catalog",
     name: r.name,
     group: r.foodGroup,
