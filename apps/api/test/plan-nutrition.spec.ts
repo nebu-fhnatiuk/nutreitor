@@ -1,5 +1,8 @@
 import {
   dayMacros,
+  macroCoverage,
+  mealsForDate,
+  weekdayOf,
   macrosForGrams,
   savePlanSchema,
   sumMacros,
@@ -95,5 +98,41 @@ describe("savePlanSchema con items vinculados a la base", () => {
     ]) {
       expect(savePlanSchema.safeParse(plan(bad)).success).toBe(false);
     }
+  });
+});
+
+describe("mealsForDate (lo que te toca hoy, en el portal)", () => {
+  const meal = (name: string) => ({ name, items: [{ text: name }] });
+  // 2026-10-19 es lunes; se construye en hora local para no depender del huso.
+  const monday = new Date(2026, 9, 19, 12);
+  const sunday = new Date(2026, 9, 18, 12);
+
+  it("día-tipo: siempre las mismas comidas", () => {
+    const body = { layout: "day" as const, day: { meals: [meal("Desayuno")] } };
+    expect(mealsForDate(body, monday).map((m) => m.name)).toEqual(["Desayuno"]);
+    expect(mealsForDate(body, sunday).map((m) => m.name)).toEqual(["Desayuno"]);
+  });
+
+  it("semanal: las del día de la semana; vacío si ese día no se cargó", () => {
+    const body = { layout: "week" as const, days: { mon: { meals: [meal("Lunes")] } } };
+    expect(weekdayOf(monday)).toBe("mon");
+    expect(mealsForDate(body, monday).map((m) => m.name)).toEqual(["Lunes"]);
+    expect(mealsForDate(body, sunday)).toEqual([]);
+  });
+});
+
+describe("macroCoverage (total completo o parcial)", () => {
+  it("es parcial si algún item no tiene kcal", () => {
+    const day = {
+      meals: [
+        { name: "Desayuno", items: [{ text: "Avena", macros: { kcal: 250 } }, { text: "Café" }] },
+      ],
+    };
+    expect(macroCoverage(day)).toEqual({ items: 2, withKcal: 1, complete: false });
+  });
+
+  it("es completo si todos tienen kcal; un día vacío no cuenta como completo", () => {
+    expect(macroCoverage({ meals: [{ name: "A", items: [{ text: "x", macros: { kcal: 1 } }] }] }).complete).toBe(true);
+    expect(macroCoverage({ meals: [] }).complete).toBe(false);
   });
 });

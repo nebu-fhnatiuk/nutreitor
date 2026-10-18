@@ -206,3 +206,29 @@ export function targetDeviation(total: number | undefined, target: number | unde
   if (total == null || target == null || target <= 0) return null;
   return Math.round(((total - target) / target) * 100);
 }
+
+/** Día de la semana del plan para una fecha local (0=domingo en JS → "sun"). */
+export function weekdayOf(date: Date): Weekday {
+  return (["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const)[date.getDay()]!;
+}
+
+/**
+ * Comidas que corresponden a una fecha: en un plan de día-tipo, siempre las mismas;
+ * en uno semanal, las del día de la semana (vacío si ese día no se cargó). Es lo
+ * que el portal muestra como "lo que te toca hoy".
+ */
+export function mealsForDate(body: MealPlanBody, date: Date): PlanMeal[] {
+  if (body.layout === "day") return body.day.meals;
+  return body.days[weekdayOf(date)]?.meals ?? [];
+}
+
+/**
+ * Cuántos items de un día traen kcal. Si no son todos, el total es PARCIAL: sumar
+ * sólo lo cargado y mostrarlo como "el total del día" informa mal (un plan con un
+ * solo item con macros decía "250 kcal en el día" y "−87 %" contra el objetivo).
+ */
+export function macroCoverage(day: DayPlan): { items: number; withKcal: number; complete: boolean } {
+  const items = day.meals.flatMap((m) => m.items);
+  const withKcal = items.filter((it) => it.macros?.kcal != null).length;
+  return { items: items.length, withKcal, complete: items.length > 0 && withKcal === items.length };
+}
