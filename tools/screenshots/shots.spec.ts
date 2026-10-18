@@ -39,7 +39,10 @@ const ROLES = {
     ],
   },
   paciente: {
-    pages: [["portal", "/app"]],
+    pages: [
+      ["portal", "/app"],
+      ["plan", "/app/plan"],
+    ],
   },
 } as const;
 

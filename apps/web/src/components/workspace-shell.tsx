@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  ClipboardList,
   Globe,
   Home,
   LayoutDashboard,
@@ -41,7 +42,10 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
   ],
-  patient: [{ href: "/app", label: "Inicio", icon: Home }],
+  patient: [
+    { href: "/app", label: "Inicio", icon: Home },
+    { href: "/app/plan", label: "Mi plan", icon: ClipboardList },
+  ],
 };
 
 /**
@@ -84,7 +88,7 @@ export function WorkspaceShell({
       >
         Saltar al contenido
       </a>
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-stone-200 bg-white px-4 py-5 sm:flex">
+      <aside className="hidden w-56 shrink-0 print:!hidden flex-col border-r border-stone-200 bg-white px-4 py-5 sm:flex">
         <div className="mb-8 flex items-center gap-2 px-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="truncate text-sm font-semibold tracking-tight">{orgName}</span>
@@ -115,7 +119,7 @@ export function WorkspaceShell({
 
       <div className="flex flex-1 flex-col">
         {/* Topbar persistente (todos los tamaños): org (solo mobile) + menú de usuario. */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex print:hidden items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-2 sm:hidden">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand" />
             <span className="truncate text-sm font-semibold">{orgName}</span>
@@ -130,7 +134,7 @@ export function WorkspaceShell({
         {items.length > 1 && (
           <nav
             aria-label="Secciones"
-            className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden"
+            className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden print:hidden"
           >
             {items.map((item) => {
               const active = item.href === current;
@@ -155,7 +159,7 @@ export function WorkspaceShell({
           </nav>
         )}
 
-        <main id="contenido" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <main id="contenido" className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:p-0">
           <FeedbackProvider>{children}</FeedbackProvider>
         </main>
       </div>

@@ -1,21 +1,31 @@
 "use client";
 
+import { ArrowRight, Utensils } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { PortalMeDto } from "@nutreitor/shared";
+import {
+  dayMacros,
+  macroCoverage,
+  mealsForDate,
+  normalizeMealPlanBody,
+  type MealPlanBody,
+  type PlanMeal,
+  type PortalMeDto,
+} from "@nutreitor/shared";
 
-import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading } from "@/components/ui";
+import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, buttonClass } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
-import { PlanView } from "@/components/patients/meal-plan-panel";
 import { PortalAppointments } from "./portal-appointments";
 import { PortalAssistant } from "./portal-assistant";
 
 const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("es-AR");
 
 /**
- * Portal del paciente (solo su propia ficha). Lectura del plan + evolución +
- * profesionales + datos de salud propios. Auto-reporte de mediciones si está
- * habilitado. NUNCA muestra las notas clínicas del profesional.
+ * Portal del paciente (sólo su propia ficha), pensado primero para el celular. Arriba
+ * lo que se usa todos los días: lo que le toca comer HOY y su próximo turno; después
+ * la evolución y sus datos de salud. El plan completo (imprimible) vive en /app/plan.
+ * NUNCA muestra las notas clínicas del profesional.
  */
 export function PortalView() {
   const [me, setMe] = useState<PortalMeDto | null>(null);
@@ -60,16 +70,9 @@ export function PortalView() {
         </p>
       )}
 
-      <PortalAppointments />
+      <TodayMeals plan={me.plan} />
 
-      <Card>
-        <SectionHeading className="mb-4">Tu plan</SectionHeading>
-        {me.plan ? (
-          <PlanView plan={me.plan} />
-        ) : (
-          <EmptyState>Todavía no tenés un plan activo.</EmptyState>
-        )}
-      </Card>
+      <PortalAppointments />
 
       <Card>
         <SectionHeading className="mb-4">Tu evolución</SectionHeading>
@@ -114,6 +117,78 @@ export function PortalView() {
         <PortalAssistant hasAssignedProfessional={me.hasAssignedProfessional} />
       )}
     </div>
+  );
+}
+
+/** "Lo que te toca hoy": las comidas del plan activo para la fecha de hoy. */
+function TodayMeals({ plan }: { plan: PortalMeDto["plan"] }) {
+  const today = new Date();
+  const label = today.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  if (!plan) {
+    return (
+      <Card>
+        <SectionHeading className="mb-3">Lo que te toca hoy</SectionHeading>
+        <EmptyState>Todavía no tenés un plan activo. Tu profesional lo va a cargar pronto.</EmptyState>
+      </Card>
+    );
+  }
+  const body = normalizeMealPlanBody(plan.body) as MealPlanBody;
+  const meals = mealsForDate(body, today);
+  // Sólo un total COMPLETO: con items sin macros, la suma parcial informaría mal.
+  const total = macroCoverage({ meals }).complete ? dayMacros({ meals }) : null;
+  return (
+    <Card>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <SectionHeading>Lo que te toca hoy</SectionHeading>
+          <p className="mt-1 text-sm text-stone-600">{label.charAt(0).toUpperCase() + label.slice(1)}</p>
+        </div>
+        {total?.kcal != null && (
+          <span className="text-sm text-stone-600">{Math.round(total.kcal)} kcal en el día</span>
+        )}
+      </div>
+      {meals.length === 0 ? (
+        <EmptyState>Tu plan no tiene comidas cargadas para hoy.</EmptyState>
+      ) : (
+        <ol className="space-y-3">
+          {meals.map((m, i) => (
+            <TodayMeal key={i} meal={m} />
+          ))}
+        </ol>
+      )}
+      <Link href="/app/plan" className={buttonClass("secondary", "sm", "mt-5")}>
+        Ver el plan completo <ArrowRight className="h-4 w-4" aria-hidden />
+      </Link>
+    </Card>
+  );
+}
+
+function TodayMeal({ meal }: { meal: PlanMeal }) {
+  return (
+    <li className="flex gap-3">
+      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+        <Utensils className="h-4 w-4" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="font-medium text-stone-900">
+          {meal.name}
+          {meal.time && <span className="ml-2 text-sm font-normal text-stone-500">{meal.time}</span>}
+        </p>
+        <ul className="mt-0.5 text-sm text-stone-700">
+          {meal.items.map((it, j) => (
+            <li key={j}>
+              {it.qty != null && (
+                <span className="text-stone-500">
+                  {it.qty}
+                  {it.unit ? ` ${it.unit}` : ""}{" "}
+                </span>
+              )}
+              {it.text}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </li>
   );
 }
 

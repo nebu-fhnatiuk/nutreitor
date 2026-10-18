@@ -102,3 +102,13 @@ user). Endpoints (`apps/api/src/modules/portal/`):
   profesional.
 - `POST /portal/me/metrics` (capacidad `portal:self_report`): auto-reporte de una
   métrica sobre su propia ficha (queda marcada como originada por el paciente).
+
+**En la UI del portal** (`/app`, pensado primero para el celular) lo primero es **lo
+que le toca comer hoy**: las comidas del plan activo para la fecha (`mealsForDate`:
+día-tipo → siempre las mismas; semanal → las del día de la semana), después su
+próximo turno, la evolución y sus datos de salud. El plan completo está en
+`/app/plan`, listo para **imprimir o guardar como PDF** (al imprimir se oculta la
+navegación). El paciente sólo ve un total de calorías/macros cuando **todos** los
+items del día los tienen (`macroCoverage`), y nunca el desvío contra el objetivo:
+eso es una herramienta del profesional, que ve el total como "parcial" si faltan
+datos.

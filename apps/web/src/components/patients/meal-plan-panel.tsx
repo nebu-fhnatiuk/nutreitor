@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   dayMacros,
+  macroCoverage,
   macrosForGrams,
   normalizeMealPlanBody,
   sumMacros,
@@ -196,7 +197,16 @@ export function MealPlanPanel({
   );
 }
 
-export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boolean }) {
+export function PlanView({
+  plan,
+  compact,
+  forPatient = false,
+}: {
+  plan: MealPlanDto;
+  compact?: boolean;
+  /** Vista del paciente: sin desvíos contra el objetivo y sin totales parciales. */
+  forPatient?: boolean;
+}) {
   const start = fmtDate(plan.startDate);
   // Blindaje: normaliza por las dudas (body legacy o mal formado) antes de render.
   // La API ya normaliza, pero el read-path no debe romper ante cualquier shape.
@@ -278,7 +288,7 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
                 </div>
               );
             })}
-            <DayTotals meals={g.meals} targets={body.targets} />
+            <DayTotals meals={g.meals} targets={body.targets} forPatient={forPatient} />
           </div>
         ))}
         {plan.body.generalNotes && (
@@ -297,10 +307,24 @@ export function PlanView({ plan, compact }: { plan: MealPlanDto; compact?: boole
 /**
  * Total del día contra el objetivo del plan. Se marca el desvío de kcal y de cada
  * macro: ±10% está bien, más que eso se resalta. No se muestra si nada tiene macros.
+ * Si hay items sin macros el total es PARCIAL: se dice así y sin desvíos (un "−87 %"
+ * por datos faltantes alarma sin motivo). El paciente sólo ve el total completo,
+ * nunca el desvío (es una herramienta del profesional).
  */
-function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) {
+function DayTotals({
+  meals,
+  targets,
+  forPatient = false,
+}: {
+  meals: PlanMeal[];
+  targets?: Macros;
+  forPatient?: boolean;
+}) {
   const total = dayMacros({ meals });
   if (!total) return null;
+  const coverage = macroCoverage({ meals });
+  if (forPatient && !coverage.complete) return null;
+  const showTargets = !forPatient && coverage.complete;
   const keys: [keyof Macros, string, string][] = [
     ["kcal", "kcal", ""],
     ["protein_g", "P", " g"],
@@ -309,17 +333,19 @@ function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) 
   ];
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg bg-stone-50 px-3 py-2 text-xs">
-      <span className="font-semibold uppercase tracking-widest text-stone-500">Total del día</span>
+      <span className="font-semibold uppercase tracking-widest text-stone-500">
+        {coverage.complete ? "Total del día" : "Total parcial"}
+      </span>
       {keys.map(([k, label, unit]) => {
         const v = total[k];
         if (v == null) return null;
-        const dev = targetDeviation(v, targets?.[k]);
+        const dev = showTargets ? targetDeviation(v, targets?.[k]) : null;
         const off = dev != null && Math.abs(dev) > 10;
         return (
           <span key={k} className={off ? "font-medium text-amber-700" : "text-stone-600"}>
             {label} {round(v)}
             {unit}
-            {targets?.[k] != null && (
+            {showTargets && targets?.[k] != null && (
               <span className="text-stone-500">
                 {" "}
                 / {round(targets[k]!)}
@@ -330,6 +356,11 @@ function DayTotals({ meals, targets }: { meals: PlanMeal[]; targets?: Macros }) 
           </span>
         );
       })}
+      {!coverage.complete && (
+        <span className="text-stone-500">
+          ({coverage.withKcal} de {coverage.items} ítems con macros)
+        </span>
+      )}
     </div>
   );
 }
