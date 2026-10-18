@@ -1,0 +1,208 @@
+{
+  "_doc": "Recetario de referencia global (ADR 0019). Ingredientes del catálogo por `slug` (foods-ar.curation.json) con gramos de la receta entera; `servings` = porciones que rinde. BORRADOR: ingredientes, gramos y porciones a validar con criterio profesional. El agua y la sal no se cargan (no aportan macros). Se compila con scripts/build-recipe-library.ts.",
+  "recipes": [
+    {
+      "slug": "tarta-de-acelga",
+      "name": "Tarta de acelga y ricota",
+      "category": "Platos principales",
+      "servings": 6,
+      "ingredients": [
+        { "slug": "harina-de-trigo", "grams": 250 },
+        { "slug": "aceite-de-girasol", "grams": 40 },
+        { "slug": "acelga-cocida", "grams": 500 },
+        { "slug": "ricota", "grams": 250 },
+        { "slug": "huevo-entero", "grams": 150 },
+        { "slug": "cebolla-cruda", "grams": 110 },
+        { "slug": "queso-rallado", "grams": 30 }
+      ],
+      "steps": "Masa con la harina, el aceite y agua; estirar y forrar la tartera. Rehogar la cebolla, sumar la acelga escurrida, la ricota, los huevos y el queso. Rellenar y hornear 35 minutos a 180 °C."
+    },
+    {
+      "slug": "guiso-de-lentejas",
+      "name": "Guiso de lentejas con vegetales",
+      "category": "Platos principales",
+      "servings": 4,
+      "ingredients": [
+        { "slug": "lentejas-cocidas", "grams": 600 },
+        { "slug": "carne-picada-especial", "grams": 200 },
+        { "slug": "zanahoria-cruda", "grams": 120 },
+        { "slug": "cebolla-cruda", "grams": 110 },
+        { "slug": "morron-rojo", "grams": 120 },
+        { "slug": "zapallo-cocido", "grams": 300 },
+        { "slug": "pure-de-tomate", "grams": 250 },
+        { "slug": "aceite-de-oliva", "grams": 15 }
+      ],
+      "steps": "Rehogar cebolla, morrón y zanahoria en el aceite. Dorar la carne, sumar el puré de tomate, el zapallo en cubos y las lentejas. Cocinar 20 minutos a fuego bajo."
+    },
+    {
+      "slug": "pollo-al-horno-con-calabaza",
+      "name": "Pollo al horno con calabaza y batata",
+      "category": "Platos principales",
+      "servings": 4,
+      "ingredients": [
+        { "slug": "pechuga-pollo-cocida", "grams": 600 },
+        { "slug": "zapallo-cocido", "grams": 400 },
+        { "slug": "batata-hervida", "grams": 400 },
+        { "slug": "cebolla-cruda", "grams": 110 },
+        { "slug": "aceite-de-oliva", "grams": 20 }
+      ],
+      "steps": "Cortar la calabaza, la batata y la cebolla en trozos. Disponer con el pollo en una fuente, rociar con el aceite y hornear 45 minutos a 200 °C."
+    },
+    {
+      "slug": "merluza-con-pure-mixto",
+      "name": "Merluza al horno con puré mixto",
+      "category": "Platos principales",
+      "servings": 2,
+      "ingredients": [
+        { "slug": "merluza-cocida", "grams": 260 },
+        { "slug": "papa-hervida", "grams": 200 },
+        { "slug": "zapallo-cocido", "grams": 200 },
+        { "slug": "leche-descremada", "grams": 50 },
+        { "slug": "aceite-de-oliva", "grams": 10 },
+        { "slug": "limon", "grams": 15 }
+      ],
+      "steps": "Hornear los filetes con limón y aceite 15 minutos. Pisar la papa y el zapallo con la leche."
+    },
+    {
+      "slug": "fideos-con-salsa-y-carne",
+      "name": "Fideos con salsa de tomate y carne",
+      "category": "Platos principales",
+      "servings": 4,
+      "ingredients": [
+        { "slug": "fideos-cocidos", "grams": 800 },
+        { "slug": "carne-picada-especial", "grams": 300 },
+        { "slug": "pure-de-tomate", "grams": 400 },
+        { "slug": "cebolla-cruda", "grams": 110 },
+        { "slug": "aceite-de-oliva", "grams": 15 },
+        { "slug": "queso-rallado", "grams": 20 }
+      ],
+      "steps": "Rehogar la cebolla, dorar la carne y sumar el puré de tomate; cocinar 15 minutos. Servir sobre los fideos con el queso rallado."
+    },
+    {
+      "slug": "wok-de-pollo-y-vegetales",
+      "name": "Wok de pollo, vegetales y arroz integral",
+      "category": "Platos principales",
+      "servings": 3,
+      "ingredients": [
+        { "slug": "pechuga-pollo-cocida", "grams": 360 },
+        { "slug": "arroz-integral-cocido", "grams": 450 },
+        { "slug": "brocoli-cocido", "grams": 200 },
+        { "slug": "morron-rojo", "grams": 120 },
+        { "slug": "zanahoria-cruda", "grams": 120 },
+        { "slug": "champinones", "grams": 150 },
+        { "slug": "aceite-de-girasol", "grams": 15 }
+      ],
+      "steps": "Saltear el pollo en tiras con el aceite, sumar los vegetales en juliana y cocinar a fuego fuerte 5 minutos. Servir con el arroz."
+    },
+    {
+      "slug": "ensalada-completa-con-atun",
+      "name": "Ensalada completa con atún y huevo",
+      "category": "Ensaladas",
+      "servings": 2,
+      "ingredients": [
+        { "slug": "lechuga", "grams": 100 },
+        { "slug": "tomate-crudo", "grams": 250 },
+        { "slug": "zanahoria-cruda", "grams": 120 },
+        { "slug": "atun-al-agua", "grams": 120 },
+        { "slug": "huevo-duro", "grams": 100 },
+        { "slug": "choclo-cocido", "grams": 100 },
+        { "slug": "aceite-de-oliva", "grams": 15 }
+      ],
+      "steps": "Combinar los vegetales cortados con el atún escurrido, el huevo y el choclo. Condimentar con aceite y limón o vinagre."
+    },
+    {
+      "slug": "ensalada-de-quinoa-y-garbanzos",
+      "name": "Ensalada de quinoa, garbanzos y palta",
+      "category": "Ensaladas",
+      "servings": 2,
+      "ingredients": [
+        { "slug": "quinoa-cocida", "grams": 300 },
+        { "slug": "garbanzos-cocidos", "grams": 200 },
+        { "slug": "tomate-crudo", "grams": 150 },
+        { "slug": "pepino", "grams": 100 },
+        { "slug": "palta", "grams": 100 },
+        { "slug": "aceite-de-oliva", "grams": 10 },
+        { "slug": "limon", "grams": 15 }
+      ],
+      "steps": "Mezclar la quinoa y los garbanzos con los vegetales en cubos y la palta. Condimentar con aceite y limón."
+    },
+    {
+      "slug": "omelette-de-espinaca",
+      "name": "Omelette de espinaca y queso",
+      "category": "Desayunos y meriendas",
+      "servings": 1,
+      "ingredients": [
+        { "slug": "huevo-entero", "grams": 100 },
+        { "slug": "espinaca-cocida", "grams": 90 },
+        { "slug": "queso-cremoso", "grams": 30 },
+        { "slug": "aceite-de-oliva", "grams": 5 }
+      ],
+      "steps": "Batir los huevos, sumar la espinaca escurrida y cocinar en sartén con el aceite. Agregar el queso, doblar y servir."
+    },
+    {
+      "slug": "avena-cocida-con-banana",
+      "name": "Avena cocida con banana y canela",
+      "category": "Desayunos y meriendas",
+      "servings": 1,
+      "ingredients": [
+        { "slug": "avena-arrollada", "grams": 40 },
+        { "slug": "leche-descremada", "grams": 200 },
+        { "slug": "banana", "grams": 118 },
+        { "slug": "semillas-de-chia", "grams": 10 }
+      ],
+      "steps": "Cocinar la avena en la leche 5 minutos revolviendo. Servir con la banana en rodajas, la chía y canela a gusto."
+    },
+    {
+      "slug": "yogur-con-frutas-y-granola",
+      "name": "Yogur con frutas y frutos secos",
+      "category": "Desayunos y meriendas",
+      "servings": 1,
+      "ingredients": [
+        { "slug": "yogur-descremado-natural", "grams": 190 },
+        { "slug": "frutillas", "grams": 100 },
+        { "slug": "avena-arrollada", "grams": 20 },
+        { "slug": "nueces", "grams": 15 },
+        { "slug": "miel", "grams": 7 }
+      ],
+      "steps": "Servir el yogur con las frutillas, la avena, las nueces picadas y la miel."
+    },
+    {
+      "slug": "tostadas-con-palta-y-huevo",
+      "name": "Tostadas integrales con palta y huevo",
+      "category": "Desayunos y meriendas",
+      "servings": 1,
+      "ingredients": [
+        { "slug": "pan-integral", "grams": 56 },
+        { "slug": "palta", "grams": 50 },
+        { "slug": "huevo-entero", "grams": 50 },
+        { "slug": "tomate-crudo", "grams": 60 }
+      ],
+      "steps": "Tostar el pan, untar con la palta pisada y sumar el huevo a la plancha y rodajas de tomate."
+    },
+    {
+      "slug": "licuado-de-banana",
+      "name": "Licuado de banana y avena",
+      "category": "Bebidas",
+      "servings": 1,
+      "ingredients": [
+        { "slug": "leche-descremada", "grams": 250 },
+        { "slug": "banana", "grams": 118 },
+        { "slug": "avena-arrollada", "grams": 15 }
+      ],
+      "steps": "Licuar todo con hielo a gusto."
+    },
+    {
+      "slug": "hummus-con-bastones",
+      "name": "Hummus con bastones de vegetales",
+      "category": "Colaciones",
+      "servings": 2,
+      "ingredients": [
+        { "slug": "hummus", "grams": 100 },
+        { "slug": "zanahoria-cruda", "grams": 120 },
+        { "slug": "pepino", "grams": 100 },
+        { "slug": "morron-rojo", "grams": 80 }
+      ],
+      "steps": "Cortar los vegetales en bastones y servir con el hummus."
+    }
+  ]
+}

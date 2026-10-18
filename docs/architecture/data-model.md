@@ -39,10 +39,13 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `agent_consents` | Tenant-scoped (RLS) | `tenant_id` | Consentimiento del paciente para asistentes del portal (versión + fecha). |
 | `org_modules` | Tenant-scoped (RLS) | `tenant_id` | Complementos instalables por org (entitlements). Una fila por `(tenant, module)`; `status` active/inactive, `plan`, `terms_version`. Gatea features vía `ModuleGuard`. |
 | `food_catalog` | **Global (sin RLS), sólo lectura** | — | Catálogo de referencia nutricional: valores por 100 g de USDA FoodData Central (CC0) + curado AR (nombre local, grupo, medidas caseras). Sin tenant ni PHI. El rol app sólo tiene `SELECT`; se carga por seed. Ver ADR 0018. |
+| `recipe_library` | **Global (sin RLS), sólo lectura** | — | Recetario de referencia (ADR 0019): ingredientes del catálogo **por `slug`** (los ids del catálogo cambian entre bases), porciones que rinde y pasos. Sin nutrientes guardados: se calculan al servir. Se carga por migración generada. |
+| `tenant_recipes` | Tenant-scoped (RLS) | `tenant_id` | Recetas propias del consultorio: ingredientes del catálogo (por `slug`) o propios (por `id`). Sin `DELETE`: se archivan. |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
-> Las tablas globales son **dos**: `users` (identidad, ADR 0003) y `food_catalog`
-> (referencia nutricional de sólo lectura, ADR 0018). Todo lo demás está aislado por
+> Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
+> (referencia nutricional, ADR 0018) y `recipe_library` (recetario de referencia,
+> ADR 0019); las dos últimas de sólo lectura para el rol app. Todo lo demás está aislado por
 > tenant. El test `rls-catalog.e2e.spec.ts` lo verifica recorriendo el catálogo de
 > Postgres: una tabla global nueva tiene que declararse ahí con su justificación.
 >
@@ -59,9 +62,9 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 
 - `audit_log`, `patient_notes`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
-- `food_catalog`: **sólo `SELECT`** → referencia global; se carga por seed con el
-  owner, el runtime no la puede modificar.
-- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`: `SELECT` + `INSERT` + `UPDATE`,
+- `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
+  cargan por migración con el owner, el runtime no las puede modificar.
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`: `SELECT` + `INSERT` + `UPDATE`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -108,6 +111,7 @@ erDiagram
   organizations ||--o{ agent_consents         : "scopes"
   organizations ||--o{ org_modules            : "installs"
   organizations ||--o{ tenant_foods           : "owns"
+  organizations ||--o{ tenant_recipes         : "owns"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -123,6 +127,7 @@ erDiagram
   memberships ||--o{ availability_rules      : "defines"
   memberships ||--o{ appointments            : "attends"
   memberships ||--o{ tenant_foods            : "creates"
+  memberships ||--o{ tenant_recipes          : "creates"
 
   patients ||--o{ care_assignments : "cared by"
   patients ||--o{ patient_notes    : "has"
@@ -412,6 +417,29 @@ erDiagram
     numeric carbs_g
     numeric fat_g
     jsonb portions
+    uuid created_by_membership_id FK
+    timestamptz archived_at "baja lógica"
+  }
+
+  recipe_library {
+    uuid id PK
+    text slug UK
+    text name
+    text category
+    int servings
+    jsonb ingredients "[{kind:catalog, slug, grams}]"
+    text steps
+  }
+
+  tenant_recipes {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    text name
+    text category
+    int servings
+    jsonb ingredients "catalog por slug | tenant por id"
+    text steps
     uuid created_by_membership_id FK
     timestamptz archived_at "baja lógica"
   }

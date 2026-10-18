@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { foodCatalog, tenantFoods, type TenantTx } from "@nutreitor/db";
+import { foodCatalog, recipeLibrary, tenantFoods, tenantRecipes, type TenantTx } from "@nutreitor/db";
 import type {
   FoodDto,
   FoodNutrients,
@@ -7,12 +7,13 @@ import type {
   FoodSource,
   TenantFoodDto,
 } from "@nutreitor/shared";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
 import { resolvePatientAccess } from "../patients/patient-access.js";
+import { computeRecipes, type ComputedRecipe } from "./recipe-nutrition.js";
 
 type CatalogRow = typeof foodCatalog.$inferSelect;
 type TenantRow = typeof tenantFoods.$inferSelect;
@@ -43,6 +44,10 @@ export class FoodsService {
           select 'catalog' as source, id, name from food_catalog
           union all
           select 'tenant' as source, id, name from tenant_foods where archived_at is null
+          union all
+          select 'library' as source, id, name from recipe_library
+          union all
+          select 'recipe' as source, id, name from tenant_recipes where archived_at is null
         ), scored as (
           select source, id, name,
             immutable_unaccent(lower(name)) as norm,
@@ -56,7 +61,7 @@ export class FoodsService {
           (norm like immutable_unaccent(lower(${term})) || '%') desc,
           (norm like '%' || immutable_unaccent(lower(${term})) || '%') desc,
           similarity(norm, nq) desc,
-          (source = 'tenant') desc,
+          (source in ('tenant', 'recipe')) desc,
           name
         limit ${limit}`);
       const hits = res.rows as { source: FoodSource; id: string }[];
@@ -157,6 +162,20 @@ export class FoodsService {
     const byKey = new Map<string, FoodDto>();
     for (const r of catalogRows) byKey.set(`catalog:${r.id}`, fromCatalog(r));
     for (const r of tenantRows) byKey.set(`tenant:${r.id}`, fromTenant(r));
+
+    // Recetas (ADR 0019): misma forma que un alimento, nutrientes calculados.
+    const libraryIds = hits.filter((h) => h.source === "library" && isUuid(h.id)).map((h) => h.id);
+    const recipeIds = hits.filter((h) => h.source === "recipe" && isUuid(h.id)).map((h) => h.id);
+    const [libraryRows, recipeRows] = await Promise.all([
+      libraryIds.length ? tx.select().from(recipeLibrary).where(inArray(recipeLibrary.id, libraryIds)) : [],
+      recipeIds.length ? tx.select().from(tenantRecipes).where(inArray(tenantRecipes.id, recipeIds)) : [],
+    ]);
+    const recipes = [
+      ...libraryRows.map((r) => ({ row: r, source: "library" as const, archived: false })),
+      ...recipeRows.map((r) => ({ row: r, source: "recipe" as const, archived: r.archivedAt !== null })),
+    ];
+    const computed = await computeRecipes(tx, recipes.map((r) => r.row));
+    recipes.forEach((r, i) => byKey.set(`${r.source}:${r.row.id}`, recipeToFood(r, computed[i]!)));
     return hits.map((h) => byKey.get(`${h.source}:${h.id}`)).filter((f): f is FoodDto => !!f);
   }
 }
@@ -218,5 +237,25 @@ function toColumns(dto: TenantFoodDto) {
     satFatG: s(dto.satFatG),
     sodiumMg: s(dto.sodiumMg),
     portions: dto.portions,
+  };
+}
+
+/** Una receta servida como alimento: "1 porción" = peso total ÷ porciones. */
+export function recipeToFood(
+  r: { row: { id: string; name: string; category: string; servings: number }; source: "recipe" | "library"; archived: boolean },
+  c: ComputedRecipe,
+): FoodDto {
+  const portion = c.totalGrams > 0 ? Math.round((c.totalGrams / r.row.servings) * 10) / 10 : 0;
+  return {
+    id: r.row.id,
+    source: r.source,
+    name: r.row.name,
+    group: r.row.category,
+    per100g: c.per100g,
+    portions: portion > 0 ? [{ label: "1 porción", grams: portion }] : [],
+    extra: {},
+    attribution: c.ingredients.some((i) => i.kind === "catalog") ? "USDA FoodData Central" : null,
+    archived: r.archived,
+    recipe: { servings: r.row.servings, totalGrams: c.totalGrams, missingIngredients: c.missingIngredients },
   };
 }

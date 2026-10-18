@@ -28,10 +28,13 @@ function requireEnv(name: string): string {
  *   gateado por `memberships`, que sí está bajo RLS. Ver ADR 0003.
  * - food_catalog: catálogo de referencia nutricional (USDA + curado AR), sin tenant
  *   ni PHI. El runtime sólo lo lee; se carga por seed. Ver ADR 0018.
+ * - recipe_library: recetario de referencia (ingredientes del catálogo por slug), sin
+ *   tenant ni PHI. El runtime sólo lo lee; se carga por migración. Ver ADR 0019.
  */
 const GLOBAL_TABLE_RULES: Record<string, { readOnly: boolean }> = {
   users: { readOnly: false },
   food_catalog: { readOnly: true },
+  recipe_library: { readOnly: true },
 };
 const GLOBAL_TABLES = new Set(Object.keys(GLOBAL_TABLE_RULES));
 
