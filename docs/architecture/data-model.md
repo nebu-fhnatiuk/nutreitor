@@ -41,6 +41,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `food_catalog` | **Global (sin RLS), sólo lectura** | — | Catálogo de referencia nutricional: valores por 100 g de USDA FoodData Central (CC0) + curado AR (nombre local, grupo, medidas caseras). Sin tenant ni PHI. El rol app sólo tiene `SELECT`; se carga por seed. Ver ADR 0018. |
 | `recipe_library` | **Global (sin RLS), sólo lectura** | — | Recetario de referencia (ADR 0019): ingredientes del catálogo **por `slug`** (los ids del catálogo cambian entre bases), porciones que rinde y pasos. Sin nutrientes guardados: se calculan al servir. Se carga por migración generada. |
 | `tenant_recipes` | Tenant-scoped (RLS) | `tenant_id` | Recetas propias del consultorio: ingredientes del catálogo (por `slug`) o propios (por `id`). Sin `DELETE`: se archivan. |
+| `plan_templates` | Tenant-scoped (RLS) | `tenant_id` | Plantillas de planes del consultorio: `body` con la misma forma que `meal_plans.body`, sin datos del paciente. Se usan como punto de partida al crear o revisar un plan. Sin `DELETE`: se archivan. |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
 > Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
@@ -64,7 +65,7 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
-- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`: `SELECT` + `INSERT` + `UPDATE`,
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`: `SELECT` + `INSERT` + `UPDATE`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -112,6 +113,7 @@ erDiagram
   organizations ||--o{ org_modules            : "installs"
   organizations ||--o{ tenant_foods           : "owns"
   organizations ||--o{ tenant_recipes         : "owns"
+  organizations ||--o{ plan_templates         : "owns"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -128,6 +130,7 @@ erDiagram
   memberships ||--o{ appointments            : "attends"
   memberships ||--o{ tenant_foods            : "creates"
   memberships ||--o{ tenant_recipes          : "creates"
+  memberships ||--o{ plan_templates          : "creates"
 
   patients ||--o{ care_assignments : "cared by"
   patients ||--o{ patient_notes    : "has"
@@ -429,6 +432,17 @@ erDiagram
     int servings
     jsonb ingredients "[{kind:catalog, slug, grams}]"
     text steps
+  }
+
+  plan_templates {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    text name
+    text description
+    jsonb body "forma de meal_plans.body"
+    uuid created_by_membership_id FK
+    timestamptz archived_at "baja lógica"
   }
 
   tenant_recipes {

@@ -1,5 +1,6 @@
 "use client";
 
+import { LayoutTemplate } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   dayMacros,
@@ -17,12 +18,13 @@ import {
   type MealPlanBody,
   type MealPlanDto,
   type PlanMeal,
+  type PlanTemplateDto,
   type Weekday,
 } from "@nutreitor/shared";
 
 import { api, errorMessage } from "@/lib/api";
 import { FoodPicker } from "./food-picker";
-import { useFeedback } from "@/components/ui";
+import { Alert, Button, Input, Label, Modal, useFeedback } from "@/components/ui";
 
 const inputCls =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
@@ -561,6 +563,14 @@ function PlanEditor({
   const [week, setWeek] = useState<Record<Weekday, PlanMeal[]>>(model.week);
   const [activeDay, setActiveDay] = useState<Weekday>("mon");
   const [targets, setTargets] = useState<Macros>(initial?.body.targets ?? {});
+  const { confirm, toast } = useFeedback();
+  const [templates, setTemplates] = useState<PlanTemplateDto[]>([]);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  useEffect(() => {
+    api<PlanTemplateDto[]>("plan-templates")
+      .then(setTemplates)
+      .catch(() => setTemplates([]));
+  }, []);
   const [generalNotes, setGeneralNotes] = useState(initial?.body.generalNotes ?? "");
   const [busy, setBusy] = useState(false);
 
@@ -585,25 +595,51 @@ function PlanEditor({
     setLayout(next);
   }
 
+  /** Cuerpo del plan a partir del estado del editor (lo usan guardar y plantilla). */
+  function buildBody(): MealPlanBody {
+    const targetsClean = hasMacros(targets) ? { targets: cleanMacros(targets)! } : {};
+    const notesClean = generalNotes.trim() ? { generalNotes: generalNotes.trim() } : {};
+    if (layout === "day") {
+      const day: DayPlan = { meals: dayMeals.map(cleanMeal).filter(nonEmptyMeal) };
+      return { layout: "day", day, ...targetsClean, ...notesClean };
+    }
+    const days: Partial<Record<Weekday, DayPlan>> = {};
+    for (const d of weekdays) {
+      const cleaned = (week[d] ?? []).map(cleanMeal).filter(nonEmptyMeal);
+      if (cleaned.length) days[d] = { meals: cleaned };
+    }
+    return { layout: "week", days, ...targetsClean, ...notesClean };
+  }
+
+  /** Carga una plantilla en el editor (reemplaza lo cargado, previa confirmación). */
+  async function applyTemplate(t: PlanTemplateDto) {
+    const hasAnything = hasContent(dayMeals) || weekdays.some((d) => hasContent(week[d] ?? []));
+    if (
+      hasAnything &&
+      !(await confirm({
+        title: `¿Cargar la plantilla "${t.name}"?`,
+        body: "Reemplaza las comidas, el objetivo y las notas que tenés cargados en el editor.",
+        confirmLabel: "Cargar plantilla",
+      }))
+    ) {
+      return;
+    }
+    const next = initialEditorState({ body: t.body } as MealPlanDto);
+    setLayout(next.layout);
+    setDayMeals(next.dayMeals);
+    setWeek(next.week);
+    setActiveDay("mon");
+    setTargets(t.body.targets ?? {});
+    setGeneralNotes(t.body.generalNotes ?? "");
+    toast(`Plantilla "${t.name}" cargada: ajustala al paciente`);
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     onError("");
     try {
-      const targetsClean = hasMacros(targets) ? { targets: cleanMacros(targets)! } : {};
-      const notesClean = generalNotes.trim() ? { generalNotes: generalNotes.trim() } : {};
-      let body: MealPlanBody;
-      if (layout === "day") {
-        const day: DayPlan = { meals: dayMeals.map(cleanMeal).filter(nonEmptyMeal) };
-        body = { layout: "day", day, ...targetsClean, ...notesClean };
-      } else {
-        const days: Partial<Record<Weekday, DayPlan>> = {};
-        for (const d of weekdays) {
-          const cleaned = (week[d] ?? []).map(cleanMeal).filter(nonEmptyMeal);
-          if (cleaned.length) days[d] = { meals: cleaned };
-        }
-        body = { layout: "week", days, ...targetsClean, ...notesClean };
-      }
+      const body = buildBody();
       await api(`patients/${patientId}/plans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -627,6 +663,27 @@ function PlanEditor({
         <p className="rounded-lg bg-stone-100 px-3 py-2 text-xs text-stone-500">
           Guardar crea la versión v{initial.version + 1}; la actual queda en el historial.
         </p>
+      )}
+      {templates.length > 0 && (
+        <label className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-2">
+          <LayoutTemplate className="h-4 w-4 text-stone-500" aria-hidden />
+          <span className="text-sm text-stone-600">Empezar desde una plantilla</span>
+          <select
+            value=""
+            onChange={(e) => {
+              const t = templates.find((x) => x.id === e.target.value);
+              if (t) void applyTemplate(t);
+            }}
+            className={`${narrowCls} min-w-[12rem] flex-1`}
+          >
+            <option value="">Elegir…</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
@@ -706,8 +763,94 @@ function PlanEditor({
         <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2.5 text-sm text-stone-500 transition hover:bg-stone-100">
           Cancelar
         </button>
+        <button
+          type="button"
+          onClick={() => setSavingTemplate(true)}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm text-stone-600 transition hover:bg-stone-100"
+        >
+          <LayoutTemplate className="h-4 w-4" aria-hidden />
+          Guardar como plantilla
+        </button>
       </div>
+      <SaveTemplateDialog
+        open={savingTemplate}
+        defaultName={title}
+        onClose={() => setSavingTemplate(false)}
+        onSave={async (name, description) => {
+          await api<PlanTemplateDto>("plan-templates", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, description: description || null, body: buildBody() }),
+          });
+          setSavingTemplate(false);
+          toast("Plantilla guardada: ya la podés usar con otros pacientes");
+          api<PlanTemplateDto[]>("plan-templates").then(setTemplates).catch(() => {});
+        }}
+      />
     </form>
+  );
+}
+
+/** Nombre y descripción para guardar el plan del editor como plantilla. */
+function SaveTemplateDialog({
+  open,
+  defaultName,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  defaultName: string;
+  onClose: () => void;
+  onSave: (name: string, description: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(defaultName);
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) {
+      setName(defaultName);
+      setDescription("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+  return (
+    <Modal open={open} onClose={onClose} title="Guardar como plantilla">
+      <p className="mb-4 text-sm text-stone-600">
+        Guarda las comidas, el objetivo y las notas (no los datos del paciente) para usarlos
+        como punto de partida con otros pacientes.
+      </p>
+      {error && <Alert className="mb-3">{error}</Alert>}
+      <div className="space-y-3">
+        <Label label="Nombre de la plantilla">
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Label>
+        <Label label="Descripción (opcional)" hint="Ej.: hipocalórico 1800 kcal, sin lácteos">
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Label>
+      </div>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          disabled={busy || !name.trim()}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              await onSave(name.trim(), description.trim());
+            } catch (e) {
+              setError(errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Guardando…" : "Guardar plantilla"}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
