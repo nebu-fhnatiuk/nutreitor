@@ -490,7 +490,11 @@ erDiagram
   `food?` — todo opcional. `food` vincula el item con la base de alimentos (ADR 0018):
   `{ source, id, grams, portion?, count?, portions?, per100g, attribution? }`. Guarda
   una **copia** de los nutrientes por 100 g, y los `macros` del item son el cálculo
-  sobre esa copia: corregir el catálogo no altera versiones ya guardadas. Las macros se cargan por item; los totales por comida/día se
+  sobre esa copia: corregir el catálogo no altera versiones ya guardadas. Guarda
+  también el `group` del alimento y, si es una receta, el desglose `ingredients`
+  (`{ name, group, gramsPer100g }`): la lista de compras agrupa por góndola y
+  expande las recetas en sus ingredientes sin consultar la receta (el paciente no
+  tiene permiso para leerlas). Las macros se cargan por item; los totales por comida/día se
   **derivan en la UI** (única fuente = items). `targets` (objetivo del plan) sí se
   guarda. El stripping/normalización de bodies legacy (anteriores al `layout`) lo
   hace `normalizeMealPlanBody` (shared); la migración `0021` envolvió las filas

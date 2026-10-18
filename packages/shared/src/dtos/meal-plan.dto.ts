@@ -56,6 +56,23 @@ const foodRefSchema = z.object({
   }),
   /** Atribución de la fuente del dato ("USDA FoodData Central"); null en propios. */
   attribution: z.string().max(80).nullish(),
+  /** Grupo del alimento ("Verduras"): agrupa la lista de compras por góndola. */
+  group: z.string().max(60).optional(),
+  /**
+   * Sólo recetas: copia del desglose de ingredientes por cada 100 g de receta. La
+   * lista de compras lo expande (no se compra "3 kg de guiso": se compran lentejas,
+   * zapallo…). El paciente no lee recetas, así que tiene que viajar en el plan.
+   */
+  ingredients: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(200),
+        group: z.string().max(60).optional(),
+        gramsPer100g: z.number().min(0).max(100),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 export type FoodRef = z.infer<typeof foodRefSchema>;
 
@@ -251,4 +268,82 @@ export interface PlanTemplateDto {
   authorName: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Lista de compras (Fase 4.2) ──────────────────────────────────────────────
+
+export interface ShoppingItem {
+  name: string;
+  /** Gramos de la semana (items vinculados a un alimento). */
+  grams?: number;
+  /** Veces que aparece en la semana (items de texto libre, sin cantidad calculable). */
+  times?: number;
+}
+export interface ShoppingGroup {
+  group: string;
+  items: ShoppingItem[];
+}
+
+const SHOPPING_OTHER = "Otros";
+const SHOPPING_FREE = "A criterio (sin cantidad calculada)";
+
+/**
+ * Lista de compras de UNA SEMANA del plan. Día-tipo: sus comidas × 7. Semanal: la
+ * suma de los días cargados. Los items vinculados a un alimento suman gramos
+ * exactos (por grupo, para recorrer el súper por góndola); los de texto libre se
+ * listan aparte con cuántas veces aparecen. Las alternativas no se suman: son
+ * opciones, no compras adicionales.
+ */
+export function shoppingList(body: MealPlanBody): ShoppingGroup[] {
+  const days: { meals: PlanMeal[]; times: number }[] =
+    body.layout === "day"
+      ? [{ meals: body.day.meals, times: 7 }]
+      : weekdays.filter((d) => body.days[d]).map((d) => ({ meals: body.days[d]!.meals, times: 1 }));
+
+  const linked = new Map<string, { group: string; name: string; grams: number }>();
+  const free = new Map<string, { name: string; times: number }>();
+  for (const { meals, times } of days) {
+    for (const it of meals.flatMap((m) => m.items)) {
+      if (it.food?.ingredients?.length) {
+        // Receta: se compran sus ingredientes, no "la receta".
+        for (const ing of it.food.ingredients) {
+          const key = `ing:${ing.name.toLowerCase()}`;
+          const prev = linked.get(key) ?? { group: ing.group ?? SHOPPING_OTHER, name: ing.name, grams: 0 };
+          prev.grams += ((it.food.grams * ing.gramsPer100g) / 100) * times;
+          linked.set(key, prev);
+        }
+      } else if (it.food) {
+        const key = `${it.food.source}:${it.food.id}`;
+        const prev = linked.get(key) ?? { group: it.food.group ?? SHOPPING_OTHER, name: it.text, grams: 0 };
+        prev.grams += it.food.grams * times;
+        linked.set(key, prev);
+      } else {
+        const key = it.text.trim().toLowerCase();
+        if (!key) continue;
+        const prev = free.get(key) ?? { name: it.text.trim(), times: 0 };
+        prev.times += times;
+        free.set(key, prev);
+      }
+    }
+  }
+
+  const groups = new Map<string, ShoppingItem[]>();
+  for (const v of linked.values()) {
+    groups.set(v.group, [...(groups.get(v.group) ?? []), { name: v.name, grams: Math.round(v.grams) }]);
+  }
+  const out: ShoppingGroup[] = [...groups.entries()]
+    .sort(([a], [b]) => (a === SHOPPING_OTHER ? 1 : b === SHOPPING_OTHER ? -1 : a.localeCompare(b, "es")))
+    .map(([group, items]) => ({ group, items: items.sort((a, b) => a.name.localeCompare(b.name, "es")) }));
+  if (free.size) {
+    out.push({
+      group: SHOPPING_FREE,
+      items: [...free.values()].sort((a, b) => a.name.localeCompare(b.name, "es")),
+    });
+  }
+  return out;
+}
+
+/** "1,2 kg" o "350 g". */
+export function fmtGrams(g: number): string {
+  return g >= 1000 ? `${(g / 1000).toLocaleString("es-AR", { maximumFractionDigits: 1 })} kg` : `${Math.round(g)} g`;
 }

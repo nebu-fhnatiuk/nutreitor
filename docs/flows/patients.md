@@ -109,6 +109,13 @@ datos del paciente) a nivel consultorio; al crear o revisar un plan, "Empezar de
 una plantilla" las carga en el editor para ajustarlas. Las comparten todos los
 profesionales del consultorio; se archivan, no se borran.
 
+**Lista de compras** (`shoppingList` en shared, sin backend): una semana del plan
+(día-tipo × 7; semanal, la suma de los días cargados), agrupada por grupo de
+alimento. Los items vinculados suman gramos exactos; una **receta se expande en sus
+ingredientes** (desglose copiado en el item); los de texto libre se listan aparte con
+cuántas veces aparecen; las alternativas no se suman. La ven el paciente
+(`/app/compras`, imprimible) y el profesional (botón en la pestaña Plan).
+
 **En la UI del portal** (`/app`, pensado primero para el celular) lo primero es **lo
 que le toca comer hoy**: las comidas del plan activo para la fecha (`mealsForDate`:
 día-tipo → siempre las mismas; semanal → las del día de la semana), después su

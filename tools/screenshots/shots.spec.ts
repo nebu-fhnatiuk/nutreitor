@@ -43,6 +43,7 @@ const ROLES = {
     pages: [
       ["portal", "/app"],
       ["plan", "/app/plan"],
+      ["compras", "/app/compras"],
     ],
   },
 } as const;

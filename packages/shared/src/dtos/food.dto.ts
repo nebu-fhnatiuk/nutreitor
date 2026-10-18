@@ -45,7 +45,13 @@ export interface FoodDto {
   attribution: string | null;
   archived: boolean;
   /** Sólo en recetas: rinde, peso total e ingredientes que ya no existen. */
-  recipe?: { servings: number; totalGrams: number; missingIngredients: number };
+  recipe?: {
+    servings: number;
+    totalGrams: number;
+    missingIngredients: number;
+    /** Desglose por cada 100 g de receta (la lista de compras lo expande). */
+    ingredients: { name: string; group: string; gramsPer100g: number }[];
+  };
 }
 
 const grams = z.number().min(0).max(100);

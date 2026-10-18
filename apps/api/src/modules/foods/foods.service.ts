@@ -257,6 +257,17 @@ export function recipeToFood(
     extra: {},
     attribution: c.ingredients.some((i) => i.kind === "catalog") ? "USDA FoodData Central" : null,
     archived: r.archived,
-    recipe: { servings: r.row.servings, totalGrams: c.totalGrams, missingIngredients: c.missingIngredients },
+    recipe: {
+      servings: r.row.servings,
+      totalGrams: c.totalGrams,
+      missingIngredients: c.missingIngredients,
+      ingredients: c.ingredients
+        .filter((i) => i.name !== null && c.totalGrams > 0)
+        .map((i) => ({
+          name: i.name!,
+          group: i.group ?? "Otros",
+          gramsPer100g: Math.round((i.grams / c.totalGrams) * 100 * 100) / 100,
+        })),
+    },
   };
 }
