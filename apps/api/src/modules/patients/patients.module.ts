@@ -4,6 +4,8 @@ import { AuthModule } from "../../core/auth/auth.module.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import { MealPlansController } from "./meal-plans.controller.js";
 import { MealPlansService } from "./meal-plans.service.js";
+import { AdherenceController } from "./adherence.controller.js";
+import { AdherenceService } from "./adherence.service.js";
 import { MetricsController } from "./metrics.controller.js";
 import { MetricsService } from "./metrics.service.js";
 import { PatientNotesService } from "./patient-notes.service.js";
@@ -14,7 +16,13 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
 
 @Module({
   imports: [AuthModule],
-  controllers: [PatientsController, MetricsController, MealPlansController, PlanTemplatesController],
+  controllers: [
+    PatientsController,
+    MetricsController,
+    MealPlansController,
+    PlanTemplatesController,
+    AdherenceController,
+  ],
   providers: [
     PatientsService,
     CareAssignmentsService,
@@ -22,6 +30,8 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     MetricsService,
     MealPlansService,
     PlanTemplatesService,
+    AdherenceService,
   ],
+  exports: [AdherenceService],
 })
 export class PatientsModule {}

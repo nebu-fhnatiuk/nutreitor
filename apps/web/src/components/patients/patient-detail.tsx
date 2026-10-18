@@ -19,6 +19,7 @@ import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
 import { MemberSelect } from "./member-select";
+import { AdherencePanel } from "./adherence-panel";
 import { MetricsPanel } from "./metrics-panel";
 
 const SEX_LABEL: Record<string, string> = {
@@ -220,7 +221,12 @@ export function PatientDetail({
           />
         )}
         {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />}
-        {tab === "evolucion" && <MetricsPanel patientId={p.id} canRecord={canRecord} />}
+        {tab === "evolucion" && (
+          <div className="space-y-6">
+            <AdherencePanel patientId={p.id} />
+            <MetricsPanel patientId={p.id} canRecord={canRecord} />
+          </div>
+        )}
         {tab === "ficha" && (
           <div className="space-y-6">
             {editing ? (

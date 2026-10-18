@@ -42,6 +42,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `recipe_library` | **Global (sin RLS), sólo lectura** | — | Recetario de referencia (ADR 0019): ingredientes del catálogo **por `slug`** (los ids del catálogo cambian entre bases), porciones que rinde y pasos. Sin nutrientes guardados: se calculan al servir. Se carga por migración generada. |
 | `tenant_recipes` | Tenant-scoped (RLS) | `tenant_id` | Recetas propias del consultorio: ingredientes del catálogo (por `slug`) o propios (por `id`). Sin `DELETE`: se archivan. |
 | `plan_templates` | Tenant-scoped (RLS) | `tenant_id` | Plantillas de planes del consultorio: `body` con la misma forma que `meal_plans.body`, sin datos del paciente. Se usan como punto de partida al crear o revisar un plan. Sin `DELETE`: se archivan. |
+| `adherence_meal_logs` | Tenant-scoped (RLS) | `tenant_id` | Adherencia por comida que registra el paciente: (paciente, fecha, comida) único, `status` done/partial/skipped, nota, `plan_id` de la versión vigente (SET NULL). Se corrige con upsert; sin `DELETE`. |
+| `adherence_checkins` | Tenant-scoped (RLS) | `tenant_id` | Cómo se sintió el paciente en el día: hambre/energía/ánimo 1–5 (CHECK) + nota; (paciente, fecha) único, upsert, sin `DELETE`. |
 | `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
 
 > Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
@@ -67,7 +69,7 @@ Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
-- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`: `SELECT` + `INSERT` + `UPDATE`,
+- `care_assignments`, `meal_plans`, `appointments`, `tenant_foods`, `tenant_recipes`, `plan_templates`, `adherence_meal_logs`, `adherence_checkins`: `SELECT` + `INSERT` + `UPDATE`,
   **sin `DELETE`** → la historia no se borra (una asignación se *cierra*, un plan se
   *supersede*, una cita se *cancela*).
 - `patient_metrics`, `patients`, `memberships`, `availability_rules`, etc.: DML
@@ -116,6 +118,8 @@ erDiagram
   organizations ||--o{ tenant_foods           : "owns"
   organizations ||--o{ tenant_recipes         : "owns"
   organizations ||--o{ plan_templates         : "owns"
+  organizations ||--o{ adherence_meal_logs    : "scopes"
+  organizations ||--o{ adherence_checkins     : "scopes"
 
   users ||--o{ memberships     : "is member via"
   users ||--o{ refresh_tokens  : "owns session"
@@ -138,6 +142,9 @@ erDiagram
   patients ||--o{ patient_notes    : "has"
   patients ||--o{ patient_metrics  : "has"
   patients ||--o{ meal_plans       : "has"
+  patients ||--o{ adherence_meal_logs : "logs"
+  patients ||--o{ adherence_checkins  : "checks in"
+  meal_plans |o--o{ adherence_meal_logs : "version (SET NULL)"
   patients ||--o{ appointments     : "books"
   patients ||--o{ agent_conversations : "subject of"
   patients ||--o{ agent_consents      : "consents"
@@ -434,6 +441,30 @@ erDiagram
     int servings
     jsonb ingredients "[{kind:catalog, slug, grams}]"
     text steps
+  }
+
+  adherence_meal_logs {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid patient_id FK
+    date date "local del paciente"
+    text meal_name "UQ con patient_id + date"
+    adherence_status status "done | partial | skipped"
+    text note
+    uuid plan_id FK "versión vigente (SET NULL)"
+  }
+
+  adherence_checkins {
+    uuid id PK
+    uuid tenant_id FK
+    region region
+    uuid patient_id FK
+    date date "UQ con patient_id"
+    smallint hunger "1-5"
+    smallint energy "1-5"
+    smallint mood "1-5"
+    text note
   }
 
   plan_templates {
