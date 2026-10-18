@@ -1,12 +1,15 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from "@nestjs/common";
 import {
   agentChatSchema,
+  planDraftRequestSchema,
   portalAgentChatSchema,
   type AgentChatDto,
   type AgentChatResponse,
   type AgentConsentDto,
   type AgentConversationDetailDto,
   type AgentConversationSummaryDto,
+  type PlanDraftDto,
+  type PlanDraftRequestDto,
   type PortalAgentChatDto,
 } from "@nutreitor/shared";
 
@@ -35,6 +38,15 @@ export class AgentsController {
     @Body(new ZodValidationPipe(agentChatSchema)) dto: AgentChatDto,
   ): Promise<AgentChatResponse> {
     return this.agents.chat(dto);
+  }
+
+  /** NUTRI arma un borrador de plan (día tipo) para revisar en el editor. */
+  @Post("plan-draft")
+  @RequireCapability("agent:use", "plan:write")
+  planDraft(
+    @Body(new ZodValidationPipe(planDraftRequestSchema)) dto: PlanDraftRequestDto,
+  ): Promise<PlanDraftDto> {
+    return this.agents.planDraft(dto);
   }
 
   /** Charlas del paciente con los asistentes del portal (para el profesional asignado). */

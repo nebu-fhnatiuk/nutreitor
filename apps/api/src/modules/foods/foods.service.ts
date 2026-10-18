@@ -163,6 +163,19 @@ export class FoodsService {
     });
   }
 
+  /** Alimentos del catálogo por slug (estable entre bases), para resolver propuestas. */
+  async catalogBySlugs(slugs: string[]): Promise<Map<string, FoodDto>> {
+    if (!slugs.length) return new Map();
+    return this.tenantDb.run(async (tx) => {
+      const rows = await tx
+        .select({ id: foodCatalog.id })
+        .from(foodCatalog)
+        .where(inArray(foodCatalog.slug, slugs));
+      const foods = await this.load(tx, rows.map((r) => ({ source: "catalog" as const, id: r.id })));
+      return new Map(foods.map((f) => [f.slug!, f]));
+    });
+  }
+
   // ── helpers ───────────────────────────────────────────────────────────────
 
   private async requireMembership(tx: TenantTx): Promise<string> {

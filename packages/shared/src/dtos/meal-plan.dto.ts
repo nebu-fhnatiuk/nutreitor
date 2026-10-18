@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { FoodDto } from "./food.dto.js";
+
 /**
  * Documento del plan alimentario, flexible por ESTILO de trabajo del profesional.
  * Dos ejes que se combinan:
@@ -13,7 +15,7 @@ import { z } from "zod";
  */
 
 /** Macros opcionales (P/C/G + kcal). Cada uno opcional. */
-const macrosSchema = z.object({
+export const macrosSchema = z.object({
   protein_g: z.number().min(0).max(2000).optional(),
   carbs_g: z.number().min(0).max(2000).optional(),
   fat_g: z.number().min(0).max(2000).optional(),
@@ -177,6 +179,31 @@ export interface MealPlanDto {
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Macros de `grams` de un alimento a partir de sus valores por 100 g. */
+/**
+ * Vínculo de un item con un alimento de la base (ADR 0018): copia de nutrientes,
+ * medidas y grupo. Sin `grams`, arranca en 1 medida casera (o 100 g); con `grams`,
+ * la cantidad va en gramos (intercambios, borradores de NUTRI).
+ */
+export function foodRefFor(f: FoodDto, grams?: number): FoodRef {
+  const portion = grams === undefined ? f.portions[0] : undefined;
+  return {
+    source: f.source,
+    id: f.id,
+    grams: grams ?? (portion ? portion.grams : 100),
+    ...(portion ? { portion, count: 1 } : {}),
+    ...(f.portions.length ? { portions: f.portions.slice(0, 10) } : {}),
+    per100g: {
+      kcal: f.per100g.energyKcal,
+      protein_g: f.per100g.proteinG,
+      carbs_g: f.per100g.carbsG,
+      fat_g: f.per100g.fatG,
+    },
+    attribution: f.attribution,
+    group: f.group,
+    ...(f.recipe?.ingredients.length ? { ingredients: f.recipe.ingredients } : {}),
+  };
+}
+
 export function macrosForGrams(per100g: FoodRef["per100g"], grams: number): Macros {
   const f = grams / 100;
   return {

@@ -219,7 +219,7 @@ export function PatientDetail({
             onGo={setTab}
           />
         )}
-        {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} />}
+        {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />}
         {tab === "evolucion" && <MetricsPanel patientId={p.id} canRecord={canRecord} />}
         {tab === "ficha" && (
           <div className="space-y-6">

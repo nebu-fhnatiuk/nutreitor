@@ -53,6 +53,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 > Las tablas `agent_*` las escribe el **servicio Python** con un rol propio
 > `nutreitor_agents` (sin `BYPASSRLS`, igual que `nutreitor_app`), bajo las mismas
 > policies de RLS. Ver flujo [`../flows/agents.md`](../flows/agents.md) y ADRs 0013–0015.
+> Además lee `food_catalog` (sólo `SELECT`, dato de referencia) para el borrador de
+> plan de NUTRI (ADR 0020).
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
 > demás tablas referencian su `id` como `tenant_id` / `organization_id`.
 

@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -14,7 +15,13 @@ import {
   type AgentConsentDto,
   type AgentConversationDetailDto,
   type AgentConversationSummaryDto,
+  type MealPlanBody,
+  normalizeMealPlanBody,
+  planDraftProposalSchema,
+  type PlanDraftDto,
+  type PlanDraftRequestDto,
   type PortalAgentChatDto,
+  resolvePlanDraft,
 } from "@nutreitor/shared";
 import {
   agentConsents,
@@ -22,6 +29,7 @@ import {
   agentMessages,
   agentRuns,
   careAssignments,
+  mealPlans,
   patients,
   type TenantTx,
 } from "@nutreitor/db";
@@ -35,6 +43,7 @@ import {
   assertCanAccessPatient,
   resolvePatientAccess,
 } from "../patients/patient-access.js";
+import { FoodsService } from "../foods/foods.service.js";
 import { checkAgentBudget, loadAgentUsage } from "./agent-budget.js";
 
 /**
@@ -50,6 +59,7 @@ export class AgentsService {
   constructor(
     @Inject(APP_ENV) private readonly env: ApiEnv,
     private readonly tenantDb: TenantDbService,
+    private readonly foods: FoodsService,
   ) {}
 
   // ── PROFESIONAL: NUTRI ─────────────────────────────────────────────────────
@@ -70,6 +80,51 @@ export class AgentsService {
       conversationId: dto.conversationId ?? null,
       message: dto.message,
     });
+  }
+
+  /**
+   * Borrador de plan (ADR 0020): NUTRI propone slugs del catálogo + gramos; acá se
+   * valida (es salida de un modelo), se resuelve contra el catálogo y se calculan
+   * los macros. No se guarda nada del plan: el editor lo abre para revisar.
+   */
+  async planDraft(dto: PlanDraftRequestDto): Promise<PlanDraftDto> {
+    const targets = await this.tenantDb.run(async (tx) => {
+      const access = await resolvePatientAccess(tx);
+      await assertCanAccessPatient(tx, dto.patientId, access);
+      if (dto.targets && Object.values(dto.targets).some((v) => v != null)) return dto.targets;
+      const [plan] = await tx
+        .select({ body: mealPlans.body })
+        .from(mealPlans)
+        .where(and(eq(mealPlans.patientId, dto.patientId), eq(mealPlans.status, "active")))
+        .limit(1);
+      return plan ? (normalizeMealPlanBody(plan.body) as MealPlanBody).targets : undefined;
+    });
+    await this.assertWithinBudget();
+    const res = await this.post<{
+      conversationId: string;
+      model: string;
+      status: "ok" | "error";
+      proposal: unknown;
+    }>("/plan-draft", {
+      patientId: dto.patientId,
+      targets: targets ?? null,
+      instructions: dto.instructions ?? null,
+    });
+    if (res.status !== "ok") {
+      throw new ServiceUnavailableException("NUTRI no pudo armar el borrador. Probá de nuevo en un rato.");
+    }
+    const proposal = planDraftProposalSchema.safeParse(res.proposal);
+    if (!proposal.success) throw new BadGatewayException("NUTRI devolvió un borrador inválido.");
+    const slugs = [...new Set(proposal.data.meals.flatMap((m) => m.items.map((i) => i.slug)))];
+    const catalog = await this.foods.catalogBySlugs(slugs);
+    const { body, unresolved } = resolvePlanDraft(proposal.data, catalog, targets);
+    return {
+      conversationId: res.conversationId,
+      model: res.model,
+      body,
+      notes: proposal.data.notes,
+      unresolved,
+    };
   }
 
   // ── PACIENTE: CHEF / PSICO ──────────────────────────────────────────────────
@@ -267,13 +322,18 @@ export class AgentsService {
     }
   }
 
-  /** Firma el contexto de tenant y reenvía al servicio Python. */
-  private async forward(payload: {
+  /** Reenvía un chat al servicio Python. */
+  private forward(payload: {
     agent: string;
     patientId: string | null;
     conversationId: string | null;
     message: string;
   }): Promise<AgentChatResponse> {
+    return this.post<AgentChatResponse>("/chat", payload);
+  }
+
+  /** Firma el contexto de tenant y hace el POST al servicio Python. */
+  private async post<T>(path: string, payload: unknown): Promise<T> {
     const ctx = getTenantContext();
     const { user } = getAuth();
     // Se firma SIEMPRE con el primary (primer secreto de la lista de rotación).
@@ -289,7 +349,7 @@ export class AgentsService {
 
     let res: Response;
     try {
-      res = await fetch(`${this.env.AGENTS_SERVICE_URL}/chat`, {
+      res = await fetch(`${this.env.AGENTS_SERVICE_URL}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-agent-context": token },
         body: JSON.stringify(payload),
@@ -302,6 +362,6 @@ export class AgentsService {
         `El servicio de agentes respondió ${res.status}.`,
       );
     }
-    return (await res.json()) as AgentChatResponse;
+    return (await res.json()) as T;
   }
 }
