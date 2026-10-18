@@ -61,7 +61,7 @@ export async function computeRecipes(
       totalGrams += ing.grams;
       if (!food) {
         missing++;
-        return { kind: ing.kind, ref, grams: ing.grams, name: null, portions: [] };
+        return { kind: ing.kind, ref, grams: ing.grams, name: null, portions: [], per100g: null };
       }
       const f = ing.grams / 100;
       for (const k of KEYS) {
@@ -69,7 +69,19 @@ export async function computeRecipes(
         if (v === null) continue;
         sums[k] = (sums[k] ?? 0) + Number(v) * f;
       }
-      return { kind: ing.kind, ref, grams: ing.grams, name: food.name, portions: food.portions };
+      return {
+        kind: ing.kind,
+        ref,
+        grams: ing.grams,
+        name: food.name,
+        portions: food.portions,
+        per100g: {
+          kcal: Number(food.energyKcal),
+          protein_g: Number(food.proteinG),
+          carbs_g: Number(food.carbsG),
+          fat_g: Number(food.fatG),
+        },
+      };
     });
 
     const scale = (factor: number): FoodNutrients => ({

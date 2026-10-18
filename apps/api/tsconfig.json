@@ -17,6 +17,12 @@
     "useDefineForClassFields": false,
     "strictPropertyInitialization": false
   },
+  // Sólo modo watch (dev): en colima/macOS el watcher nativo no ve los cambios del
+  // bind-mount (archivos nuevos), así que se usa polling. No afecta el build.
+  "watchOptions": {
+    "watchFile": "dynamicPriorityPolling",
+    "watchDirectory": "dynamicPriorityPolling"
+  },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }

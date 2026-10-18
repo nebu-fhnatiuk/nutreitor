@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookOpen,
   CalendarDays,
   ClipboardList,
   Globe,
@@ -40,6 +41,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/pro", label: "Hoy", icon: Sun },
     { href: "/pro/patients", label: "Pacientes", icon: Users },
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
+    { href: "/pro/recipes", label: "Recetas", icon: BookOpen },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
   ],
   patient: [

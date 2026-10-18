@@ -25,6 +25,7 @@ const ROLES = {
       ["ficha-notas", `/pro/patients/${PATIENT_ID}?tab=notas`],
       ["ficha-asistentes", `/pro/patients/${PATIENT_ID}?tab=asistentes`],
       ["agenda", "/pro/agenda"],
+      ["recetas", "/pro/recipes"],
       ["perfil", "/pro/profile"],
     ],
   },
