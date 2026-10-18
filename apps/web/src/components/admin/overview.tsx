@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AppointmentDto, InvitationDto, MemberDto, PatientDto } from "@nutreitor/shared";
 
 import { Alert, Card, EmptyState, SectionHeading, cn } from "@/components/ui";
+import { TeamEfficiency } from "@/components/efficiency";
 import { api } from "@/lib/api";
 import { fmtDayLong, fmtTime, groupByDay } from "@/lib/datetime";
 
@@ -57,6 +58,8 @@ export function AdminOverview() {
         <Stat icon={UsersRound} label="En el equipo" value={members && professionals.length} href="/admin/members" />
         <Stat icon={CalendarDays} label="Turnos esta semana" value={appts && appts.length} />
       </div>
+
+      <TeamEfficiency />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

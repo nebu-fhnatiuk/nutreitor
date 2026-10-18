@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { AppointmentDto, PatientDto } from "@nutreitor/shared";
 
 import { Alert, Card, EmptyState, SectionHeading, buttonClass } from "@/components/ui";
+import { MyEfficiency } from "@/components/efficiency";
 import { api } from "@/lib/api";
 import { fmtTime } from "@/lib/datetime";
 
@@ -51,6 +52,8 @@ export function ProToday() {
   return (
     <div className="space-y-6">
       {error && <Alert>{error}</Alert>}
+
+      <MyEfficiency />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <Card>

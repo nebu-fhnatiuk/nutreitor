@@ -24,6 +24,8 @@ import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
 import { assertCanAccessPatient, resolvePatientAccess } from "./patient-access.js";
 
+/** Tope de una sesión de armado: más es un editor olvidado abierto, no trabajo. */
+const MAX_EDIT_SECONDS = 2 * 3600;
 type MealPlanRow = typeof mealPlans.$inferSelect;
 
 /**
@@ -92,6 +94,8 @@ export class MealPlansService {
             title: dto.title,
             startDate: dto.startDate ?? null,
             body: dto.body,
+            editSeconds: dto.editSeconds != null ? Math.min(dto.editSeconds, MAX_EDIT_SECONDS) : null,
+            draftedFrom: dto.draftedFrom ?? null,
           })
           .returning();
       } catch (e) {
