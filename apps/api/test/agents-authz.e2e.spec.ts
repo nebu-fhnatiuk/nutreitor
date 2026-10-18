@@ -8,9 +8,11 @@ import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ApiEnv } from "../src/core/config/app-config.module.js";
+import { AuditService } from "../src/core/audit/audit.service.js";
 import { TenantDbService } from "../src/core/database/tenant-db.service.js";
 import { tenantStorage } from "../src/core/tenant/tenant-context.store.js";
 import { AgentsService } from "../src/modules/agents/agents.service.js";
+import { FoodsService } from "../src/modules/foods/foods.service.js";
 
 /**
  * Autorización del gateway de agentes: el contexto clínico de un agente sólo se arma
@@ -66,7 +68,8 @@ beforeAll(async () => {
   await runSeed(OWNER_URL);
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
   ({ db: ownerDb, pool: ownerPool } = createDb(OWNER_URL));
-  svc = new AgentsService(ENV_STUB, new TenantDbService(appDb));
+  const tenantDb = new TenantDbService(appDb);
+  svc = new AgentsService(ENV_STUB, tenantDb, new FoodsService(tenantDb, new AuditService()));
   // Idempotencia: arrancar SIN consentimiento del paciente (el rol app no borra).
   await ownerDb.delete(agentConsents).where(eq(agentConsents.patientId, D1_ASSIGNED));
 });
@@ -87,6 +90,12 @@ describe("Agentes — autorización del gateway", () => {
     await expect(
       asPro(() => svc.chat({ agent: "nutri", patientId: A1_OTHER_TENANT, message: "hola" })),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("borrador de plan: NO sale contexto de un paciente NO asignado ni de otro tenant → 404", async () => {
+    for (const patientId of [D2_UNASSIGNED, A1_OTHER_TENANT]) {
+      await expect(asPro(() => svc.planDraft({ patientId }))).rejects.toBeInstanceOf(NotFoundException);
+    }
   });
 
   it("el paciente NO puede usar los asistentes del portal sin consentimiento → Forbidden", async () => {

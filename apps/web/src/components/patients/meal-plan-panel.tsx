@@ -1,9 +1,10 @@
 "use client";
 
-import { LayoutTemplate, ShoppingCart } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { LayoutTemplate, ShoppingCart, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dayMacros,
+  foodRefFor,
   macroCoverage,
   macrosForGrams,
   normalizeMealPlanBody,
@@ -19,6 +20,7 @@ import {
   type MealPlanBody,
   type MealPlanDto,
   type PlanMeal,
+  type PlanDraftDto,
   type PlanTemplateDto,
   type Weekday,
 } from "@nutreitor/shared";
@@ -78,9 +80,12 @@ const qtyText = (it: { qty?: number; unit?: string }) =>
 export function MealPlanPanel({
   patientId,
   canWrite,
+  canUseAgent = false,
 }: {
   patientId: string;
   canWrite: boolean;
+  /** NUTRI instalado y permitido: habilita "Borrador con NUTRI" en el editor. */
+  canUseAgent?: boolean;
 }) {
   const [plans, setPlans] = useState<MealPlanDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +188,7 @@ export function MealPlanPanel({
           }}
           onError={setError}
           patientId={patientId}
+          canUseAgent={canUseAgent}
         />
       ) : active ? (
         <PlanView plan={active} />
@@ -565,12 +571,14 @@ function MealsEditor({
 function PlanEditor({
   initial,
   patientId,
+  canUseAgent,
   onCancel,
   onSaved,
   onError,
 }: {
   initial: MealPlanDto | null;
   patientId: string;
+  canUseAgent: boolean;
   onCancel: () => void;
   onSaved: () => void;
   onError: (e: string) => void;
@@ -586,6 +594,8 @@ function PlanEditor({
   const { confirm, toast } = useFeedback();
   const [templates, setTemplates] = useState<PlanTemplateDto[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draft, setDraft] = useState<Pick<PlanDraftDto, "notes" | "unresolved"> | null>(null);
   useEffect(() => {
     api<PlanTemplateDto[]>("plan-templates")
       .then(setTemplates)
@@ -631,11 +641,40 @@ function PlanEditor({
     return { layout: "week", days, ...targetsClean, ...notesClean };
   }
 
+  const editorHasContent = () => hasContent(dayMeals) || weekdays.some((d) => hasContent(week[d] ?? []));
+
+  /** Carga un cuerpo (plantilla o borrador) en el editor; las notas se conservan si no trae. */
+  function loadBody(body: MealPlanBody) {
+    const next = initialEditorState({ body } as MealPlanDto);
+    setLayout(next.layout);
+    setDayMeals(next.dayMeals);
+    setWeek(next.week);
+    setActiveDay("mon");
+    if (body.targets) setTargets(body.targets);
+    if (body.generalNotes) setGeneralNotes(body.generalNotes);
+  }
+
+  /** Borrador de NUTRI (ADR 0020): se abre en el editor sin guardar, para revisar. */
+  async function requestDraft(instructions: string) {
+    const res = await api<PlanDraftDto>("agents/plan-draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patientId,
+        ...(hasMacros(targets) ? { targets: cleanMacros(targets) } : {}),
+        ...(instructions ? { instructions } : {}),
+      }),
+    });
+    loadBody(res.body);
+    setDraft({ notes: res.notes, unresolved: res.unresolved });
+    setDraftOpen(false);
+    toast("Borrador de NUTRI cargado: revisalo antes de guardar");
+  }
+
   /** Carga una plantilla en el editor (reemplaza lo cargado, previa confirmación). */
   async function applyTemplate(t: PlanTemplateDto) {
-    const hasAnything = hasContent(dayMeals) || weekdays.some((d) => hasContent(week[d] ?? []));
     if (
-      hasAnything &&
+      editorHasContent() &&
       !(await confirm({
         title: `¿Cargar la plantilla "${t.name}"?`,
         body: "Reemplaza las comidas, el objetivo y las notas que tenés cargados en el editor.",
@@ -644,13 +683,10 @@ function PlanEditor({
     ) {
       return;
     }
-    const next = initialEditorState({ body: t.body } as MealPlanDto);
-    setLayout(next.layout);
-    setDayMeals(next.dayMeals);
-    setWeek(next.week);
-    setActiveDay("mon");
+    loadBody(t.body);
     setTargets(t.body.targets ?? {});
     setGeneralNotes(t.body.generalNotes ?? "");
+    setDraft(null);
     toast(`Plantilla "${t.name}" cargada: ajustala al paciente`);
   }
 
@@ -705,6 +741,42 @@ function PlanEditor({
           </select>
         </label>
       )}
+      {canUseAgent && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-2">
+          <Sparkles className="h-4 w-4 text-brand" aria-hidden />
+          <span className="flex-1 text-sm text-stone-600">
+            NUTRI arma un día tipo con el objetivo y las alergias de la ficha
+          </span>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              if (
+                editorHasContent() &&
+                !(await confirm({
+                  title: "¿Pedir un borrador a NUTRI?",
+                  body: "El borrador reemplaza las comidas que tenés cargadas en el editor.",
+                  confirmLabel: "Continuar",
+                }))
+              ) {
+                return;
+              }
+              setDraftOpen(true);
+            }}
+          >
+            Borrador con NUTRI
+          </Button>
+        </div>
+      )}
+      {draft && (
+        <Alert tone="info">
+          <strong className="font-medium">Borrador de NUTRI — revisalo antes de guardar.</strong>{" "}
+          {draft.notes}
+          {draft.unresolved.length > 0 && (
+            <> Se descartaron alimentos que no están en la base: {draft.unresolved.join(", ")}.</>
+          )}
+        </Alert>
+      )}
+      <PlanDraftDialog open={draftOpen} onClose={() => setDraftOpen(false)} onRequest={requestDraft} />
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-xs text-stone-500">Título</span>
@@ -812,6 +884,63 @@ function PlanEditor({
 }
 
 /** Nombre y descripción para guardar el plan del editor como plantilla. */
+function PlanDraftDialog({
+  open,
+  onClose,
+  onRequest,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onRequest: (instructions: string) => Promise<void>;
+}) {
+  const [instructions, setInstructions] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) setError(null);
+  }, [open]);
+  return (
+    <Modal open={open} onClose={onClose} title="Borrador con NUTRI">
+      <p className="mb-4 text-sm text-stone-600">
+        NUTRI propone un día tipo con alimentos de la base, usando el objetivo cargado en el
+        editor (o el del plan activo) y las alergias y preferencias de la ficha. Los macros
+        se calculan desde la base. Es un borrador: no se guarda hasta que lo revises.
+      </p>
+      {error && <Alert className="mb-3">{error}</Alert>}
+      <Label label="Indicaciones (opcional)" hint="Ej.: cena liviana, sin harinas a la noche, 5 comidas">
+        <textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          className={inputCls}
+        />
+      </Label>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              await onRequest(instructions.trim());
+            } catch (e) {
+              setError(errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Armando…" : "Armar borrador"}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 function SaveTemplateDialog({
   open,
   defaultName,
@@ -1050,8 +1179,7 @@ function ItemEditor({
 
 /** Vínculo de un intercambio: el alimento sugerido en los gramos que igualan las kcal. */
 function swapLink(s: FoodSwapDto): FoodRef {
-  const { portion: _p, count: _c, ...rest } = linkFood(s.food);
-  return { ...rest, grams: s.grams };
+  return foodRefFor(s.food, s.grams);
 }
 
 const signed = (n: number) => {
@@ -1124,25 +1252,7 @@ function SwapSuggestions({
 const portionUnit = (label: string) => label.replace(/^1\s+/, "");
 
 /** Vínculo inicial al elegir un alimento: 1 medida casera si tiene, si no 100 g. */
-function linkFood(f: FoodDto): FoodRef {
-  const portion = f.portions[0];
-  return {
-    source: f.source,
-    id: f.id,
-    grams: portion ? portion.grams : 100,
-    ...(portion ? { portion, count: 1 } : {}),
-    ...(f.portions.length ? { portions: f.portions.slice(0, 10) } : {}),
-    per100g: {
-      kcal: f.per100g.energyKcal,
-      protein_g: f.per100g.proteinG,
-      carbs_g: f.per100g.carbsG,
-      fat_g: f.per100g.fatG,
-    },
-    attribution: f.attribution,
-    group: f.group,
-    ...(f.recipe?.ingredients.length ? { ingredients: f.recipe.ingredients } : {}),
-  };
-}
+const linkFood = (f: FoodDto): FoodRef => foodRefFor(f);
 
 /** Patch del item para un vínculo: cantidad visible + macros calculados (copia). */
 function withFood(food: FoodRef): Partial<MealItem> {
@@ -1161,6 +1271,14 @@ function withFood(food: FoodRef): Partial<MealItem> {
  */
 function LinkedQuantity({ food, onChange }: { food: FoodRef; onChange: (f: FoodRef) => void }) {
   const qty = food.portion ? food.count ?? 1 : Math.round(food.grams);
+  // El texto del campo es local (para no pelear con lo que se tipea: "1," o vacío) y
+  // se re-sincroniza cuando la cantidad cambia desde afuera (intercambio, borrador de
+  // NUTRI, plantilla, cambio de unidad) mientras el campo no tiene el foco.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState(String(qty));
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) setText(String(qty));
+  }, [qty]);
   // Medidas disponibles: las copiadas al vincular (+ la elegida, por si es de un plan
   // guardado antes de que se copiaran todas).
   const options = [...(food.portions ?? [])];
@@ -1177,11 +1295,13 @@ function LinkedQuantity({ food, onChange }: { food: FoodRef; onChange: (f: FoodR
   return (
     <>
       <input
-        defaultValue={String(qty)}
-        // Remonta al cambiar de alimento o de unidad (input no controlado para no
-        // pelear con lo que se está tipeando).
-        key={`${food.source}:${food.id}:${food.portion?.label ?? "g"}`}
-        onChange={(e) => setQty(e.target.value)}
+        ref={inputRef}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setQty(e.target.value);
+        }}
+        onBlur={() => setText(String(qty))}
         inputMode="decimal"
         aria-label="Cantidad"
         className={`${narrowCls} w-16`}

@@ -77,6 +77,10 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
 - **PSICO**: contexto **MÍNIMO** (sólo nombre + objetivo general). NO recibe plan,
   alergias, métricas ni motivo crudo (minimización de datos; "a ratificar" en ADR 0015).
 
+- **NUTRI · borrador de plan** (`nutri_draft`): nombre, objetivo, **preferencias y
+  alergias** (para no proponer lo prohibido) y mediciones; además lee el **catálogo
+  de alimentos** (referencia, sin PHI).
+
 Cada agente declara una **allow-list** de campos (`_AGENT_CONTEXT_FIELDS` en el
 servicio): no se le inyecta el contexto crudo completo, sólo lo que su función necesita.
 
@@ -120,6 +124,33 @@ El **gateway** corta *antes* de egresar: si el tenant superó el **rate por minu
 (`AGENTS_MONTHLY_TOKEN_CAP`, 0 = sin límite), responde **429** y no sale nada. El uso
 se deriva del audit `agent_runs` (input+output tokens) leído bajo RLS.
 
+## Borrador de plan (NUTRI)
+
+Ver [ADR 0020](../decisions/0020-borrador-de-plan-nutri.md).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant P as Profesional
+  participant E as Editor del plan
+  participant G as Gateway Nest
+  participant A as Servicio de agentes
+  P->>E: "Borrador con NUTRI" (+ indicaciones)
+  E->>G: POST /agents/plan-draft {patientId, targets?, instructions?}
+  G->>G: acceso al paciente + tope · objetivo = editor o plan activo
+  G->>A: POST /plan-draft (contexto firmado)
+  A->>A: RLS · contexto nutri_draft · catálogo menos excluidos por alergias
+  A->>A: propone comidas → slug + gramos (stub | bedrock)
+  A-->>G: propuesta (+ conversación y run asentados)
+  G->>G: valida (Zod) · resuelve slugs en el catálogo · calcula macros
+  G-->>E: MealPlanBody + notas + slugs descartados
+  E->>P: borrador cargado SIN guardar → revisa → Guardar
+```
+
+- El modelo **nunca escribe valores nutricionales**: sólo elige alimentos y gramos.
+- Con el provider `stub` el armado es determinístico (día tipo base escalado a las
+  kcal objetivo, excluyendo por alergias/preferencias).
+
 ## Autorización y UI
 
 - **Módulo `agents` instalado** (entitlement por org, ADR 0016) — condición previa a
@@ -127,7 +158,7 @@ se deriva del audit `agent_runs` (input+output tokens) leído bajo RLS.
 - **`agent:use`** (admin + profesional) → NUTRI + supervisión de charlas del paciente.
 - **`portal:agent`** (paciente) → CHEF + PSICO sobre la propia ficha.
 - UI profesional: **dock flotante** ("✨ Asistentes") en la ficha con **NUTRI**
-  (borrador · revisá vos) + sección **"Charlas con asistentes"** (supervisión, con flag
+  (borrador · revisá vos), **"Borrador con NUTRI"** en el editor del plan + sección **"Charlas con asistentes"** (supervisión, con flag
   de crisis). UI paciente: dock en el portal con **CHEF / PSICO**, pantalla de
   consentimiento previa, y la respuesta de crisis resaltada con recursos.
 

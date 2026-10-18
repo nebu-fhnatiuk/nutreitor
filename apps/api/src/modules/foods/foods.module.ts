@@ -11,5 +11,6 @@ import { RecipesService } from "./recipes.service.js";
   imports: [AuthModule],
   controllers: [FoodsController, RecipesController],
   providers: [FoodsService, RecipesService],
+  exports: [FoodsService],
 })
 export class FoodsModule {}

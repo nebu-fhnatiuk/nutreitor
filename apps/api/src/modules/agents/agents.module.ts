@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../../core/auth/auth.module.js";
+import { FoodsModule } from "../foods/foods.module.js";
 import { AgentsController, PortalAgentsController } from "./agents.controller.js";
 import { AgentsService } from "./agents.service.js";
 
@@ -9,7 +10,7 @@ import { AgentsService } from "./agents.service.js";
  * inferencia y el acceso a datos (bajo RLS) viven en el servicio Python (ADR 0013).
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, FoodsModule],
   controllers: [AgentsController, PortalAgentsController],
   providers: [AgentsService],
 })

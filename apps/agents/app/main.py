@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from .context import verify_agent_context
 from .inference import INFERENCE_PROVIDER, infer
+from .plan_draft import load_catalog, propose
 
 DATABASE_AGENTS_URL = os.environ["DATABASE_AGENTS_URL"]
 
@@ -58,6 +59,12 @@ class ChatRequest(BaseModel):
     message: str
     patientId: str | None = None
     conversationId: str | None = None
+
+
+class PlanDraftRequest(BaseModel):
+    patientId: str
+    targets: dict | None = None
+    instructions: str | None = None
 
 
 @app.get("/health")
@@ -112,6 +119,52 @@ def chat(body: ChatRequest, x_agent_context: str | None = Header(default=None)) 
     }
 
 
+@app.post("/plan-draft")
+def plan_draft(body: PlanDraftRequest, x_agent_context: str | None = Header(default=None)) -> dict:
+    """NUTRI propone un día tipo (slugs del catálogo + gramos). La API lo resuelve
+    contra el catálogo y calcula los macros (ADR 0020). Mismo pipeline que /chat:
+    contexto firmado, RLS, tope, y queda asentado como conversación + run."""
+    ctx = verify_agent_context(x_agent_context or "", AGENTS_SHARED_SECRETS)
+    if ctx is None:
+        raise HTTPException(status_code=401, detail="Contexto inválido.")
+
+    started = time.monotonic()
+    with psycopg.connect(DATABASE_AGENTS_URL) as conn:
+        with conn.transaction():
+            with conn.cursor() as cur:
+                cur.execute(
+                    "select set_config('app.current_tenant_id', %s, true)",
+                    (ctx.tenant_id, ),
+                )
+                _check_budget(cur)
+                clinical = _load_clinical_context(cur, body.patientId, "nutri_draft")
+                if not clinical:
+                    # RLS: un paciente de otro tenant (o inexistente) no se ve.
+                    raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+                proposal, result = propose(
+                    clinical, load_catalog(cur), body.targets, body.instructions
+                )
+                latency_ms = int((time.monotonic() - started) * 1000)
+
+                conversation_id = _ensure_conversation(cur, ctx, "nutri", body.patientId, None)
+                ask = "Armá un borrador de plan (día tipo)."
+                if body.instructions:
+                    ask += f" Indicaciones: {body.instructions}"
+                _insert_message(cur, ctx, conversation_id, "user", ask)
+                _insert_message(
+                    cur, ctx, conversation_id, "assistant",
+                    (proposal or {}).get("notes") or "No pude armar el borrador.",
+                )
+                _insert_run(cur, ctx, conversation_id, "nutri", result, latency_ms)
+
+    return {
+        "conversationId": conversation_id,
+        "model": result.model,
+        "status": "error" if proposal is None else "ok",
+        "proposal": proposal,
+    }
+
+
 def _check_budget(cur) -> None:
     """Tope de uso por tenant (defensa en profundidad). Corre bajo RLS: `agent_runs`
     ya queda scopeado al tenant del contexto. 0 = sin límite."""
@@ -150,6 +203,9 @@ _AGENT_CONTEXT_FIELDS: dict[str, frozenset[str]] = {
     "chef": frozenset({"full_name", "dietary_preferences", "allergies", "plan_full"}),
     # PSICO habla con el PACIENTE: contexto MÍNIMO (ver nota "a ratificar").
     "psico": frozenset({"full_name", "goal"}),
+    # NUTRI armando un BORRADOR de plan (ADR 0020): necesita lo que el paciente NO
+    # puede o no quiere comer; el objetivo de macros lo manda el gateway.
+    "nutri_draft": frozenset({"full_name", "goal", "dietary_preferences", "allergies", "metrics"}),
 }
 _DEFAULT_CONTEXT_FIELDS = frozenset({"full_name"})
 
