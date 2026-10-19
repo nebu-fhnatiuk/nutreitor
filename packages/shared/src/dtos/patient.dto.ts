@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { anthroVisibilityFields, type AnthroVisibilityField } from "./anthropometry.dto.js";
+
 import type { CareAssignmentDto } from "./care-assignment.dto.js";
 import type { PatientNoteDto } from "./patient-note.dto.js";
 
@@ -112,11 +114,12 @@ export type ClinicalField = (typeof clinicalFields)[number];
 
 /** Qué campos clínicos ve el paciente en su portal. Ausente/false = oculto
  * (default conservador `{}`). El stripping lo aplica la API, nunca el front. */
-export type ClinicalVisibility = Partial<Record<ClinicalField, boolean>>;
+export type ClinicalVisibility = Partial<Record<ClinicalField | AnthroVisibilityField, boolean>>;
 
-/** Update de la visibilidad: subconjunto de campos → boolean. */
+/** Update de la visibilidad: subconjunto de campos → boolean. Incluye las claves de
+ * antropometría (ADR 0030), que viven en el mismo mapa. */
 export const updateClinicalVisibilitySchema = z.record(
-  z.enum(clinicalFields),
+  z.enum([...clinicalFields, ...anthroVisibilityFields]),
   z.boolean(),
 );
 export type UpdateClinicalVisibilityDto = z.infer<

@@ -22,6 +22,7 @@ import { MemberSelect } from "./member-select";
 import { PatientConversation } from "@/components/messages/conversations";
 import { ReportsPanel } from "@/components/reports/reports-panel";
 import { AdherencePanel } from "./adherence-panel";
+import { AnthropometryPanel } from "./anthropometry-panel";
 import { MetricsPanel } from "./metrics-panel";
 
 const SEX_LABEL: Record<string, string> = {
@@ -60,8 +61,8 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "evolucion" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "reportes", "ficha", "notas", "mensajes", "asistentes"];
+type TabId = "resumen" | "plan" | "evolucion" | "antropometria" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "evolucion", "antropometria", "reportes", "ficha", "notas", "mensajes", "asistentes"];
 
 /**
  * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
@@ -208,6 +209,7 @@ export function PatientDetail({
           { id: "resumen", label: "Resumen" },
           { id: "plan", label: "Plan" },
           { id: "evolucion", label: "Evolución" },
+          { id: "antropometria", label: "Antropometría" },
           { id: "reportes", label: "Reportes" },
           { id: "ficha", label: "Ficha clínica" },
           { id: "notas", label: "Notas", count: p.notes.length },
@@ -234,6 +236,17 @@ export function PatientDetail({
             <AdherencePanel patientId={p.id} />
             <MetricsPanel patientId={p.id} canRecord={canRecord} />
           </div>
+        )}
+        {tab === "antropometria" && (
+          <AnthropometryPanel
+            patientId={p.id}
+            sex={p.sex}
+            birthDate={p.birthDate}
+            canRecord={canRecord}
+            visibility={p.clinicalVisibility}
+            canEditVisibility={canEditVisibility}
+            onVisibilityChange={load}
+          />
         )}
         {tab === "reportes" && <ReportsPanel patientId={p.id} canWrite={canWritePlan} />}
         {tab === "ficha" && (

@@ -22,6 +22,7 @@ import {
   type SendMessageDto,
   type ThreadDto,
   type PatientMetricDto,
+  type PortalAnthropometryDto,
   type PortalMeDto,
   type RecordMetricDto,
 } from "@nutreitor/shared";
@@ -75,6 +76,13 @@ export class PortalController {
   @RequireCapability("portal:self_report")
   checkin(@Body(new ZodValidationPipe(checkinSchema)) dto: CheckinDto): Promise<CheckinRecordDto> {
     return this.adherence.checkin(dto);
+  }
+
+  /** Su antropometría: lo que el profesional marcó visible (ADR 0030). */
+  @Get("me/anthropometry")
+  @RequireCapability("portal:read")
+  myAnthropometry(): Promise<PortalAnthropometryDto[]> {
+    return this.portal.myAnthropometry();
   }
 
   /** Sus reportes mensuales PUBLICADOS. */
