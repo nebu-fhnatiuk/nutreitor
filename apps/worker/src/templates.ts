@@ -74,3 +74,13 @@ export function reportPublished(p: { patientName: string; month: string; orgName
       `cómo te fue con el plan, tu evolución y sus comentarios. Miralo en ${p.link}\n`,
   };
 }
+
+export function contactRequestReceived(p: { recipientName: string; orgName: string; link: string }): Rendered {
+  return {
+    subject: "Tenés una consulta nueva desde tu vidriera",
+    text:
+      `Hola ${firstName(p.recipientName)}:\n\n` +
+      `Alguien te escribió desde la vidriera de ${p.orgName}. Por privacidad no incluimos el mensaje en este email: ` +
+      `leelo y respondé en ${p.link}\n`,
+  };
+}

@@ -29,6 +29,8 @@ let workerPool: pg.Pool;
 let appointmentId: string;
 let conversationId: string;
 let reportId: string;
+let contactToPro: string;
+let contactToOrg: string;
 const now = new Date();
 const opts = (enqueue: (d: Delivery[]) => Promise<void> = async () => {}) => ({
   webUrlTemplate: "http://{slug}.localhost:3000",
@@ -84,6 +86,15 @@ beforeAll(async () => {
     values (${TENANT}, ${SEED.orgDemo.region}::region, ${D1}, '2026-07-01', 'published', '{}'::jsonb, ${PRO_MEMBERSHIP}, now()) returning id`);
   reportId = (rep.rows[0] as { id: string }).id;
 
+  // Solicitudes de contacto: una para el profesional y otra para el consultorio (ADR 0027).
+  await owner.execute(sql`delete from contact_requests where email = 'visitante@worker.test'`);
+  const cr = await owner.execute(sql`insert into contact_requests (tenant_id, region, membership_id, full_name, email, message, consent_at)
+    values (${TENANT}, ${SEED.orgDemo.region}::region, ${PRO_MEMBERSHIP}, 'Visitante', 'visitante@worker.test', ${SECRET_BODY}, now()),
+           (${TENANT}, ${SEED.orgDemo.region}::region, null, 'Visitante', 'visitante@worker.test', 'para el consultorio', now())
+    returning id, membership_id`);
+  contactToPro = (cr.rows as { id: string; membership_id: string | null }[]).find((r) => r.membership_id)!.id;
+  contactToOrg = (cr.rows as { id: string; membership_id: string | null }[]).find((r) => !r.membership_id)!.id;
+
   const today = now.toISOString().slice(0, 10);
   await owner.execute(sql`delete from adherence_meal_logs where patient_id = ${D1} and date = ${today}`);
   await owner.execute(sql`delete from notifications where kind = 'adherence_reminder' and ref_key = ${`${D1}:${today}`}`);
@@ -125,7 +136,29 @@ describe("Worker — generación", () => {
     expect(report).toMatchObject({ to: "patient@demo.test" });
     expect(report!.text).toContain(`/app/reportes/${reportId}`);
     // La admin no recibe avisos del chat clínico (ADR 0024).
-    expect(deliveries.some((d) => d.to === "admin@demo.test" && d.subject.startsWith("Tenés un mensaje"))).toBe(false);
+    // (Puede recibir los del canal profesional ↔ administración, que no son clínicos.)
+    expect(deliveries.some((d) => d.to === "admin@demo.test" && d.text.includes("Paciente Demo te escribió"))).toBe(false);
+  });
+
+  it("solicitud de contacto: avisa sólo a su destinatario y sin el contenido", async () => {
+    const subject = "Tenés una consulta nueva desde tu vidriera";
+    const toPro = deliveries.filter((d) => d.subject === subject && d.to === "pro@demo.test");
+    const toAdmin = deliveries.filter((d) => d.subject === subject && d.to === "admin@demo.test");
+    expect(toPro).toHaveLength(1);
+    expect(toPro[0]!.text).toContain("/pro/requests");
+    expect(toPro[0]!.text).not.toContain(SECRET_BODY);
+    // La admin recibe la del consultorio, no la que le escribieron al profesional.
+    expect(toAdmin).toHaveLength(1);
+    expect(toAdmin[0]!.text).toContain("/admin/requests");
+    const refs = await owner.execute(sql`select ref_key, recipient_email from notifications
+      where kind = 'contact_request' and ref_key in (${contactToPro}, ${contactToOrg})`);
+    expect(refs.rows).toEqual(
+      expect.arrayContaining([
+        { ref_key: contactToPro, recipient_email: "pro@demo.test" },
+        { ref_key: contactToOrg, recipient_email: "admin@demo.test" },
+      ]),
+    );
+    expect(refs.rows).toHaveLength(2);
   });
 
   it("es idempotente: un segundo escaneo no repite avisos", async () => {

@@ -31,6 +31,7 @@ export const capabilities = [
   "appointment:write",
   "agent:use",
   "message:send",
+  "contact:respond",
   "portal:read",
   "portal:self_report",
   "portal:book",
@@ -67,6 +68,9 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
     "appointment:write",
     "agent:use",
     "message:send",
+    // Responde las solicitudes de contacto dirigidas a él (aceptar crea la ficha
+    // asignada a él: es la única vía por la que un profesional da de alta, ADR 0027).
+    "contact:respond",
     "org:read",
     "professional:update_own_profile",
     // NO `patient:create` ni `patient:assign`: el ALTA y la asignación son del

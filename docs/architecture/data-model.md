@@ -30,6 +30,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
+| `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. Matrícula (`license_number`, `license_jurisdiction`, `license_status`, `license_note`): sólo `reviewed` es pública. El rol app no puede escribir `license_status`/`license_note` (GRANT por columna); el trigger `professional_profiles_license_reset` la devuelve a `declared` si cambia la matrícula. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
 | `availability_rules` | Tenant-scoped (RLS) | `tenant_id` | Disponibilidad semanal por `membership`, con huso IANA. |
@@ -111,6 +112,9 @@ entidades de control plane — todas las demás son tenant-scoped.
 erDiagram
   organizations ||--o{ memberships            : "has"
   organizations |o--o| org_signups            : "created from"
+  organizations ||--o{ contact_requests       : "scopes"
+  memberships   |o--o{ contact_requests       : "addressed to"
+  patients      |o--o| contact_requests       : "created from"
   organizations ||--o{ refresh_tokens         : "scopes"
   organizations ||--o{ invitations            : "issues"
   organizations ||--o{ patients               : "owns"
@@ -202,6 +206,22 @@ erDiagram
     text hashed_password
     text full_name
     boolean is_platform_admin
+    timestamptz created_at
+  }
+
+  contact_requests {
+    uuid id PK
+    uuid tenant_id FK
+    uuid membership_id FK "null = consultorio"
+    text full_name
+    text email
+    text phone
+    text message
+    timestamptz consent_at
+    contact_request_status status "new|accepted|declined"
+    uuid patient_id FK "al aceptar"
+    uuid decided_by_membership_id FK
+    text decision_note "interna"
     timestamptz created_at
   }
 

@@ -4,6 +4,7 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Inbox,
   Globe,
   Home,
   LayoutDashboard,
@@ -21,6 +22,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { MembershipRole, OrgKind } from "@nutreitor/shared";
 
+import { useNewRequests } from "@/components/contact/use-new-requests";
 import { useUnreadMessages } from "@/components/messages/use-unread";
 import { FeedbackProvider } from "@/components/ui";
 
@@ -31,13 +33,15 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
 };
 
 /** `unread`: el ítem muestra el contador de mensajes sin leer. */
-type NavItem = { href: string; label: string; icon: LucideIcon; unread?: boolean };
+/** `badge`: el ítem muestra un contador (mensajes sin leer o solicitudes nuevas). */
+type NavItem = { href: string; label: string; icon: LucideIcon; badge?: "messages" | "requests" };
 
 const NAV: Record<MembershipRole, NavItem[]> = {
   admin: [
     { href: "/admin", label: "Resumen", icon: LayoutDashboard },
     { href: "/admin/patients", label: "Pacientes", icon: Users },
-    { href: "/admin/messages", label: "Mensajes", icon: MessageSquare, unread: true },
+    { href: "/admin/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
+    { href: "/admin/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
     { href: "/admin/members", label: "Miembros", icon: UsersRound },
     { href: "/pro/agenda", label: "Mi agenda", icon: CalendarDays },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
@@ -47,7 +51,8 @@ const NAV: Record<MembershipRole, NavItem[]> = {
   professional: [
     { href: "/pro", label: "Hoy", icon: Sun },
     { href: "/pro/patients", label: "Pacientes", icon: Users },
-    { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, unread: true },
+    { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
+    { href: "/pro/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
     { href: "/pro/recipes", label: "Recetas", icon: BookOpen },
     { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
@@ -56,7 +61,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/app", label: "Inicio", icon: Home },
     { href: "/app/plan", label: "Mi plan", icon: ClipboardList },
     { href: "/app/compras", label: "Compras", icon: ShoppingCart },
-    { href: "/app/mensajes", label: "Mensajes", icon: MessageSquare, unread: true },
+    { href: "/app/mensajes", label: "Mensajes", icon: MessageSquare, badge: "messages" },
   ],
 };
 
@@ -67,7 +72,8 @@ const NAV: Record<MembershipRole, NavItem[]> = {
 const SOLO_NAV: NavItem[] = [
   { href: "/pro", label: "Hoy", icon: Sun },
   { href: "/pro/patients", label: "Pacientes", icon: Users },
-  { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, unread: true },
+  { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
+  { href: "/pro/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
   { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/pro/recipes", label: "Recetas", icon: BookOpen },
   { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
@@ -109,6 +115,8 @@ export function WorkspaceShell({
   const items = role === "admin" && orgKind === "individual" ? SOLO_NAV : NAV[role];
   const current = activeHref(items, pathname);
   const unread = useUnreadMessages(role);
+  const requests = useNewRequests(role);
+  const badgeCount = (b: NavItem["badge"]) => (b === "messages" ? unread : b === "requests" ? requests : 0);
   // En celular las secciones son una fila con scroll: que la activa quede a la vista.
   const mobileNavRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -116,7 +124,7 @@ export function WorkspaceShell({
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
     // `unread`: el contador ensancha el ítem cuando llega, después del primer scroll.
-  }, [current, unread]);
+  }, [current, unread, requests]);
 
   return (
     <div className="flex min-h-screen">
@@ -149,7 +157,7 @@ export function WorkspaceShell({
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 {item.label}
-                {item.unread && <UnreadBadge count={unread} />}
+                {item.badge && <UnreadBadge count={badgeCount(item.badge)} label={item.badge === "requests" ? "nuevas" : "sin leer"} />}
               </Link>
             );
           })}
@@ -195,7 +203,7 @@ export function WorkspaceShell({
                 >
                   <Icon className="h-4 w-4" aria-hidden />
                   {item.label}
-                  {item.unread && <UnreadBadge count={unread} />}
+                  {item.badge && <UnreadBadge count={badgeCount(item.badge)} label={item.badge === "requests" ? "nuevas" : "sin leer"} />}
                 </Link>
               );
             })}
@@ -292,12 +300,12 @@ function UserMenu({
   );
 }
 
-function UnreadBadge({ count }: { count: number }) {
+function UnreadBadge({ count, label = "sin leer" }: { count: number; label?: string }) {
   if (!count) return null;
   return (
     <span
       className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-medium text-brand-fg"
-      aria-label={`${count} sin leer`}
+      aria-label={`${count} ${label}`}
     >
       {count > 99 ? "99+" : count}
     </span>

@@ -6,10 +6,11 @@ import { webUrl } from "./config.js";
 import { adherenceReminders } from "./scans/adherence-reminders.js";
 import { appointmentReminders } from "./scans/appointment-reminders.js";
 import type { Scan } from "./scans/types.js";
+import { contactRequests } from "./scans/contact-requests.js";
 import { reportsPublished } from "./scans/report-published.js";
 import { unreadMessages } from "./scans/unread-messages.js";
 
-export const SCANS: Scan[] = [appointmentReminders, unreadMessages, adherenceReminders, reportsPublished];
+export const SCANS: Scan[] = [appointmentReminders, unreadMessages, adherenceReminders, reportsPublished, contactRequests];
 
 /** Lo que viaja en el job de entrega (se borra de Redis al completarse). */
 export interface Delivery {

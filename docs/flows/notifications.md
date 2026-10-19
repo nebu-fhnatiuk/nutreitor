@@ -39,6 +39,10 @@ sequenceDiagram
   del dispositivo): pasada esa hora local, si tiene plan activo y no marcó ninguna
   comida del día. Llave: paciente + fecha.
 
+- **Consulta desde la vidriera** (al destinatario, ADR 0027): al profesional si es
+  para él; a las admins si es para el consultorio. Sin el contenido. Llave: id de la
+  solicitud + destinatario.
+
 - **Reporte publicado** (al paciente): cuando su profesional publica el reporte del
   mes (últimas 48 h). Sólo el link, sin datos. Llave: id del reporte.
 

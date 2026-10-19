@@ -46,6 +46,10 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
   robots por tenant), con **visibilidad por campo** de lo que se publica.
 - **Reserva de turno pública**: un lead elige un horario libre y queda como cita
   (con rate-limiting contra abuso).
+- **Consulta desde la vidriera**: quien todavía no quiere reservar le escribe al
+  profesional o al consultorio (con consentimiento). Le llega **sólo al destinatario**,
+  que la acepta (se crea la ficha y se lo invita al portal) o la rechaza con un mail
+  amable.
 
 ### Profesional (`/pro`)
 
@@ -100,8 +104,8 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 ### En segundo plano
 
 - **Worker de notificaciones**: recordatorio de turno (~24 h antes), aviso de
-  mensaje sin leer (sin el contenido), recordatorio diario de registro y aviso de
-  reporte publicado. Email por Amazon SES.
+  mensaje sin leer (sin el contenido), recordatorio diario de registro, aviso de
+  reporte publicado y de consulta nueva desde la vidriera. Email por Amazon SES.
 
 ---
 
@@ -314,6 +318,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0024](docs/decisions/0024-conversaciones-privadas.md) | Conversaciones privadas por par |
 | [0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md) | Alta autoservicio con aprobación y consola de plataforma |
 | [0026](docs/decisions/0026-profesional-independiente-org-de-una-persona.md) | Profesional independiente: org de una persona |
+| [0027](docs/decisions/0027-solicitud-de-contacto-desde-la-vidriera.md) | Solicitud de contacto desde la vidriera |
 
 </details>
 
@@ -362,7 +367,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0026
+  decisions/     ADRs 0001–0027
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -431,8 +436,8 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (240 tests)
-docker compose exec api pnpm --filter @nutreitor/worker test   # worker (6 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (248 tests)
+docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 
 - Los tests corren contra **Postgres real** en una base aparte (`nutreitor_test`, se
@@ -542,4 +547,4 @@ Google/Outlook Calendar.
 | [`docs/flows/agents.md`](docs/flows/agents.md) | NUTRI, CHEF, PSICO, borrador de plan |
 | [`docs/flows/notifications.md`](docs/flows/notifications.md) | worker y avisos |
 | [`docs/flows/reports.md`](docs/flows/reports.md) · [`efficiency.md`](docs/flows/efficiency.md) | reporte mensual, métricas de eficiencia |
-| [`docs/flows/public-profiles.md`](docs/flows/public-profiles.md) | vidrieras públicas |
+| [`docs/flows/public-profiles.md`](docs/flows/public-profiles.md) · [`contact.md`](docs/flows/contact.md) | vidrieras públicas, consultas desde la vidriera |

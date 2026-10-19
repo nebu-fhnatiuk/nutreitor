@@ -19,6 +19,7 @@ import { SchedulingModule } from "./modules/scheduling/scheduling.module.js";
 import { AgentsModule } from "./modules/agents/agents.module.js";
 import { FoodsModule } from "./modules/foods/foods.module.js";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module.js";
+import { ContactModule } from "./modules/contact/contact.module.js";
 
 /**
  * Raíz de la API.
@@ -53,6 +54,7 @@ import { OnboardingModule } from "./modules/onboarding/onboarding.module.js";
     AgentsModule,
     FoodsModule,
     OnboardingModule,
+    ContactModule,
   ],
 })
 export class AppModule {}
