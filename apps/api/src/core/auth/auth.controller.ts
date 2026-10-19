@@ -3,17 +3,24 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import {
+  forgotPasswordSchema,
   loginSchema,
+  resetPasswordSchema,
+  type ForgotPasswordDto,
+  type PasswordResetPreview,
+  type ResetPasswordDto,
   type BrandingDto,
   type LoginDto,
   type LoginResponse,
@@ -28,7 +35,15 @@ import { clearSessionCookies, setSessionCookies } from "./auth-cookies.js";
 import { AuthService } from "./auth.service.js";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
 import { RateLimit } from "../rate-limit/rate-limit.decorator.js";
-import { LOGIN_BY_EMAIL, LOGIN_BY_IP } from "../rate-limit/rate-limit.rules.js";
+import {
+  FORGOT_BY_EMAIL,
+  FORGOT_BY_IP,
+  LOGIN_BY_EMAIL,
+  LOGIN_BY_IP,
+  RESET_CONFIRM,
+  RESET_LOOKUP,
+} from "../rate-limit/rate-limit.rules.js";
+import { PasswordResetService } from "./password-reset.service.js";
 import { TenantResolverService } from "./tenant-resolver.service.js";
 
 @Controller("auth")
@@ -36,6 +51,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly tenantResolver: TenantResolverService,
+    private readonly passwordReset: PasswordResetService,
     @Inject(APP_ENV) private readonly env: ApiEnv,
   ) {}
 
@@ -87,6 +103,38 @@ export class AuthController {
     await this.auth.logout(this.cookie(req, "refresh_token"));
     clearSessionCookies(res);
     return { ok: true };
+  }
+
+  // ── Recuperar la contraseña (ADR 0029). Pre-auth; desde un subdominio o el raíz. ──
+
+  /** Siempre 202: no revela si el email tiene cuenta. */
+  @Post("password/forgot")
+  @HttpCode(202)
+  @RateLimit(FORGOT_BY_IP, FORGOT_BY_EMAIL)
+  async forgot(
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(forgotPasswordSchema)) dto: ForgotPasswordDto,
+  ): Promise<{ ok: true }> {
+    await this.passwordReset.request(dto.email, this.slugFrom(req));
+    return { ok: true };
+  }
+
+  @Get("password/reset")
+  @RateLimit(RESET_LOOKUP)
+  resetLookup(@Query("token") token?: string): Promise<PasswordResetPreview> {
+    return this.passwordReset.lookup(token);
+  }
+
+  /** Cambia la contraseña y cierra todas las sesiones (también la de este navegador). */
+  @Post("password/reset")
+  @RateLimit(RESET_CONFIRM)
+  async reset(
+    @Res({ passthrough: true }) res: Response,
+    @Body(new ZodValidationPipe(resetPasswordSchema)) dto: ResetPasswordDto,
+  ): Promise<PasswordResetPreview> {
+    const done = await this.passwordReset.reset(dto.token, dto.password);
+    clearSessionCookies(res);
+    return done;
   }
 
   @Get("me")

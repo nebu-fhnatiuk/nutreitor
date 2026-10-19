@@ -52,6 +52,8 @@ export const apiEnvSchema = z
     // En prod: https://nutreitor.com
     WEB_ROOT_ORIGIN: z.string().default("http://localhost:3000"),
     SIGNUP_TTL_HOURS: z.coerce.number().int().positive().default(48),
+    // Link de recuperación de contraseña: corto (ADR 0029).
+    PASSWORD_RESET_TTL_MIN: z.coerce.number().int().positive().default(60),
     // Sesión de la consola de plataforma: corta y sin refresh.
     PLATFORM_SESSION_TTL: z.string().default("7200s"),
     // Servicio de agentes (Python). El gateway Nest le reenvía con un contexto de

@@ -4,6 +4,7 @@ import { PassportModule } from "@nestjs/passport";
 
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
+import { PasswordResetService } from "./password-reset.service.js";
 import { CapabilityGuard } from "./capability.guard.js";
 import { ModuleGuard } from "./module.guard.js";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
@@ -24,6 +25,7 @@ import { TenantResolverService } from "./tenant-resolver.service.js";
   controllers: [AuthController],
   providers: [
     AuthService,
+    PasswordResetService,
     TenantResolverService,
     JwtStrategy,
     JwtAuthGuard,

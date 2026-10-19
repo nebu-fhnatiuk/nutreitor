@@ -331,6 +331,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0026](docs/decisions/0026-profesional-independiente-org-de-una-persona.md) | Profesional independiente: org de una persona |
 | [0027](docs/decisions/0027-solicitud-de-contacto-desde-la-vidriera.md) | Solicitud de contacto desde la vidriera |
 | [0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md) | Landing separada: Astro en S3 + CloudFront |
+| [0029](docs/decisions/0029-recuperar-la-contrasena.md) | Recuperar la contraseña |
 
 </details>
 
@@ -374,14 +375,14 @@ apps/
   worker/    Node + BullMQ — escaneo por consultorio y entrega de avisos (SES)
   agents/    Python/FastAPI — NUTRI, CHEF, PSICO (stub | Bedrock)
 packages/
-  db/        schema Drizzle, migraciones SQL numeradas (0001–0040), runner, seed,
+  db/        schema Drizzle, migraciones SQL numeradas (0001–0041), runner, seed,
              catálogo de alimentos y recetario (curación + generadores)
   shared/    DTOs y schemas Zod, capacidades, lógica pura (macros, lista de compras,
              intercambios, adherencia, borrador de plan)
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0028
+  decisions/     ADRs 0001–0029
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -423,7 +424,8 @@ El primer arranque instala dependencias, compila, migra y siembra la base.
 | `plataforma@nutreitor.test` | operador de plataforma | `localhost:3000/plataforma` |
 
 Para probar el alta: `localhost:3000/registro`. El link de confirmación sale en
-`docker compose logs api` (el mail de dev va a la consola).
+`docker compose logs api` (el mail de dev va a la consola). Lo mismo para
+"¿Olvidaste tu contraseña?" (`/olvide`): el link de recuperación aparece en esos logs.
 
 `*.localhost` resuelve solo en Chrome y Firefox (en Safari puede requerir
 `/etc/hosts`). Los asistentes de IA son un complemento: se instalan como admin en
@@ -451,7 +453,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (248 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (253 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 
@@ -495,8 +497,8 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests
 
 - [x] ~~Control de acceso al panel de plataforma~~: resuelto con la sesión de
   plataforma ([ADR 0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)).
-- [ ] **Recuperar la contraseña** (para todos: operadores, profesionales y
-  pacientes): link por mail de un solo uso y con vencimiento. Hoy no existe.
+- [x] ~~Recuperar la contraseña~~: link por mail de un solo uso, vence en 60 min y
+  cierra todas las sesiones ([ADR 0029](docs/decisions/0029-recuperar-la-contrasena.md)).
 - [ ] **MFA (TOTP) obligatorio para operadores de plataforma**: la consola decide qué
   organizaciones reciben datos de salud. Después, opcional para admins de org.
 - [ ] **Alta del operador inicial por CLI** (sin endpoint web) y **sin el usuario

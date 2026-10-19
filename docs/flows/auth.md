@@ -132,6 +132,43 @@ Después de validar credenciales (login), al rotar el refresh y en cada request
 `suspended` (con el motivo para mostrar). Una org `pending_review` entra normalmente.
 Ver [`onboarding.md`](./onboarding.md).
 
+## Recuperar la contraseña
+
+[ADR 0029](../decisions/0029-recuperar-la-contrasena.md). "¿Olvidaste tu contraseña?" en el
+login de cada org (`/olvide`, `/restablecer` en el subdominio) y en la consola (las mismas
+rutas en el dominio raíz).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Persona
+  participant W as Web (subdominio o raíz)
+  participant API as PasswordResetService
+  participant DB as Postgres (owner)
+  participant M as MailSender
+
+  U->>W: /olvide (email)
+  W->>API: POST /auth/password/forgot (+ x-tenant-slug si hay)
+  API->>DB: ¿existe el usuario?
+  alt existe
+    API->>DB: INSERT password_resets (sha256 del token, vence en 60 min)
+    API->>M: link {origen del pedido}/restablecer?token=…
+  end
+  API-->>W: 202 (siempre igual)
+  U->>W: abre el link → GET /auth/password/reset?token= (email de la cuenta)
+  U->>W: contraseña nueva
+  W->>API: POST /auth/password/reset
+  Note over API,DB: una transacción
+  API->>DB: reclama el token (un solo uso)
+  API->>DB: users: hash nuevo + password_changed_at
+  API->>DB: anula otros links abiertos + revoca todos los refresh tokens
+  API-->>W: email · borra las cookies de sesión
+  W->>U: login con el email puesto (o la consola)
+```
+
+- Rate-limit: pedido 10/h por IP y 3/h por email; preview 30/min y confirmación 10/min por IP.
+- La sesión de consola emitida antes de `password_changed_at` deja de valer.
+
 ## Sesión de plataforma (consola)
 
 Es otra sesión, no un rol de tenant: cookie `platform_token` host-only del dominio

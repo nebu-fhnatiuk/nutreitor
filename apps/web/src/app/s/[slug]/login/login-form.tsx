@@ -91,6 +91,11 @@ export function LoginForm({ initialEmail }: { initialEmail?: string }) {
       >
         {loading ? "Ingresando…" : "Ingresar"}
       </button>
+      <p className="text-center text-sm">
+        <a href="/olvide" className="text-stone-600 underline-offset-4 hover:text-brand hover:underline">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </p>
     </form>
   );
 }

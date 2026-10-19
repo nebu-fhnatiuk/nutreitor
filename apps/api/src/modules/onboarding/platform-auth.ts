@@ -32,6 +32,8 @@ const DUMMY_HASH = bcrypt.hashSync("nutreitor::platform::timing", 10);
 interface PlatformPayload {
   sub: string;
   aud: string;
+  /** Emitido (segundos epoch): una sesión anterior al cambio de contraseña no vale. */
+  iat: number;
 }
 
 /** Usuario de plataforma autenticado, que el guard deja en el request. */
@@ -77,11 +79,22 @@ export class PlatformAuthService {
       return null;
     }
     const [u] = await this.admin.db
-      .select({ id: users.id, email: users.email, fullName: users.fullName })
+      .select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        passwordChangedAt: users.passwordChangedAt,
+      })
       .from(users)
       .where(and(eq(users.id, payload.sub), eq(users.isPlatformAdmin, true)))
       .limit(1);
-    return u ?? null;
+    if (!u) return null;
+    // Cambió la contraseña después de emitirse esta sesión (ADR 0029): afuera. El iat
+    // tiene resolución de segundos, así que se compara contra el segundo del cambio.
+    if (u.passwordChangedAt && payload.iat < Math.floor(u.passwordChangedAt.getTime() / 1000)) {
+      return null;
+    }
+    return { id: u.id, email: u.email, fullName: u.fullName };
   }
 
   setCookie(res: Response, token: string): void {

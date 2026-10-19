@@ -41,3 +41,12 @@ export const SIGNUP_CONFIRM: RateLimitRule = { name: "signup-confirm", limit: 10
  */
 export const PUBLIC_CONTACT_BY_IP: RateLimitRule = { name: "public-contact-ip", limit: 5, windowSec: 10 * 60, by: "ip" };
 export const PUBLIC_CONTACT_BY_EMAIL: RateLimitRule = { name: "public-contact-email", limit: 3, windowSec: 60 * 60, by: "email" };
+
+/**
+ * Recuperar la contraseña (ADR 0029): cada pedido manda un mail, así que se acota por
+ * IP y por email (no sirve para bombardear una casilla ni para tantear cuentas).
+ */
+export const FORGOT_BY_IP: RateLimitRule = { name: "forgot-ip", limit: 10, windowSec: 60 * 60, by: "ip" };
+export const FORGOT_BY_EMAIL: RateLimitRule = { name: "forgot-email", limit: 3, windowSec: 60 * 60, by: "email" };
+export const RESET_LOOKUP: RateLimitRule = { name: "reset-lookup", limit: 30, windowSec: 60, by: "ip" };
+export const RESET_CONFIRM: RateLimitRule = { name: "reset-confirm", limit: 10, windowSec: 60, by: "ip" };
