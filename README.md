@@ -495,6 +495,15 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests
 
 - [x] ~~Control de acceso al panel de plataforma~~: resuelto con la sesión de
   plataforma ([ADR 0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md)).
+- [ ] **Recuperar la contraseña** (para todos: operadores, profesionales y
+  pacientes): link por mail de un solo uso y con vencimiento. Hoy no existe.
+- [ ] **MFA (TOTP) obligatorio para operadores de plataforma**: la consola decide qué
+  organizaciones reciben datos de salud. Después, opcional para admins de org.
+- [ ] **Alta del operador inicial por CLI** (sin endpoint web) y **sin el usuario
+  seed** `plataforma@nutreitor.test` en prod.
+- [ ] **Extraer el control-plane** (alta, consola, resolución de login) a un
+  servicio propio: la API clínica queda sólo con el rol `app`, sin credenciales
+  `owner` en el plano de datos ([ADR 0012](docs/decisions/0012-modular-monolith-evolucion-a-servicios.md)).
 - [ ] **Textos legales** (términos y privacidad) que acepta el formulario de alta.
 - [ ] Adapter de **SES en la API** para los mails transaccionales (invitaciones, alta,
   decisiones de la plataforma); hoy salen por consola.
