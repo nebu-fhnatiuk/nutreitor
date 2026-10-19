@@ -25,3 +25,4 @@ export * from "./dtos/member.dto.js";
 export * from "./dtos/branding.dto.js";
 export * from "./dtos/public-profile.dto.js";
 export * from "./dtos/onboarding.dto.js";
+export * from "./dtos/contact.dto.js";

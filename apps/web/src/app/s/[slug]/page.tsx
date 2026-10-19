@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { OrgJsonLd, ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
+import { PublicBooking } from "@/components/public/public-booking";
+import { PublicContact } from "@/components/public/public-contact";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
 
 // ISR: estática con revalidación (TTL de red de seguridad; el resto on-demand en PR2).
@@ -59,6 +61,13 @@ export default async function OrgPublicPage({
             orgName={displayName}
             orgTagline={org.publicHeadline}
           />
+          {/* El CTA del perfil apunta a #reservar y #consultar: en este modo también. */}
+          <div id="reservar" className="mx-auto max-w-3xl scroll-mt-8 px-6 pb-16">
+            <PublicBooking slug={slug} profileSlug={pro.profileSlug} professionalName={pro.fullName} />
+          </div>
+          <div id="consultar" className="mx-auto max-w-3xl scroll-mt-8 px-6 pb-16">
+            <PublicContact slug={slug} profileSlug={pro.profileSlug} recipientName={pro.fullName} />
+          </div>
         </main>
       );
     }
@@ -142,6 +151,11 @@ export default async function OrgPublicPage({
             </ul>
           </>
         )}
+      </section>
+
+      {/* Consulta al consultorio en general: la reciben las admins (ADR 0027). */}
+      <section id="consultar" className="mx-auto max-w-3xl scroll-mt-8 px-6 pb-24">
+        <PublicContact slug={slug} recipientName={displayName} />
       </section>
 
       <footer className="border-t border-stone-200 py-8 text-center text-sm text-stone-500">

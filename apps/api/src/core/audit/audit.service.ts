@@ -51,7 +51,11 @@ export type AuditAction =
   | "org.reactivated"
   | "license.reviewed"
   | "license.rejected"
-  | "org.kind_changed";
+  | "org.kind_changed"
+  | "contact.received"
+  | "contact.accepted"
+  | "contact.declined"
+  | "contact.forwarded";
 
 export interface AuditEvent {
   organizationId: string;

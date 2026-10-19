@@ -44,6 +44,6 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     EfficiencyService,
     ReportsService,
   ],
-  exports: [AdherenceService, ConversationsService, ReportsService],
+  exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService],
 })
 export class PatientsModule {}

@@ -52,6 +52,11 @@ La matrícula revisada se muestra siempre ("Matrícula MN 1234 · Nacional"), si
 de visibilidad: es la señal de confianza de la vidriera. Ver
 [`onboarding.md`](./onboarding.md).
 
+**Contacto**: además de reservar turno, la vidriera tiene el formulario "Escribile una
+consulta" (`#consultar`), en el perfil de cada profesional y para el consultorio en la
+página de la org. Ver [`contact.md`](./contact.md). En el modo de perfil único (un solo
+profesional listado), la página de la org también muestra la reserva y la consulta.
+
 ## Visibilidad por campo
 
 `professional_profiles.visibility` es un `Record<field, boolean>` (default `{}` =

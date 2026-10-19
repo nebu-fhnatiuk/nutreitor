@@ -33,3 +33,11 @@ export const SIGNUP_BY_EMAIL: RateLimitRule = { name: "signup-email", limit: 3, 
 export const SIGNUP_SLUG: RateLimitRule = { name: "signup-slug", limit: 60, windowSec: 60, by: "ip" };
 export const SIGNUP_LOOKUP: RateLimitRule = { name: "signup-lookup", limit: 30, windowSec: 60, by: "ip" };
 export const SIGNUP_CONFIRM: RateLimitRule = { name: "signup-confirm", limit: 10, windowSec: 60, by: "ip" };
+
+/**
+ * Consulta desde la vidriera (ADR 0027): cada una llega a la bandeja de alguien y
+ * dispara un acuse por mail. Por IP y por email (no sirve para spamear a un
+ * profesional ni a una casilla).
+ */
+export const PUBLIC_CONTACT_BY_IP: RateLimitRule = { name: "public-contact-ip", limit: 5, windowSec: 10 * 60, by: "ip" };
+export const PUBLIC_CONTACT_BY_EMAIL: RateLimitRule = { name: "public-contact-email", limit: 3, windowSec: 60 * 60, by: "email" };

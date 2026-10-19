@@ -17,6 +17,12 @@ export function BookingCta({ professionalName }: { professionalName: string }) {
         <CalendarIcon />
         Agendar una cita
       </a>
+      <a
+        href="#consultar"
+        className="mt-3 block text-center text-sm text-brand underline-offset-4 hover:underline sm:text-left"
+      >
+        O escribile una consulta
+      </a>
     </div>
   );
 }

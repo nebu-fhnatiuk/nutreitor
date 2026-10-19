@@ -20,7 +20,8 @@ apps/
                crypto · mail · config
     modules/   organizations · members · invitations · patients · portal ·
                professionals · public · scheduling · foods · agents ·
-               onboarding (alta autoservicio + consola de plataforma)
+               onboarding (alta autoservicio + consola de plataforma) ·
+               contact (solicitudes desde la vidriera)
     agents/    slot vacío (servicio Python a futuro)
   web/   Next.js 15 (App Router) + Tailwind — frontend + edge
     app/page.tsx          landing de producto (host raíz)

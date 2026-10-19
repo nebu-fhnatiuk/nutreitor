@@ -2,7 +2,7 @@ import type { TenantTx } from "@nutreitor/db";
 
 import type { Rendered } from "../templates.js";
 
-export type NotificationKind = "appointment_reminder" | "unread_message" | "adherence_reminder" | "report_published";
+export type NotificationKind = "appointment_reminder" | "unread_message" | "adherence_reminder" | "report_published" | "contact_request";
 
 /** Un aviso a generar. `refKey` + destinatario = idempotencia (UNIQUE en la base). */
 export interface Candidate {

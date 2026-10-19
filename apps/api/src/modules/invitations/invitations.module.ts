@@ -9,5 +9,6 @@ import { InvitationsService } from "./invitations.service.js";
   imports: [AuthModule],
   controllers: [InvitationsAdminController, InvitationsPublicController],
   providers: [InvitationsService],
+  exports: [InvitationsService],
 })
 export class InvitationsModule {}
