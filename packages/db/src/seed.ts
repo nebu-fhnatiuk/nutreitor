@@ -5,6 +5,8 @@ import { createDb } from "./client.js";
 import {
   organizations,
   patients,
+  patientGroups,
+  patientGroupMembers,
   users,
   memberships,
   professionalProfiles,
@@ -44,6 +46,8 @@ export const SEED = {
     status: "active",
     kind: "team",
   },
+  /** Grupo "Primera división" de la org demo (ADR 0031). */
+  groupDemo: "00000000-0000-0000-0000-0000000009d1",
 } as const;
 
 const PATIENTS = [
@@ -127,6 +131,23 @@ export async function runSeed(connectionString: string): Promise<void> {
       .where(eq(organizations.id, SEED.orgDemo.id));
 
     await db.insert(patients).values(PATIENTS).onConflictDoNothing();
+
+    // Grupo demo (ADR 0031): un plantel con los dos pacientes de la org demo.
+    await db
+      .insert(patientGroups)
+      .values({ id: SEED.groupDemo, tenantId: SEED.orgDemo.id, region: SEED.orgDemo.region, name: "Primera división" })
+      .onConflictDoNothing();
+    await db
+      .insert(patientGroupMembers)
+      .values(
+        ["00000000-0000-0000-0000-0000000000d1", "00000000-0000-0000-0000-0000000000d2"].map((patientId) => ({
+          tenantId: SEED.orgDemo.id,
+          region: SEED.orgDemo.region,
+          groupId: SEED.groupDemo,
+          patientId,
+        })),
+      )
+      .onConflictDoNothing();
 
     const hashedPassword = bcrypt.hashSync(DEMO_PASSWORD, 10);
     await db

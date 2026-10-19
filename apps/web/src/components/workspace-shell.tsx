@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ClipboardList,
   Inbox,
+  Layers,
   Globe,
   Home,
   LayoutDashboard,
@@ -40,6 +41,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
   admin: [
     { href: "/admin", label: "Resumen", icon: LayoutDashboard },
     { href: "/admin/patients", label: "Pacientes", icon: Users },
+    { href: "/admin/groups", label: "Grupos", icon: Layers },
     { href: "/admin/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
     { href: "/admin/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
     { href: "/admin/members", label: "Miembros", icon: UsersRound },
@@ -51,6 +53,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
   professional: [
     { href: "/pro", label: "Hoy", icon: Sun },
     { href: "/pro/patients", label: "Pacientes", icon: Users },
+    { href: "/pro/groups", label: "Grupos", icon: Layers },
     { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
     { href: "/pro/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
     { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
@@ -72,6 +75,7 @@ const NAV: Record<MembershipRole, NavItem[]> = {
 const SOLO_NAV: NavItem[] = [
   { href: "/pro", label: "Hoy", icon: Sun },
   { href: "/pro/patients", label: "Pacientes", icon: Users },
+  { href: "/pro/groups", label: "Grupos", icon: Layers },
   { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, badge: "messages" },
   { href: "/pro/requests", label: "Solicitudes", icon: Inbox, badge: "requests" },
   { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },

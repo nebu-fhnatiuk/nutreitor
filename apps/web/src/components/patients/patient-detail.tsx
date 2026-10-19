@@ -179,6 +179,19 @@ export function PatientDetail({
               </span>
             )}
           </p>
+          {p.groups.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {p.groups.map((g) => (
+                <Link
+                  key={g.id}
+                  href={`${basePath.replace(/\/patients$/, "/groups")}/${g.id}`}
+                  className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600 hover:bg-brand/10 hover:text-brand"
+                >
+                  {g.name}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {canInvite && <InviteToPortal patient={p} onDone={load} onError={setError} />}

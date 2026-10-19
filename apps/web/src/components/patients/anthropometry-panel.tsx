@@ -22,6 +22,7 @@ import {
 import { Alert, Button, Card, EmptyState, Input, Label, Loading, Modal, SectionHeading, Select, Textarea, Toggle, cn, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 
+import { fmt, fmtMeasured, parseDecimal, val } from "./anthro-format";
 import { LineChart } from "./line-chart";
 
 const GROUPS: { id: AnthroGroup; label: string }[] = [
@@ -45,15 +46,6 @@ const VIS_LABEL: Record<AnthroVisibilityField, string> = {
   anthroSomatotype: "Somatotipo",
 };
 
-const val = <T,>(c: Calc<T>): T | null => (c.ok ? c.value : null);
-
-/** "1 de octubre de 2026". La fecha de medición es un día, sin hora: se arma local
- * (con `new Date("2026-10-01")` sería medianoche UTC y en Argentina mostraría el 30). */
-function fmtMeasured(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-}
-const fmt = (n: number | null, d = 1) => (n === null ? "—" : n.toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d }));
 
 /**
  * Antropometría ISAK de un deportista (ADR 0030): sesiones con sus tomas, resultados
@@ -375,10 +367,7 @@ const toDraft = (takes: AnthroTakes): Draft =>
     Object.entries(takes).map(([k, t]) => [k, [0, 1, 2].map((i) => (t?.[i] === undefined ? "" : String(t[i]).replace(".", ","))) as [string, string, string]]),
   ) as Draft;
 
-const parse = (s: string): number | null => {
-  const n = Number(s.replace(",", ".").trim());
-  return s.trim() === "" || !Number.isFinite(n) ? null : n;
-};
+const parse = parseDecimal;
 
 function draftTakes(d: Draft): AnthroTakes {
   const out: AnthroTakes = {};

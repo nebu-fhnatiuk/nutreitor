@@ -12,10 +12,10 @@ export default async function ProPatientsPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; grupo?: string }>;
 }) {
   const { slug } = await params;
-  const { q } = await searchParams;
+  const { q, grupo } = await searchParams;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
   if (!actsAsProfessional(me.role, me.org.kind)) redirect(workspaceHome(me.role, me.org.kind));
@@ -29,6 +29,7 @@ export default async function ProPatientsPage({
         canCreate={me.role === "admin"}
         canAssign={false}
         initialSearch={q ?? ""}
+        initialGroup={grupo ?? ""}
       />
     </WorkspaceShell>
   );

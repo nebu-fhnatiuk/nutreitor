@@ -56,5 +56,5 @@ protocolo ISAK es la herramienta de trabajo diaria del sector.
 - Hasta la validación, los cálculos no se usan para decidir y el deportista no ve nada.
 - Juveniles: Durnin-Womersley no aplica a menores de 17. Para divisiones inferiores
   harían falta ecuaciones pediátricas (por ejemplo, Slaughter), que quedan pendientes.
-- Próximo: la **carga por plantel** (medir a un grupo en una sesión), que necesita
-  grupos o categorías.
+- Carga por plantel: resuelta en [ADR 0031](0031-grupos-y-carga-por-plantel.md), con
+  grupos de deportistas.

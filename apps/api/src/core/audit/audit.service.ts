@@ -57,6 +57,11 @@ export type AuditAction =
   | "contact.declined"
   | "contact.forwarded"
   | "anthropometry.recorded"
+  | "group.created"
+  | "group.updated"
+  | "group.deleted"
+  | "group.members_added"
+  | "group.member_removed"
   | "anthropometry.updated"
   | "anthropometry.deleted";
 

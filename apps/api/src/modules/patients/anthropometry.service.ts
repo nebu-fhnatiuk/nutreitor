@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { anthropometrySessions, memberships, patients, users, type TenantTx } from "@nutreitor/db";
 import {
   ANTHROPOMETRY_VALIDATED,
@@ -7,16 +7,22 @@ import {
   anthropometryResults,
   type AnthroSex,
   type AnthroTakes,
+  finalValue,
   type AnthropometrySessionDto,
+  type GroupAnthropometryResultDto,
+  type GroupAnthropometryRowDto,
+  type GroupAnthropometrySummaryDto,
+  type SaveGroupAnthropometryDto,
   type ClinicalVisibility,
   type PortalAnthropometryDto,
   type SaveAnthropometryDto,
 } from "@nutreitor/shared";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { assertCanAccessPatient, resolvePatientAccess } from "./patient-access.js";
+import { loadGroup, visibleMembers } from "./groups.service.js";
 
 type Row = typeof anthropometrySessions.$inferSelect;
 type Subject = { sex: string | null; birthDate: string | null };
@@ -118,6 +124,87 @@ export class AnthropometryService {
         targetId: patientId,
         metadata: { sessionId: id },
       });
+    });
+  }
+
+  /**
+   * Carga de un plantel (ADR 0031): una sesión por deportista con la misma fecha, en
+   * una sola transacción (todo o nada). Cada deportista tiene que estar en el grupo y
+   * ser visible para la sesión (profesional: asignado); si no, se rechaza todo.
+   */
+  createForGroup(groupId: string, dto: SaveGroupAnthropometryDto): Promise<GroupAnthropometryResultDto> {
+    return this.tenantDb.run(async (tx) => {
+      await loadGroup(tx, groupId);
+      const access = await resolvePatientAccess(tx);
+      const members = new Set((await visibleMembers(tx, groupId, access)).map((m) => m.patientId));
+      const outside = dto.entries.filter((e) => !members.has(e.patientId));
+      if (outside.length > 0) throw new BadRequestException("Hay deportistas que no están en el grupo.");
+      const ctx = this.tenantDb.context;
+      const rows = await tx
+        .insert(anthropometrySessions)
+        .values(
+          dto.entries.map((e) => ({
+            tenantId: ctx.tenantId,
+            region: ctx.region,
+            patientId: e.patientId,
+            measuredByMembershipId: access.membershipId!,
+            measuredAt: dto.measuredAt,
+            takes: e.takes as Record<string, number[]>,
+            note: e.note ?? null,
+          })),
+        )
+        .returning({ id: anthropometrySessions.id, patientId: anthropometrySessions.patientId });
+      for (const r of rows) {
+        await this.audit.recordForSession(tx, {
+          action: "anthropometry.recorded",
+          targetType: "patient",
+          targetId: r.patientId,
+          metadata: { sessionId: r.id, groupId, batch: true },
+        });
+      }
+      return { created: rows.length };
+    });
+  }
+
+  /** Resumen del plantel: la última sesión de cada deportista visible, y su Σ6 contra la anterior. */
+  groupSummary(groupId: string): Promise<GroupAnthropometrySummaryDto> {
+    return this.tenantDb.run(async (tx) => {
+      await loadGroup(tx, groupId);
+      const members = await visibleMembers(tx, groupId, await resolvePatientAccess(tx));
+      const ids = members.map((m) => m.patientId);
+      const sessions = ids.length
+        ? await tx
+            .select()
+            .from(anthropometrySessions)
+            .where(inArray(anthropometrySessions.patientId, ids))
+            .orderBy(desc(anthropometrySessions.measuredAt), desc(anthropometrySessions.createdAt))
+        : [];
+      const byPatient = new Map<string, Row[]>();
+      for (const s of sessions) {
+        const list = byPatient.get(s.patientId) ?? [];
+        if (list.length < 2) list.push(s);
+        byPatient.set(s.patientId, list);
+      }
+      const rows: GroupAnthropometryRowDto[] = members.map((m) => {
+        const [last, prev] = byPatient.get(m.patientId) ?? [];
+        if (!last) return { patientId: m.patientId, fullName: m.fullName, last: null, sum6Delta: null };
+        const subject = { sex: m.sex, birthDate: m.birthDate };
+        const results = toDto(last, null, subject).results;
+        const prevSum6 = prev ? toDto(prev, null, subject).results.sum6 : null;
+        return {
+          patientId: m.patientId,
+          fullName: m.fullName,
+          last: {
+            sessionId: last.id,
+            measuredAt: last.measuredAt,
+            bodyMass: finalValue((last.takes as AnthroTakes).bodyMass),
+            results,
+          },
+          sum6Delta:
+            results.sum6.ok && prevSum6?.ok ? Math.round((results.sum6.value - prevSum6.value) * 10) / 10 : null,
+        };
+      });
+      return { validated: ANTHROPOMETRY_VALIDATED, rows };
     });
   }
 
