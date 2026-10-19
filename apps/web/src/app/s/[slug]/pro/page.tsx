@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 
+import { OnboardingChecklist } from "@/components/admin/onboarding-checklist";
 import { ProToday } from "@/components/pro/today";
 import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { actsAsProfessional, workspaceHome } from "@nutreitor/shared";
 
 /** Inicio del profesional: el día de hoy (turnos + pacientes). */
 export default async function ProPage({
@@ -15,7 +16,7 @@ export default async function ProPage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "professional") redirect(roleHome[me.role]);
+  if (!actsAsProfessional(me.role, me.org.kind)) redirect(workspaceHome(me.role, me.org.kind));
 
   const longDate = new Date().toLocaleDateString("es-AR", {
     weekday: "long",
@@ -27,12 +28,16 @@ export default async function ProPage({
   const today = longDate.charAt(0).toUpperCase() + longDate.slice(1);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader
         title={`Hola, ${me.user.fullName.split(" ")[0]}`}
         description={today}
       />
-      <ProToday />
+      <div className="space-y-6">
+        {/* Independiente: su panel ES este; los primeros pasos van acá. */}
+        {me.role === "admin" && <OnboardingChecklist />}
+        <ProToday />
+      </div>
     </WorkspaceShell>
   );
 }

@@ -143,7 +143,7 @@ append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-
 
 | Conversación | Participan | No la ven |
 |---|---|---|
-| Paciente ↔ profesional (una por par) | ese paciente y ese profesional (con asignación activa) | la admin, otros profesionales |
+| Paciente ↔ profesional (una por par) | ese paciente y la membresía asignada (con asignación activa): un profesional, o la admin de una org individual ([ADR 0026](../decisions/0026-profesional-independiente-org-de-una-persona.md)) | la admin (salvo que sea ella la asignada), otros profesionales |
 | Profesional ↔ administración (una por profesional) | ese profesional y cualquier admin | otros profesionales, pacientes |
 
 | Quién | Endpoints | Capacidad |
@@ -158,7 +158,12 @@ append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-
   el profesional deja de verla.
 - UI: `/pro/messages` (Administración fija + pacientes), `/admin/messages` (un
   profesional por fila), `/app/mensajes` (un profesional por fila; con uno solo,
-  directo), pestaña **Mensajes** en la ficha sólo para el profesional.
+  directo), pestaña **Mensajes** en la ficha para quien atiende. En una org
+  individual, `/admin/messages` redirige a `/pro/messages` (conservando `?c=`).
+
+**Org individual** ([ADR 0026](../decisions/0026-profesional-independiente-org-de-una-persona.md)):
+la admin trabaja desde `/pro`. Al crear un paciente queda asignado a ella, y desde la
+ficha lo invita al portal.
 
 **Plantillas de planes** (`/plan-templates`, `plan:read` / `plan:write`): desde el
 editor, "Guardar como plantilla" guarda las comidas, el objetivo y las notas (sin

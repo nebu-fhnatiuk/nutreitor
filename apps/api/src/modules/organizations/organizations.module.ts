@@ -7,6 +7,7 @@ import { OrganizationsController } from "./organizations.controller.js";
 import { OrganizationsService } from "./organizations.service.js";
 import { OrgModulesController } from "./org-modules.controller.js";
 import { OrgModulesService } from "./org-modules.service.js";
+import { OrgKindController } from "./kind.controller.js";
 import { OrgPublicProfileController } from "./public-profile.controller.js";
 
 @Module({
@@ -16,6 +17,7 @@ import { OrgPublicProfileController } from "./public-profile.controller.js";
     BrandingController,
     OrgPublicProfileController,
     OrgModulesController,
+    OrgKindController,
   ],
   providers: [OrganizationsService, OrgModulesService],
 })

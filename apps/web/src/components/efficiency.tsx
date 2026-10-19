@@ -8,15 +8,16 @@ import { api } from "@/lib/api";
 
 const RANGES = [30, 90] as const;
 
-function useEfficiency(days: number) {
+/** `mine`: sólo la fila propia (la admin que atiende ve lo suyo, no al equipo). */
+function useEfficiency(days: number, mine = false) {
   const [data, setData] = useState<EfficiencyDto | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     setData(null);
-    api<EfficiencyDto>(`efficiency?days=${days}`)
+    api<EfficiencyDto>(`efficiency?days=${days}${mine ? "&mine=true" : ""}`)
       .then(setData)
       .catch(() => setFailed(true));
-  }, [days]);
+  }, [days, mine]);
   return { data, failed };
 }
 
@@ -57,7 +58,7 @@ const Tile = ({ label, value, hint }: { label: string; value: string; hint?: str
 /** "Hoy" del profesional: sus números del período (Fase 4.4). */
 export function MyEfficiency() {
   const [days, setDays] = useState<number>(30);
-  const { data, failed } = useEfficiency(days);
+  const { data, failed } = useEfficiency(days, true);
   const me = data?.professionals[0];
   if (failed) return null;
   return (

@@ -7,6 +7,11 @@ import { z } from "zod";
  */
 export const efficiencyQuerySchema = z.object({
   days: z.coerce.number().int().min(7).max(180).default(30),
+  /** Sólo la fila propia (la admin que atiende mira lo suyo en "Hoy"). */
+  mine: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 export type EfficiencyQueryDto = z.infer<typeof efficiencyQuerySchema>;
 

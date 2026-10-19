@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe, fetchRoster } from "@/lib/server/api";
 import { fetchPublicOrg } from "@/lib/server/public-api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 export default async function AdminPublicPage({
   params,
@@ -16,7 +16,7 @@ export default async function AdminPublicPage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "admin") redirect(roleHome[me.role]);
+  if (me.role !== "admin") redirect(workspaceHome(me.role, me.org.kind));
 
   const [org, roster] = await Promise.all([
     fetchPublicOrg(slug),
@@ -24,7 +24,7 @@ export default async function AdminPublicPage({
   ]);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader
         title="Página pública"
         description={`Lo que ven quienes llegan a ${slug}.nutreitor.com antes de iniciar sesión.`}

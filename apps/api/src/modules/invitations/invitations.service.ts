@@ -57,6 +57,12 @@ export class InvitationsService {
         "Vas a poder invitar pacientes cuando aprobemos tu organización.",
       );
     }
+    // Org de una persona: para sumar colegas primero se pasa a equipo (ADR 0026).
+    if (dto.role !== "patient" && org.kind === "individual") {
+      throw new ConflictException(
+        "Tu cuenta es de profesional independiente. Pasala a equipo desde Configuración para sumar colegas.",
+      );
+    }
 
     const row = await this.runMappingConflict(async () =>
       this.tenantDb.run(async (tx) => {

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 import { PortalReportsList } from "@/components/portal/portal-reports";
 import { PageHeader } from "@/components/ui";
@@ -10,9 +10,9 @@ export default async function PatientReportsPage({ params }: { params: Promise<{
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "patient") redirect(roleHome[me.role]);
+  if (me.role !== "patient") redirect(workspaceHome(me.role, me.org.kind));
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader title="Tus reportes" description="El resumen de cada mes que publica tu profesional." />
       <PortalReportsList />
     </WorkspaceShell>

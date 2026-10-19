@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { PortalShopping } from "@/components/portal/portal-shopping";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 /** Lista de compras del paciente (imprimible). */
 export default async function PatientShoppingPage({
@@ -14,10 +14,10 @@ export default async function PatientShoppingPage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "patient") redirect(roleHome[me.role]);
+  if (me.role !== "patient") redirect(workspaceHome(me.role, me.org.kind));
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PortalShopping />
     </WorkspaceShell>
   );

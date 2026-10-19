@@ -169,3 +169,7 @@ export interface OnboardingStatus {
     team: boolean;
   };
 }
+
+/** Cambio de tipo de cuenta (admin): independiente ⇄ equipo (ADR 0026). */
+export const changeOrgKindSchema = z.object({ kind: z.enum(orgKinds) });
+export type ChangeOrgKindDto = z.infer<typeof changeOrgKindSchema>;

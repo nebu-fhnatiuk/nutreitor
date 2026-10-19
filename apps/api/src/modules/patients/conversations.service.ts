@@ -87,11 +87,15 @@ export class ConversationsService {
     });
   }
 
-  /** Profesional: su conversación con un paciente asignado (la crea si no existe). */
+  /**
+   * Quien atiende: su conversación con un paciente que tiene asignado (la crea si no
+   * existe). Vale para el profesional y para la admin asignada (org individual, ADR
+   * 0026): lo que habilita es la asignación, no el rol.
+   */
   openWithPatient(patientId: string): Promise<ConversationRefDto> {
     return this.tenantDb.run(async (tx) => {
       const me = await whoAmI(tx);
-      if (me.role !== "professional" || !(await activeAssignment(tx, patientId, me.membershipId))) {
+      if (me.role === "patient" || !(await activeAssignment(tx, patientId, me.membershipId))) {
         throw new NotFoundException();
       }
       return { conversationId: await getOrCreate(tx, "patient_professional", me.membershipId, patientId) };
@@ -157,10 +161,9 @@ async function loadConversation(tx: TenantTx, id: string, me: Me): Promise<Conve
 async function participates(tx: TenantTx, conv: Conversation, me: Me): Promise<boolean> {
   if (conv.kind === "patient_professional") {
     if (me.role === "patient") return conv.patientId === me.patientId;
-    if (me.role === "professional") {
-      return conv.professionalMembershipId === me.membershipId && (await activeAssignment(tx, conv.patientId!, me.membershipId));
-    }
-    return false; // la admin no participa del chat clínico
+    // Sólo la membresía asignada de ESA conversación (profesional, o la admin que
+    // atiende en una org individual). Una admin no ve el chat clínico de otros.
+    return conv.professionalMembershipId === me.membershipId && (await activeAssignment(tx, conv.patientId!, me.membershipId));
   }
   if (me.role === "admin") return true;
   if (me.role === "professional") return conv.professionalMembershipId === me.membershipId;
@@ -239,6 +242,16 @@ type EntryRow = {
   unread: number | string;
 };
 
+/** Conversaciones de quien atiende con sus pacientes asignados (con mensajes). */
+function ownPatientConversations(membershipId: string) {
+  return sql`select c.id, c.kind, p.full_name, p.id, c.professional_membership_id
+    from conversations c join patients p on p.id = c.patient_id
+    where c.kind = 'patient_professional' and c.professional_membership_id = ${membershipId}
+      and exists (select 1 from care_assignments ca where ca.patient_id = c.patient_id
+                  and ca.membership_id = ${membershipId} and ca.status = 'active')
+      and exists (select 1 from messages x where x.conversation_id = c.id)`;
+}
+
 /** Con quién puede hablar quien consulta, con el último mensaje y sus no leídos. */
 async function inbox(tx: TenantTx, me: Me): Promise<InboxEntryDto[]> {
   const entries =
@@ -248,7 +261,10 @@ async function inbox(tx: TenantTx, me: Me): Promise<InboxEntryDto[]> {
                    null::uuid as patient_id, m.id as professional_membership_id
             from memberships m join users u on u.id = m.user_id
             left join conversations c on c.kind = 'professional_admin' and c.professional_membership_id = m.id
-            where m.role = 'professional' and m.revoked_at is null`
+            where m.role = 'professional' and m.revoked_at is null
+            union all
+            -- Si la admin atiende (org individual, ADR 0026): sus propios pacientes.
+            ${ownPatientConversations(me.membershipId)}`
       : me.role === "professional"
         ? // La administración (siempre) + pacientes asignados con conversación.
           sql`select c.id as conversation_id, 'professional_admin'::conversation_kind as kind, 'Administración' as title,
@@ -256,12 +272,7 @@ async function inbox(tx: TenantTx, me: Me): Promise<InboxEntryDto[]> {
               from (select 1) one
               left join conversations c on c.kind = 'professional_admin' and c.professional_membership_id = ${me.membershipId}
               union all
-              select c.id, c.kind, p.full_name, p.id, c.professional_membership_id
-              from conversations c join patients p on p.id = c.patient_id
-              where c.kind = 'patient_professional' and c.professional_membership_id = ${me.membershipId}
-                and exists (select 1 from care_assignments ca where ca.patient_id = c.patient_id
-                            and ca.membership_id = ${me.membershipId} and ca.status = 'active')
-                and exists (select 1 from messages x where x.conversation_id = c.id)`
+              ${ownPatientConversations(me.membershipId)}`
         : // Paciente: sus profesionales asignados + conversaciones anteriores con mensajes.
           sql`select c.id as conversation_id, 'patient_professional'::conversation_kind as kind, u.full_name as title,
                      ${me.patientId}::uuid as patient_id, ca.membership_id as professional_membership_id

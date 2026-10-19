@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PatientDetail } from "@/components/patients/patient-detail";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 export default async function AdminPatientPage({
   params,
@@ -14,10 +14,12 @@ export default async function AdminPatientPage({
   const { slug, id } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "admin") redirect(roleHome[me.role]);
+  if (me.role !== "admin") redirect(workspaceHome(me.role, me.org.kind));
+  // Independiente (ADR 0026): una sola vista de trabajo, la de quien atiende.
+  if (me.org.kind === "individual") redirect(`/pro/patients/${id}`);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <Suspense>
         <PatientDetail
           id={id}

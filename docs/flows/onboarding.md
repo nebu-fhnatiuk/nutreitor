@@ -120,3 +120,20 @@ horarios cargados y (en equipos) al menos otro miembro. La tarjeta del inicio de
 admin muestra además el aviso "Estamos revisando tu alta" y desaparece cuando la org
 está activa y todo está hecho. La admin puede editar su perfil y su agenda
 (`/pro/profile`, `/pro/agenda`), porque también puede atender.
+
+## Tipo de cuenta: independiente ⇄ equipo
+
+Un independiente es una org `individual` con una sola admin que atiende
+([ADR 0026](../decisions/0026-profesional-independiente-org-de-una-persona.md)): entra
+a `/pro`, tiene el menú del profesional más Página pública y Configuración, y sus
+pacientes quedan asignados a ella.
+
+```mermaid
+stateDiagram-v2
+  individual --> team: "Sumar colegas" (Configuración)
+  team --> individual: sólo si no hay colegas activos ni invitaciones de equipo pendientes
+```
+
+`PUT /organizations/current/kind` (admin). En una org individual, invitar a un
+colega responde 409 con la indicación de pasar a equipo. El rol app puede escribir
+`kind` (GRANT por columna, migración 0039), pero no `status`.

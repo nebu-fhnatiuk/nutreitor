@@ -31,7 +31,8 @@ sequenceDiagram
   horaria de la disponibilidad del profesional. Llave: id del turno.
 - **Mensaje sin leer** (conversaciones privadas, ADR 0024): si pasan 15 min sin
   leer, a los **participantes** de esa conversación (paciente ↔ su profesional;
-  profesional ↔ admins). La admin nunca recibe avisos del chat clínico. **No incluye
+  profesional ↔ admins). Una admin no recibe avisos del chat clínico de otros; sí de
+  sus propios pacientes si es la asignada (org individual, ADR 0026). **No incluye
   el mensaje**. Llave: conversación + destinatario + hasta dónde había leído → un
   aviso por ráfaga.
 - **Registro diario** (opt-in en el portal: interruptor + hora; toma la zona horaria

@@ -19,7 +19,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { MembershipRole } from "@nutreitor/shared";
+import type { MembershipRole, OrgKind } from "@nutreitor/shared";
 
 import { useUnreadMessages } from "@/components/messages/use-unread";
 import { FeedbackProvider } from "@/components/ui";
@@ -61,6 +61,21 @@ const NAV: Record<MembershipRole, NavItem[]> = {
 };
 
 /**
+ * Profesional independiente (org de una persona, ADR 0026): es admin pero trabaja
+ * como profesional. Una sola navegación, sin equipo ni roster.
+ */
+const SOLO_NAV: NavItem[] = [
+  { href: "/pro", label: "Hoy", icon: Sun },
+  { href: "/pro/patients", label: "Pacientes", icon: Users },
+  { href: "/pro/messages", label: "Mensajes", icon: MessageSquare, unread: true },
+  { href: "/pro/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/pro/recipes", label: "Recetas", icon: BookOpen },
+  { href: "/pro/profile", label: "Mi perfil", icon: UserRound },
+  { href: "/admin/public", label: "Página pública", icon: Globe },
+  { href: "/admin/settings", label: "Configuración", icon: Settings },
+];
+
+/**
  * Ítem activo = el de ruta MÁS LARGA que coincide con la actual. Con startsWith
  * suelto, "/pro" quedaba activo junto con "/pro/agenda"; así sólo gana el más
  * específico, y una subruta sin ítem propio (la ficha) marca a su sección padre.
@@ -80,16 +95,18 @@ function activeHref(items: NavItem[], pathname: string): string | null {
 export function WorkspaceShell({
   orgName,
   role,
+  orgKind = "team",
   userName,
   children,
 }: {
   orgName: string;
   role: MembershipRole;
+  orgKind?: OrgKind;
   userName: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const items = NAV[role];
+  const items = role === "admin" && orgKind === "individual" ? SOLO_NAV : NAV[role];
   const current = activeHref(items, pathname);
   const unread = useUnreadMessages(role);
   // En celular las secciones son una fila con scroll: que la activa quede a la vista.
@@ -150,7 +167,7 @@ export function WorkspaceShell({
           </div>
           {/* En desktop la org vive en el sidebar; este spacer empuja el menú a la derecha. */}
           <div className="hidden sm:block" />
-          <UserMenu userName={userName} role={role} />
+          <UserMenu userName={userName} role={role} orgKind={orgKind} />
         </header>
 
         {/* Navegación mobile: en celular el sidebar está oculto, así que las
@@ -194,7 +211,15 @@ export function WorkspaceShell({
 }
 
 /** Menú de cuenta: avatar + nombre → desplegable con rol y "Cerrar sesión". */
-function UserMenu({ userName, role }: { userName: string; role: MembershipRole }) {
+function UserMenu({
+  userName,
+  role,
+  orgKind,
+}: {
+  userName: string;
+  role: MembershipRole;
+  orgKind: OrgKind;
+}) {
   const [open, setOpen] = useState(false);
   const initial = userName.trim().charAt(0).toUpperCase() || "?";
 
@@ -239,7 +264,7 @@ function UserMenu({ userName, role }: { userName: string; role: MembershipRole }
           >
             <div className="px-3 py-2">
               <p className="truncate text-sm font-medium text-stone-900">{userName}</p>
-              <p className="text-xs text-stone-500">{ROLE_LABEL[role]}</p>
+              <p className="text-xs text-stone-500">{role === "admin" && orgKind === "individual" ? "Profesional independiente" : ROLE_LABEL[role]}</p>
             </div>
             <div className="my-1 border-t border-stone-100" />
             <button

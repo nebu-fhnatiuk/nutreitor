@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 import { Suspense } from "react";
 
@@ -12,9 +12,9 @@ export default async function PatientMessagesPage({ params }: { params: Promise<
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "patient") redirect(roleHome[me.role]);
+  if (me.role !== "patient") redirect(workspaceHome(me.role, me.org.kind));
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader title="Mensajes" description="Escribile a tu profesional. No es un canal de urgencias." />
       <Suspense>
         <Conversations audience="patient" />

@@ -139,7 +139,7 @@ export class PatientsService {
    */
   async create(dto: CreatePatientDto): Promise<PatientDetailDto> {
     const ctx = this.tenantDb.context;
-    const { user } = getAuth();
+    const { user, org } = getAuth();
     const canClinical = hasCapability(user.role, "patient:read_clinical");
     // El atajo crear-y-asignar requiere patient:assign (admin); defensa en
     // profundidad además de que el profesional ya no tiene patient:create.
@@ -168,9 +168,13 @@ export class PatientsService {
         targetId: row!.id,
       });
 
-      if (dto.assignToMembershipId) {
+      // Org de una persona (ADR 0026): el paciente es de quien lo crea.
+      const assignTo =
+        dto.assignToMembershipId ??
+        (org.kind === "individual" ? (await resolvePatientAccess(tx)).membershipId : null);
+      if (assignTo) {
         await this.assignments.assignInTx(tx, row!.id, {
-          membershipId: dto.assignToMembershipId,
+          membershipId: assignTo,
           locationId: dto.locationId ?? null,
         });
       }

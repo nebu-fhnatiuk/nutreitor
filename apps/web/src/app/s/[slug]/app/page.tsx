@@ -5,7 +5,7 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 export default async function PatientAppPage({
   params,
@@ -15,10 +15,10 @@ export default async function PatientAppPage({
   const { slug } = await params;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
-  if (me.role !== "patient") redirect(roleHome[me.role]);
+  if (me.role !== "patient") redirect(workspaceHome(me.role, me.org.kind));
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader title={`Hola, ${me.user.fullName.split(" ")[0]}`} />
       <InstallPrompt appName={me.org.name} className="mb-6" />
       <PortalView />

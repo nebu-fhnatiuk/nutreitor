@@ -20,7 +20,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 |---|---|---|---|
 | `users` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Identidad de plataforma. Email único global, sin PHI. El acceso se gatea por `memberships`. `is_platform_admin` marca a los operadores de la consola (ADR 0025; se otorga a mano). |
 | `org_signups` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Solicitudes de alta pendientes de verificar el email (token hasheado, vencen en 48 h, un solo uso). **Sin grants al rol app**: la opera sólo la conexión owner. |
-| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding y textos públicos** (GRANT por columna): el estado lo decide la plataforma. |
+| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | |
