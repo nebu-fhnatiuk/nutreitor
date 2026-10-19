@@ -23,6 +23,7 @@ export * from "./conversations.js";
 export * from "./patient-reports.js";
 export * from "./org-signups.js";
 export * from "./contact-requests.js";
+export * from "./password-resets.js";
 export * from "./notifications.js";
 
 import { organizations } from "./organizations.js";
@@ -49,6 +50,7 @@ import { conversationReads, conversations, messages } from "./conversations.js";
 import { patientReports } from "./patient-reports.js";
 import { orgSignups } from "./org-signups.js";
 import { contactRequests } from "./contact-requests.js";
+import { passwordResets } from "./password-resets.js";
 import { notificationPreferences } from "./notifications.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
@@ -86,5 +88,6 @@ export const schema = {
   patientReports,
   orgSignups,
   contactRequests,
+  passwordResets,
   notificationPreferences,
 };

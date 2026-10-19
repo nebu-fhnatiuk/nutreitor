@@ -14,10 +14,10 @@ export default async function LoginPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ email?: string; nueva?: string }>;
+  searchParams: Promise<{ email?: string; nueva?: string; restablecida?: string }>;
 }) {
   const { slug } = await params;
-  const { email, nueva } = await searchParams;
+  const { email, nueva, restablecida } = await searchParams;
   const me = await fetchMe(slug);
   if (me) redirect(workspaceHome(me.role, me.org.kind));
 
@@ -38,6 +38,11 @@ export default async function LoginPage({
         {nueva === "1" && (
           <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
             ¡Listo! Creamos {orgName}. Ingresá para configurarla mientras revisamos el alta.
+          </p>
+        )}
+        {restablecida === "1" && (
+          <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">
+            Listo: guardamos tu contraseña nueva. Ingresá con ella.
           </p>
         )}
         <div className="mt-8">

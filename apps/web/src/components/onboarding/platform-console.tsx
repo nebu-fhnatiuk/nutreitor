@@ -113,6 +113,11 @@ function PlatformLogin({ onDone }: { onDone: (me: PlatformMe) => void }) {
       <Button type="submit" disabled={busy} className="w-full">
         {busy ? "Ingresando…" : "Ingresar"}
       </Button>
+      <p className="text-center text-sm">
+        <a href="/olvide" className="text-ink/60 underline-offset-4 hover:text-brand hover:underline">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </p>
     </form>
   );
 }

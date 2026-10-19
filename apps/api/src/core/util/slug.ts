@@ -5,6 +5,8 @@ export const RESERVED_SLUGS = new Set([
   "pro",
   "app",
   "accept",
+  "olvide",
+  "restablecer",
   "api",
   "_next",
 ]);

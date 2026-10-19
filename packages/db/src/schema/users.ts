@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, pgTable, uuid, text } from "drizzle-orm/pg-core";
+import { boolean, pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
 
 import { timestamps } from "./_shared.js";
 
@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   /** Operador de la plataforma (consola de aprobación). Se otorga a mano, nunca por API. */
   isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
+  /** Último cambio de contraseña: invalida las sesiones emitidas antes (ADR 0029). */
+  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
   ...timestamps,
 });
 

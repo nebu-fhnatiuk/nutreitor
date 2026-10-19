@@ -73,3 +73,21 @@ export interface MeResponse {
 export interface LoginResponse extends MeResponse {
   redirect: string;
 }
+
+// ── Recuperar la contraseña (ADR 0029) ────────────────────────────────────────
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10),
+  password: z.string().min(8, "Mínimo 8 caracteres.").max(200),
+});
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
+
+/** Preview del link (sólo para quien tiene el token): a qué cuenta corresponde. */
+export interface PasswordResetPreview {
+  email: string;
+}
