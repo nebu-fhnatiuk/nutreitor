@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../../core/auth/auth.module.js";
+import { AnthropometryController } from "./anthropometry.controller.js";
+import { AnthropometryService } from "./anthropometry.service.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import { MealPlansController } from "./meal-plans.controller.js";
 import { MealPlansService } from "./meal-plans.service.js";
@@ -31,6 +33,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     ConversationsController,
     EfficiencyController,
     ReportsController,
+    AnthropometryController,
   ],
   providers: [
     PatientsService,
@@ -43,7 +46,8 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     ConversationsService,
     EfficiencyService,
     ReportsService,
+    AnthropometryService,
   ],
-  exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService],
+  exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService],
 })
 export class PatientsModule {}

@@ -69,7 +69,8 @@ export function Modal({
           role="dialog"
           aria-modal="true"
           className={cn(
-            "relative w-full max-w-lg rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl",
+            // Alto máximo + scroll propio: un formulario largo no queda fuera de la pantalla.
+            "relative max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl",
             className,
           )}
         >

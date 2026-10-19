@@ -17,6 +17,8 @@ import {
   applyClinicalVisibility,
   hasCapability,
   type PatientMetricDto,
+  type ClinicalVisibility,
+  type PortalAnthropometryDto,
   type PortalMeDto,
   type RecordMetricDto,
 } from "@nutreitor/shared";
@@ -29,6 +31,7 @@ import { loadActiveModuleKeys } from "../organizations/active-modules.js";
 import { toPlanDto } from "../patients/meal-plans.service.js";
 import { numStr, toMetricDto } from "../patients/metrics.service.js";
 import { resolvePatientAccess } from "../patients/patient-access.js";
+import { AnthropometryService } from "../patients/anthropometry.service.js";
 
 type PatientRow = typeof patients.$inferSelect;
 
@@ -43,7 +46,16 @@ export class PortalService {
   constructor(
     private readonly tenantDb: TenantDbService,
     private readonly audit: AuditService,
+    private readonly anthropometry: AnthropometryService,
   ) {}
+
+  /** Su antropometría: sólo lo que el profesional marcó visible (y nada en beta). */
+  async myAnthropometry(): Promise<PortalAnthropometryDto[]> {
+    return this.tenantDb.run(async (tx) => {
+      const patient = await this.resolveMyPatient(tx);
+      return this.anthropometry.forPortal(tx, patient.id, (patient.clinicalVisibility ?? {}) as ClinicalVisibility);
+    });
+  }
 
   async getMe(): Promise<PortalMeDto> {
     return this.tenantDb.run(async (tx) => {

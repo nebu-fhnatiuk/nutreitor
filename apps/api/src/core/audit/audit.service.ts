@@ -55,7 +55,10 @@ export type AuditAction =
   | "contact.received"
   | "contact.accepted"
   | "contact.declined"
-  | "contact.forwarded";
+  | "contact.forwarded"
+  | "anthropometry.recorded"
+  | "anthropometry.updated"
+  | "anthropometry.deleted";
 
 export interface AuditEvent {
   organizationId: string;

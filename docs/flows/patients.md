@@ -138,6 +138,30 @@ sequenceDiagram
   API-->>Pr: registros + sensaciones → grilla y % en Evolución
 ```
 
+**Antropometría ISAK** ([ADR 0030](../decisions/0030-antropometria-isak.md)) — pestaña
+"Antropometría" de la ficha. `GET/POST /patients/{id}/anthropometry`, `PUT/DELETE
+…/{sessionId}` (`metric:read` / `metric:record`, profesional → asignados).
+
+```mermaid
+flowchart LR
+  A["Sesión: tomas por sitio<br/>(perfil restringido + bloque Kerr opcional)"] --> B{"¿2 tomas difieren<br/>>5% pliegue / >1% resto?"}
+  B -->|sí| C["3ª toma obligatoria<br/>(UI + API)"]
+  B -->|no| D["Guardar tomas crudas"]
+  C --> D
+  D --> E["Al leer: valor final = media de 2 / mediana de 3"]
+  E --> F["anthropometryResults(sexo, edad a la fecha)"]
+  F --> G["Σ6 · Σ8 · % graso (D-W+Siri, Yuhasz, Faulkner)<br/>Somatotipo · Kerr 5 componentes"]
+  G --> H{"¿Validado y visible?"}
+  H -->|sí| I["Portal: GET /portal/me/anthropometry"]
+  H -->|no (beta)| J["Portal: nada"]
+```
+
+- Lo que no se puede calcular explica por qué (sitios faltantes, sexo no binario,
+  menor de 17 para Durnin-Womersley).
+- Beta: `ANTHROPOMETRY_VALIDATED = false` hasta cruzar
+  [`docs/validation/antropometria.md`](../validation/antropometria.md) con la planilla de la
+  nutricionista.
+
 **Mensajes** — conversaciones **privadas por par** ([ADR 0024](../decisions/0024-conversaciones-privadas.md);
 append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)):
 

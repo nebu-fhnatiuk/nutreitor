@@ -63,6 +63,7 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 | **Plan alimentario** | editor día-tipo o semanal, versionado; cada item se vincula a la **base de alimentos** y los macros se calculan solos; total del día contra el objetivo; **intercambios** por equivalencia calculada; **plantillas** del consultorio; **lista de compras** semanal; **borrador con NUTRI** |
 | **Recetas** | biblioteca global + recetas propias; nutrientes calculados desde los ingredientes |
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
+| **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. **Beta hasta validar las fórmulas** |
 | **Reportes** | **reporte mensual** que se arma solo, se comenta y se publica al paciente |
 | **Agenda** | disponibilidad semanal (huso IANA), turnos, sin solapamientos |
 | **Mensajes** | conversaciones **privadas** con cada paciente y canal con la administración |
@@ -332,6 +333,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0027](docs/decisions/0027-solicitud-de-contacto-desde-la-vidriera.md) | Solicitud de contacto desde la vidriera |
 | [0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md) | Landing separada: Astro en S3 + CloudFront |
 | [0029](docs/decisions/0029-recuperar-la-contrasena.md) | Recuperar la contraseña |
+| [0030](docs/decisions/0030-antropometria-isak.md) | Antropometría deportiva ISAK |
 
 </details>
 
@@ -375,14 +377,14 @@ apps/
   worker/    Node + BullMQ — escaneo por consultorio y entrega de avisos (SES)
   agents/    Python/FastAPI — NUTRI, CHEF, PSICO (stub | Bedrock)
 packages/
-  db/        schema Drizzle, migraciones SQL numeradas (0001–0041), runner, seed,
+  db/        schema Drizzle, migraciones SQL numeradas (0001–0042), runner, seed,
              catálogo de alimentos y recetario (curación + generadores)
   shared/    DTOs y schemas Zod, capacidades, lógica pura (macros, lista de compras,
              intercambios, adherencia, borrador de plan)
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0029
+  decisions/     ADRs 0001–0030
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -453,7 +455,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (253 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (268 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 

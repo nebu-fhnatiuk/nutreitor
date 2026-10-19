@@ -31,6 +31,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
+| `anthropometry_sessions` | Tenant-scoped (RLS) | `tenant_id` | Antropometría ISAK (ADR 0030): **tomas crudas** por sitio (`takes` jsonb, 1 a 3 valores); los resultados se calculan al leer. Editable y borrable, auditada. |
 | `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. Matrícula (`license_number`, `license_jurisdiction`, `license_status`, `license_note`): sólo `reviewed` es pública. El rol app no puede escribir `license_status`/`license_note` (GRANT por columna); el trigger `professional_profiles_license_reset` la devuelve a `declared` si cambia la matrícula. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
@@ -115,6 +116,7 @@ erDiagram
   users         ||--o{ password_resets        : "requests"
   organizations |o--o| org_signups            : "created from"
   organizations ||--o{ contact_requests       : "scopes"
+  patients      ||--o{ anthropometry_sessions : "measured in"
   memberships   |o--o{ contact_requests       : "addressed to"
   patients      |o--o| contact_requests       : "created from"
   organizations ||--o{ refresh_tokens         : "scopes"
@@ -218,6 +220,17 @@ erDiagram
     text token_hash UK
     timestamptz expires_at
     timestamptz used_at "un solo uso"
+  }
+
+  anthropometry_sessions {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid measured_by_membership_id FK
+    date measured_at
+    text profile "isak_restricted"
+    jsonb takes "sitio → 1 a 3 tomas"
+    text note
   }
 
   contact_requests {
