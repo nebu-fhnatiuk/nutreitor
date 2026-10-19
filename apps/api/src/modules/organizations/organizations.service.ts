@@ -1,18 +1,20 @@
-import { Injectable } from "@nestjs/common";
-import { organizations } from "@nutreitor/db";
+import { ConflictException, Injectable } from "@nestjs/common";
+import { invitations, memberships, organizations } from "@nutreitor/db";
 import type {
+  ChangeOrgKindDto,
+  OrgKind,
   BrandingDto,
   CreateOrganizationDto,
   OrganizationDto,
   UpdateBrandingDto,
   UpdateOrgPublicProfileDto,
 } from "@nutreitor/shared";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { AdminDbService } from "../../core/database/admin-db.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
-import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
+import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
 
 /**
  * Organizaciones. El alta/listado es control-plane (rol owner, fuera de RLS). El
@@ -79,6 +81,53 @@ export class OrganizationsService {
         });
       }
       return toBranding(row!);
+    });
+  }
+
+  /**
+   * Cambia el tipo de la org (ADR 0026). A `team` siempre se puede; a `individual`
+   * sólo si la admin es la única persona del equipo (sin colegas activos ni
+   * invitaciones de equipo pendientes).
+   */
+  async changeKind(dto: ChangeOrgKindDto): Promise<{ kind: OrgKind }> {
+    const ctx = getTenantContext();
+    const { user } = getAuth();
+    return this.tenantDb.run(async (tx) => {
+      if (dto.kind === "individual") {
+        const [colleague] = await tx
+          .select({ id: memberships.id })
+          .from(memberships)
+          .where(
+            and(
+              isNull(memberships.revokedAt),
+              ne(memberships.role, "patient"),
+              ne(memberships.userId, user.id),
+            ),
+          )
+          .limit(1);
+        const [invite] = await tx
+          .select({ id: invitations.id })
+          .from(invitations)
+          .where(and(eq(invitations.status, "pending"), ne(invitations.role, "patient")))
+          .limit(1);
+        if (colleague || invite) {
+          throw new ConflictException(
+            "Para pasar a independiente no tiene que haber otras personas en el equipo ni invitaciones de equipo pendientes.",
+          );
+        }
+      }
+      const [row] = await tx
+        .update(organizations)
+        .set({ kind: dto.kind })
+        .where(eq(organizations.id, ctx.orgId))
+        .returning({ kind: organizations.kind });
+      await this.audit.recordForSession(tx, {
+        action: "org.kind_changed",
+        targetType: "organization",
+        targetId: ctx.orgId,
+        metadata: { kind: dto.kind },
+      });
+      return { kind: row!.kind };
     });
   }
 

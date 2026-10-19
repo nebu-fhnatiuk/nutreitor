@@ -19,7 +19,7 @@ import type {
   MembershipRole,
   MeResponse,
 } from "@nutreitor/shared";
-import { roleHome, capabilitiesForRole } from "@nutreitor/shared";
+import { capabilitiesForRole, workspaceHome } from "@nutreitor/shared";
 import bcrypt from "bcryptjs";
 import { and, eq, isNull } from "drizzle-orm";
 
@@ -342,7 +342,8 @@ export class AuthService {
         role,
         capabilities: capabilitiesForRole(role),
         modules,
-        redirect: roleHome[role],
+        // Un independiente arranca en su día (/pro), no en el panel (ADR 0026).
+        redirect: workspaceHome(role, org.kind),
       },
     };
   }

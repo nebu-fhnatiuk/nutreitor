@@ -16,6 +16,6 @@ export class EfficiencyController {
   @Get()
   @RequireCapability("patient:read")
   get(@Query(new ZodValidationPipe(efficiencyQuerySchema)) q: EfficiencyQueryDto): Promise<EfficiencyDto> {
-    return this.efficiency.forSession(q.days);
+    return this.efficiency.forSession(q.days, q.mine);
   }
 }

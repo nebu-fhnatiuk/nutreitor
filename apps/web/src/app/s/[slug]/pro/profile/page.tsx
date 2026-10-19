@@ -4,7 +4,7 @@ import { ProfileEditor } from "@/components/pro/profile-editor";
 import { PageHeader } from "@/components/ui";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchMe, fetchOwnProfile } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 
 export default async function ProProfilePage({
   params,
@@ -15,12 +15,12 @@ export default async function ProProfilePage({
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
   // La admin también atiende (y en una org de una persona es la única que atiende).
-  if (me.role === "patient") redirect(roleHome[me.role]);
+  if (me.role === "patient") redirect(workspaceHome(me.role, me.org.kind));
 
   const profile = await fetchOwnProfile(slug);
 
   return (
-    <WorkspaceShell orgName={me.org.name} role={me.role} userName={me.user.fullName}>
+    <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
       <PageHeader
         title="Mi perfil"
         description={`Tu vidriera pública en ${me.org.name}. Cada campo es privado por defecto: marcá “Público” lo que quieras mostrar.`}

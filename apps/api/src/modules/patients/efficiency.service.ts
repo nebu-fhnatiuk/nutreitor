@@ -28,20 +28,21 @@ type Row = {
  * Métricas de eficiencia (Fase 4.4) por profesional, sobre los últimos `days`:
  * armado de planes (mediana de minutos y desde qué se partió), pacientes activos,
  * adherencia de sus pacientes y tiempo de respuesta en sus conversaciones. La admin
- * ve a todo el equipo; el profesional, sólo su fila.
+ * ve a todo el equipo (y con `mine`, sólo la suya si atiende); el profesional, sólo
+ * su fila.
  */
 @Injectable()
 export class EfficiencyService {
   constructor(private readonly tenantDb: TenantDbService) {}
 
-  forSession(days: number): Promise<EfficiencyDto> {
+  forSession(days: number, mine = false): Promise<EfficiencyDto> {
     return this.tenantDb.run(async (tx) => {
       const { user } = getAuth();
       const { membershipId } = await resolvePatientAccess(tx);
       if (!membershipId || (user.role !== "admin" && user.role !== "professional")) {
         throw new ForbiddenException();
       }
-      const onlyMe = user.role === "professional" ? membershipId : null;
+      const onlyMe = user.role === "professional" || mine ? membershipId : null;
       const from = new Date(Date.now() - days * 86_400_000);
       const fromIso = from.toISOString();
       const fromDate = fromIso.slice(0, 10);
@@ -49,7 +50,11 @@ export class EfficiencyService {
       const res = await tx.execute(sql`
         with pros as (
           select m.id, u.full_name as name from memberships m join users u on u.id = m.user_id
-          where m.role = 'professional' and m.revoked_at is null
+          -- Quien atiende: profesionales, y admins con pacientes asignados (en una
+          -- org individual la admin es la que atiende, ADR 0026).
+          where m.revoked_at is null
+            and (m.role = 'professional'
+                 or (m.role = 'admin' and exists (select 1 from care_assignments x where x.membership_id = m.id)))
             and (${onlyMe}::uuid is null or m.id = ${onlyMe}::uuid)
         ),
         active as (

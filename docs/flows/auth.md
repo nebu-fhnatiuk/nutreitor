@@ -117,8 +117,10 @@ TOCTOU (si se revocó entre el check y el commit, aborta).
 
 ## Ruteo por rol y re-validación
 
-`roleHome`: `admin → /admin`, `professional → /pro`, `patient → /app`. La admin
-también puede abrir `/pro/profile` y `/pro/agenda` (puede atender). Post-login el
+`roleHome`: `admin → /admin`, `professional → /pro`, `patient → /app`, salvo la
+admin de una org individual, que entra a `/pro` (`workspaceHome`, ADR 0026). Las
+páginas `/pro` aceptan a quien atiende (`actsAsProfessional`); la admin de un equipo
+también puede abrir `/pro/profile` y `/pro/agenda`. Post-login el
 cliente navega ahí; las páginas re-validan contra `GET /auth/me` en el servidor
 (defensa en servidor, no sólo middleware). `/auth/me` devuelve `user`, `org`, `role`
 y `capabilities` (derivadas del rol).

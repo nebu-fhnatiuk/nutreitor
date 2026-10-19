@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { fetchMe, fetchTenant } from "@/lib/server/api";
-import { roleHome } from "@nutreitor/shared";
+import { workspaceHome } from "@nutreitor/shared";
 import { LoginForm } from "./login-form";
 
 /**
@@ -19,7 +19,7 @@ export default async function LoginPage({
   const { slug } = await params;
   const { email, nueva } = await searchParams;
   const me = await fetchMe(slug);
-  if (me) redirect(roleHome[me.role]);
+  if (me) redirect(workspaceHome(me.role, me.org.kind));
 
   const org = await fetchTenant(slug);
   const orgName = org?.name ?? slug;

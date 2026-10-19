@@ -14,6 +14,20 @@ export const roleHome: Record<MembershipRole, string> = {
   patient: "/app",
 };
 
+/**
+ * ¿Atiende pacientes? El profesional siempre; la admin de una org `individual`
+ * también (es la única persona de la org, ADR 0026). Decide la UI de trabajo
+ * clínico; los permisos los siguen dando las capacidades del rol.
+ */
+export function actsAsProfessional(role: MembershipRole, kind: OrgKind): boolean {
+  return role === "professional" || (role === "admin" && kind === "individual");
+}
+
+/** Inicio del workspace: un independiente arranca en su día (/pro), no en el panel. */
+export function workspaceHome(role: MembershipRole, kind: OrgKind): string {
+  return role === "admin" && kind === "individual" ? "/pro" : roleHome[role];
+}
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),

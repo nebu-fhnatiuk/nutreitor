@@ -84,6 +84,13 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 - **Primeros pasos**: checklist derivada de los datos (perfil, matrícula, marca,
   horarios, equipo) y aviso de "en revisión" hasta que aprueben el alta.
 
+### Profesional independiente
+
+- Es una organización de una persona: la admin **atiende**. Entra directo a "Hoy",
+  tiene el menú del profesional más Página pública y Configuración, sus pacientes
+  quedan asignados a ella y chatea con ellos. Si suma colegas, pasa la cuenta a
+  **equipo** desde Configuración, sin migrar nada.
+
 ### Operación de la plataforma (`nutreitor.com/plataforma`)
 
 - **Consola** con sesión propia (no es un rol de ninguna organización): aprobar,
@@ -306,6 +313,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0023](docs/decisions/0023-worker-de-notificaciones.md) | Worker de notificaciones (BullMQ, rol sin BYPASSRLS, SES) |
 | [0024](docs/decisions/0024-conversaciones-privadas.md) | Conversaciones privadas por par |
 | [0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md) | Alta autoservicio con aprobación y consola de plataforma |
+| [0026](docs/decisions/0026-profesional-independiente-org-de-una-persona.md) | Profesional independiente: org de una persona |
 
 </details>
 
@@ -354,7 +362,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0025
+  decisions/     ADRs 0001–0026
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -423,7 +431,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (235 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (240 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (6 tests)
 ```
 

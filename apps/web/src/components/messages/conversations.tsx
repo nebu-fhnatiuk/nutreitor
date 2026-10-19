@@ -32,7 +32,8 @@ const EMPTY: Record<Audience, string> = {
  * conversación todavía (ej. un profesional al que la admin nunca escribió) la crea
  * al abrirla.
  */
-export function Conversations({ audience }: { audience: Audience }) {
+/** `solo`: independiente (ADR 0026), sin canal con la administración. */
+export function Conversations({ audience, solo = false }: { audience: Audience; solo?: boolean }) {
   const base = audience === "patient" ? "portal/me/conversations" : "conversations";
   const router = useRouter();
   const pathname = usePathname();
@@ -76,7 +77,15 @@ export function Conversations({ audience }: { audience: Audience }) {
 
   if (error) return <Alert>{error}</Alert>;
   if (!entries) return <Loading />;
-  if (!entries.length) return <EmptyState>{EMPTY[audience]}</EmptyState>;
+  if (!entries.length) {
+    return (
+      <EmptyState>
+        {solo
+          ? "Todavía no hay conversaciones con pacientes. Escribiles desde la pestaña Mensajes de su ficha."
+          : EMPTY[audience]}
+      </EmptyState>
+    );
+  }
 
   const current = entries.find((e) => e.conversationId === selected);
   return (

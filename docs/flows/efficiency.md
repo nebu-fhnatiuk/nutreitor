@@ -5,8 +5,9 @@ puede afirmar que superamos a INDYA"). `GET /efficiency?days=30|90` (`patient:re
 
 | Quién | Ve |
 |---|---|
-| Admin | una fila por profesional activo (Resumen → "Eficiencia del equipo") |
+| Admin | una fila por quien atiende: profesionales activos y admins con pacientes asignados (Resumen → "Eficiencia del equipo") |
 | Profesional | sólo su fila ("Hoy" → "Tus números") |
+| Admin que atiende (org individual) | sólo su fila con `mine=true` ("Hoy" → "Tus números", [ADR 0026](../decisions/0026-profesional-independiente-org-de-una-persona.md)) |
 
 ## Métricas (por profesional, en el período)
 
