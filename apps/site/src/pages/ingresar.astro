@@ -1,0 +1,86 @@
+---
+import Base from "../layouts/Base.astro";
+import { links } from "../config";
+---
+<Base title="Ingresar" description="Ingresá al espacio de tu consultorio, club o gimnasio." noindex>
+  <section class="wrap section box">
+    <h1 class="h2">Ingresá a tu espacio</h1>
+    <p class="lead">Cada consultorio, club o gimnasio tiene su propia dirección. Escribí la tuya.</p>
+    <form id="ingresar" class="form" data-template={links.workspaceLogin}>
+      <label for="slug">Tu dirección</label>
+      <div class="field">
+        <input id="slug" name="slug" required autocomplete="off" autocapitalize="none" spellcheck="false"
+          pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="tu-espacio" />
+        <span class="suffix" aria-hidden="true">.nutreitor.com</span>
+      </div>
+      <button class="btn btn-primary" type="submit">Ir a mi espacio</button>
+    </form>
+    <p class="small">¿Todavía no tenés uno? <a href={links.signup}>Creá tu espacio</a>.</p>
+  </section>
+</Base>
+
+<script>
+  // Lleva al login del subdominio. El slug se normaliza; el servidor lo valida.
+  const form = document.getElementById("ingresar") as HTMLFormElement | null;
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = form.querySelector("input") as HTMLInputElement;
+    const slug = input.value.trim().toLowerCase();
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return input.reportValidity();
+    window.location.assign((form.dataset.template ?? "").replace("{slug}", slug));
+  });
+</script>
+
+<style>
+  .box {
+    max-width: 560px;
+  }
+  .lead {
+    margin: 12px 0 0;
+  }
+  .form {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  label {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .field {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding-right: 14px;
+  }
+  .field:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 14px;
+    font: inherit;
+    font-size: 16px;
+    outline: none;
+  }
+  .suffix {
+    color: var(--ink-3);
+    font-size: 15px;
+  }
+  .form .btn {
+    margin-top: 8px;
+    align-self: flex-start;
+  }
+  .small {
+    margin-top: 20px;
+    color: var(--ink-3);
+    font-size: 15px;
+  }
+</style>

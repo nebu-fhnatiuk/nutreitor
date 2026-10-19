@@ -23,8 +23,9 @@ apps/
                onboarding (alta autoservicio + consola de plataforma) ·
                contact (solicitudes desde la vidriera)
     agents/    slot vacío (servicio Python a futuro)
+  site/  Astro 5 estático — landing de producto (nutreitor.com), S3 + CloudFront (ADR 0028)
   web/   Next.js 15 (App Router) + Tailwind — frontend + edge
-    app/page.tsx          landing de producto (host raíz)
+    app/page.tsx          raíz: en dev redirige a la landing (apps/site); en prod no se alcanza
     app/registro/         alta autoservicio de organizaciones (host raíz)
     app/plataforma/       consola de plataforma, sesión propia (host raíz)
     middleware.ts         resuelve subdominio → /s/[slug] + x-tenant-slug
@@ -87,6 +88,10 @@ flowchart TB
 
 **Límites de aislamiento marcados arriba:**
 
+- **Dominio raíz (CloudFront, objetivo)**: `nutreitor.com` lo sirve CloudFront. La
+  landing estática (`apps/site`) sale de S3; `/registro`, `/plataforma` y `/api` van al
+  ALB de la web. Los subdominios de cada organización van directo al ALB. Ver
+  [ADR 0028](../decisions/0028-landing-separada-astro-s3-cloudfront.md).
 - **Borde de red (edge → API)**: en prod la API vive en subnet privada, alcanzable
   sólo vía el edge/ALB. El `x-internal-secret` (`EDGE_SHARED_SECRET`) es la segunda
   capa: la API rechaza todo request sin él, salvo `/health`.

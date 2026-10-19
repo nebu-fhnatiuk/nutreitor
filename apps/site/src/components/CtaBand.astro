@@ -1,0 +1,55 @@
+---
+import { links } from "../config";
+interface Props {
+  title?: string;
+  body?: string;
+}
+const {
+  title = "Creá tu espacio en minutos.",
+  body = "Para tu consultorio, tu club o tu gimnasio. Configurás todo mientras revisamos tu alta.",
+} = Astro.props;
+---
+<section class="night" aria-labelledby="cta-title">
+  <div class="wrap row">
+    <div class="text">
+      <h2 id="cta-title" class="h2">{title}</h2>
+      <p>{body}</p>
+    </div>
+    <a class="btn go" href={links.signup}>Creá tu espacio</a>
+  </div>
+</section>
+
+<style>
+  .night {
+    background: var(--night);
+    color: var(--ground);
+  }
+  .row {
+    padding-block: clamp(56px, 8vw, 80px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .text {
+    flex: 1 1 420px;
+    min-width: 0;
+  }
+  p {
+    margin: 12px 0 0;
+    font-size: 17px;
+    color: var(--night-ink);
+  }
+  .go {
+    background: var(--accent-bright);
+    color: var(--night);
+    font-weight: 800;
+    font-size: 17px;
+    padding: 18px 28px;
+  }
+  .go:hover {
+    background: #99f6e4;
+    color: var(--night);
+  }
+</style>

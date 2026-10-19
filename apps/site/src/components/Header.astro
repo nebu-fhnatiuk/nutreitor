@@ -1,0 +1,71 @@
+---
+import Logo from "./Logo.astro";
+import { links } from "../config";
+
+const nav = [
+  { href: "/#como", label: "Cómo funciona" },
+  { href: "/clubes", label: "Clubes" },
+  { href: "/gimnasios", label: "Gimnasios" },
+  { href: "/#confianza", label: "Datos de salud" },
+];
+const path = Astro.url.pathname.replace(/\/$/, "");
+---
+<header class="wrap header">
+  <Logo />
+  <nav aria-label="Principal" class="nav">
+    {nav.map((i) => (
+      <a href={i.href} aria-current={path === i.href ? "page" : undefined}>{i.label}</a>
+    ))}
+    <a href="/ingresar">Ingresar</a>
+    <a class="btn btn-primary cta" href={links.signup}>Creá tu espacio</a>
+  </nav>
+</header>
+
+<style>
+  .header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 18px;
+  }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    align-items: center;
+    font-size: 15px;
+  }
+  .nav a:not(.cta) {
+    color: var(--ink-2);
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .nav a:not(.cta):hover,
+  .nav a[aria-current="page"] {
+    color: var(--accent);
+  }
+  .cta {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 15px;
+  }
+  /* En el celular: el CTA queda y los links pasan a una fila que scrollea. */
+  @media (max-width: 720px) {
+    .nav {
+      width: 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav a {
+      white-space: nowrap;
+    }
+    .cta {
+      margin-left: auto;
+    }
+  }
+</style>

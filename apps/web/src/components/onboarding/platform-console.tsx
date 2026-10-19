@@ -101,7 +101,7 @@ function PlatformLogin({ onDone }: { onDone: (me: PlatformMe) => void }) {
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-sm space-y-4">
-      <h1 className="font-serif text-2xl font-medium">Consola de plataforma</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight">Consola de plataforma</h1>
       <p className="text-sm text-ink/60">Sólo para el equipo de operación de Nutreitor.</p>
       <Label label="Email">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
@@ -157,7 +157,7 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl font-medium tracking-tight">Consola de plataforma</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Consola de plataforma</h1>
           <p className="mt-1 text-sm text-ink/60">
             Altas de organizaciones y matrículas. No muestra datos de pacientes.
           </p>
@@ -248,7 +248,7 @@ function OrgCard({ org, onChanged }: { org: PlatformOrgEntry; onChanged: () => P
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-serif text-xl font-medium">{org.name}</h2>
+          <h2 className="text-xl font-bold tracking-tight">{org.name}</h2>
           <p className="mt-0.5 break-all text-sm text-ink/55">
             {org.slug} · {org.kind === "individual" ? "Profesional independiente" : "Equipo"} · registrada el{" "}
             {new Date(org.createdAt).toLocaleDateString("es-AR")}

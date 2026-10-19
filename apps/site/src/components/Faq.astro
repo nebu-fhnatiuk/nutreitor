@@ -1,0 +1,46 @@
+---
+/** Preguntas frecuentes con <details> (accesible y sin JS). El JSON-LD FAQPage lo arma la página con `faqLd`. */
+interface Props {
+  items: { q: string; a: string }[];
+}
+const { items } = Astro.props;
+---
+<section class="wrap section">
+  <h2 class="h2">Preguntas frecuentes</h2>
+  <div class="list">
+    {items.map((i) => (
+      <details>
+        <summary>{i.q}</summary>
+        <p>{i.a}</p>
+      </details>
+    ))}
+  </div>
+</section>
+
+<style>
+  .list {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 52rem;
+  }
+  details {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 4px 20px;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 17px;
+    padding: 14px 0;
+    min-height: 44px;
+  }
+  details p {
+    margin: 0 0 16px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+</style>

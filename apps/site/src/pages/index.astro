@@ -1,0 +1,162 @@
+---
+import Base from "../layouts/Base.astro";
+import PlanMock from "../components/PlanMock.astro";
+import Feature from "../components/Feature.astro";
+import Trust from "../components/Trust.astro";
+import Steps from "../components/Steps.astro";
+import Faq from "../components/Faq.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { links, site } from "../config";
+import { faqLd } from "../faq";
+
+const faq = [
+  {
+    q: "¿Sirve si trabajo solo/a?",
+    a: "Sí. Elegís cuenta de profesional independiente y entrás directo a tu día: deportistas, agenda, planes y mensajes. Si después sumás colegas, la pasás a equipo sin perder nada.",
+  },
+  {
+    q: "¿Mis deportistas tienen que instalar una app?",
+    a: "No hace falta. Entran a su portal desde el link que les mandás y lo pueden agregar a la pantalla de inicio del celular como una app.",
+  },
+  {
+    q: "¿Puedo armar un plan distinto para los días de entrenamiento y los de descanso?",
+    a: "Sí. Los planes pueden ser de un día tipo o semanales, con un plan distinto para cada día, y los macros se calculan solos desde la base de alimentos.",
+  },
+  {
+    q: "¿Por qué revisan el alta y la matrícula?",
+    a: "Porque tu vidriera recibe datos de salud de personas reales. Mientras revisamos, configurás todo; tu perfil se publica cuando la matrícula queda revisada.",
+  },
+  {
+    q: "¿Quién puede ver lo que me cuenta un deportista?",
+    a: "Sólo vos. En un club, la coordinación ve los números del equipo, pero no las conversaciones entre cada deportista y su nutricionista.",
+  },
+];
+---
+<Base title={site.name} jsonLd={faqLd(faq)}>
+  <section class="wrap hero">
+    <div class="copy">
+      <p class="eyebrow">Nutrición deportiva</p>
+      <h1 class="h1">La plataforma del nutricionista deportivo.</h1>
+      <p class="lead">
+        Planes para el día de partido y el de descanso, seguimiento de la composición corporal y un
+        portal donde cada deportista ve lo que le toca hoy. Para tu consultorio, tu club o tu gimnasio.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href={links.signup}>Creá tu espacio</a>
+        <a class="btn btn-ghost" href="#como">Ver cómo funciona →</a>
+      </div>
+      <p class="note">Independiente o con equipo. Revisamos cada alta y cada matrícula.</p>
+    </div>
+    <div class="visual">
+      <PlanMock />
+    </div>
+  </section>
+
+  <section id="como" class="band section">
+    <div class="wrap">
+      <h2 class="h2 narrow">Del primer contacto a la competencia, todo el seguimiento en un lugar.</h2>
+      <div class="grid-auto features">
+        <Feature eyebrow="01 · Captar" title="Que los deportistas te encuentren">
+          Tu vidriera con tu especialidad y tu matrícula, turnos online y consultas que te llegan sólo a vos.
+        </Feature>
+        <Feature eyebrow="02 · Planificar" title="Planes según la semana de entrenamiento">
+          Un plan distinto para cada día, con macros calculados desde la base de alimentos, recetas,
+          plantillas, intercambios y la lista de compras.
+        </Feature>
+        <Feature eyebrow="03 · Seguir" title="Medir, no intuir">
+          Peso, % graso, masa muscular y medidas en gráficos, el registro de cada comida, chat privado y un
+          reporte mensual para el deportista.
+        </Feature>
+      </div>
+    </div>
+  </section>
+
+  <section id="para-quien" class="wrap section">
+    <h2 class="h2">Hecho para quienes trabajan con deportistas.</h2>
+    <div class="grid-auto audiences">
+      <Feature eyebrow="Nutricionista deportivo" title="Tu consultorio, sin planillas">
+        Corredores, ciclistas, crossfiteros, deportistas amateurs y de alto rendimiento: cada uno con su
+        plan, su evolución y su portal.
+      </Feature>
+      <a class="audience-link" href="/clubes">
+        <Feature eyebrow="Clubes" title="Todo el plantel, con su equipo de nutrición">
+          Varios nutricionistas, cada deportista con su profesional y la coordinación viendo los números
+          del equipo. Con los colores del club. <span class="more">Ver clubes →</span>
+        </Feature>
+      </a>
+      <a class="audience-link" href="/gimnasios">
+        <Feature eyebrow="Gimnasios" title="Sumá nutrición a tu propuesta">
+          Tus socios reservan con el nutricionista del gimnasio y siguen su plan desde el celular, con tu
+          marca. <span class="more">Ver gimnasios →</span>
+        </Feature>
+      </a>
+    </div>
+  </section>
+
+  <Trust />
+  <Steps />
+  <Faq items={faq} />
+  <CtaBand />
+</Base>
+
+<style>
+  .hero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    align-items: center;
+    padding-block: clamp(32px, 6vw, 64px) clamp(56px, 8vw, 80px);
+  }
+  .copy {
+    flex: 1 1 460px;
+    min-width: 0;
+  }
+  .copy .eyebrow {
+    margin-bottom: 16px;
+  }
+  .copy .lead {
+    margin: 22px 0 0;
+    max-width: 34rem;
+  }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .note {
+    margin: 16px 0 0;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  .visual {
+    flex: 1 1 400px;
+    min-width: 0;
+  }
+  .narrow {
+    max-width: 44rem;
+  }
+  .features,
+  .audiences {
+    margin-top: 40px;
+  }
+  .audience-link {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+  }
+  .audience-link > :global(*) {
+    flex: 1;
+    transition: border-color 0.15s;
+  }
+  .audience-link:hover > :global(*) {
+    border-color: var(--accent);
+  }
+  .more {
+    display: block;
+    margin-top: 10px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+</style>

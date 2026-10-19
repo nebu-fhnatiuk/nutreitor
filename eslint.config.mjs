@@ -13,6 +13,7 @@ export default tseslint.config(
       "**/.next/**",
       "**/node_modules/**",
       "**/.turbo/**",
+      "**/.astro/**",
       "**/*.config.*",
       "**/*.cjs",
       "**/migrations/**",

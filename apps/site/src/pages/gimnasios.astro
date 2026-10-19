@@ -1,0 +1,84 @@
+---
+import Base from "../layouts/Base.astro";
+import Feature from "../components/Feature.astro";
+import Trust from "../components/Trust.astro";
+import Faq from "../components/Faq.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { links } from "../config";
+import { faqLd } from "../faq";
+
+const faq = [
+  {
+    q: "¿Necesito tener un nutricionista en el gimnasio?",
+    a: "Sí: la plataforma es para que el nutricionista atienda a tus socios. Puede ser uno o varios, y cada uno carga su matrícula.",
+  },
+  {
+    q: "¿Cómo llegan los socios?",
+    a: "Desde la vidriera del gimnasio: reservan un turno con el horario libre del nutricionista o le dejan una consulta.",
+  },
+  {
+    q: "¿Los socios ven la marca del gimnasio?",
+    a: "Sí. La vidriera y el portal donde siguen su plan llevan el nombre, el logo y los colores del gimnasio.",
+  },
+];
+---
+<Base
+  title="Nutrición para gimnasios"
+  description="Sumá nutrición a tu gimnasio: tus socios reservan con el nutricionista y siguen su plan desde el celular, con la marca del gimnasio."
+  jsonLd={faqLd(faq)}
+>
+  <section class="wrap hero">
+    <p class="eyebrow">Gimnasios</p>
+    <h1 class="h1">Sumá nutrición a tu gimnasio.</h1>
+    <p class="lead">
+      Tus socios reservan con el nutricionista del gimnasio, siguen su plan desde el celular y ven su
+      evolución. Todo con la marca de tu gimnasio.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={links.signup}>Creá el espacio del gimnasio</a>
+      <a class="btn btn-ghost" href="#como">Ver cómo funciona →</a>
+    </div>
+  </section>
+
+  <section id="como" class="band section">
+    <div class="wrap grid-auto">
+      <Feature eyebrow="Captar" title="Turnos y consultas desde tu vidriera">
+        Los socios reservan con el horario libre del nutricionista o le dejan una consulta.
+      </Feature>
+      <Feature eyebrow="Planificar" title="Planes para entrenar mejor">
+        Planes con macros calculados, recetas, intercambios y la lista de compras de la semana.
+      </Feature>
+      <Feature eyebrow="Seguir" title="La evolución, en el celular del socio">
+        Peso, % graso, masa muscular y medidas, el registro de cada comida y mensajes con su nutricionista.
+      </Feature>
+      <Feature eyebrow="Marca" title="Con la identidad del gimnasio">
+        Nombre, logo y colores en la vidriera y el portal, en la dirección del gimnasio.
+      </Feature>
+    </div>
+  </section>
+
+  <Trust />
+  <Faq items={faq} />
+  <CtaBand title="Sumá nutrición a tu gimnasio." body="Creás el espacio, invitás a tu nutricionista y publicás la vidriera." />
+</Base>
+
+<style>
+  .hero {
+    padding-block: clamp(32px, 6vw, 72px);
+    max-width: 920px;
+    margin-inline: auto;
+  }
+  .hero .eyebrow {
+    margin-bottom: 16px;
+  }
+  .hero .lead {
+    margin: 22px 0 0;
+    max-width: 40rem;
+  }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+</style>

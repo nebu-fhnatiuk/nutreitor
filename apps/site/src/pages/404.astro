@@ -1,0 +1,11 @@
+---
+import Base from "../layouts/Base.astro";
+import { links } from "../config";
+---
+<Base title="Página no encontrada" noindex>
+  <section class="wrap section">
+    <h1 class="h2">No encontramos esa página.</h1>
+    <p class="lead">Puede que el link esté mal o que la página ya no exista.</p>
+    <p><a class="btn btn-primary" href="/">Volver al inicio</a> <a class="btn btn-ghost" href={links.signup}>Creá tu espacio</a></p>
+  </section>
+</Base>

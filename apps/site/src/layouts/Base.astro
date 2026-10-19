@@ -1,0 +1,83 @@
+---
+/**
+ * Layout de todas las páginas: SEO (title, description, canonical, Open Graph,
+ * JSON-LD) + header y footer. es-AR; mobile primero.
+ */
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { site } from "../config";
+
+interface Props {
+  title: string;
+  description?: string;
+  /** JSON-LD extra de la página (se suma al de la organización). */
+  jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
+}
+
+const { title, description = site.description, jsonLd, noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, "") || "/", Astro.site);
+const fullTitle = title === site.name ? `${site.name} — ${site.tagline}` : `${title} · ${site.name}`;
+
+const orgLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: site.name,
+  applicationCategory: "HealthApplication",
+  operatingSystem: "Web",
+  description: site.description,
+  url: Astro.site?.toString(),
+  inLanguage: "es-AR",
+  audience: [
+    { "@type": "Audience", audienceType: "Nutricionistas deportivos" },
+    { "@type": "Audience", audienceType: "Clubes deportivos" },
+    { "@type": "Audience", audienceType: "Gimnasios" },
+  ],
+};
+---
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <a class="skip" href="#contenido">Saltar al contenido</a>
+    <Header />
+    <main id="contenido">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    background: var(--surface);
+    padding: 10px 16px;
+    border-radius: 10px;
+    z-index: 10;
+  }
+  .skip:focus {
+    top: 12px;
+  }
+</style>

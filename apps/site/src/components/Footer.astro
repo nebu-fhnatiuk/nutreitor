@@ -1,0 +1,85 @@
+---
+import Logo from "./Logo.astro";
+import { links } from "../config";
+const year = new Date().getFullYear();
+---
+<footer class="footer">
+  <div class="wrap inner">
+    <div>
+      <Logo />
+      <p class="small">La plataforma del nutricionista deportivo.</p>
+    </div>
+    <nav aria-label="Pie de página" class="cols">
+      <div>
+        <p class="title">Producto</p>
+        <a href="/#como">Cómo funciona</a>
+        <a href="/#confianza">Datos de salud</a>
+        <a href={links.signup}>Creá tu espacio</a>
+      </div>
+      <div>
+        <p class="title">Para</p>
+        <a href="/">Nutricionistas deportivos</a>
+        <a href="/clubes">Clubes</a>
+        <a href="/gimnasios">Gimnasios</a>
+      </div>
+      <div>
+        <p class="title">Cuenta</p>
+        <a href="/ingresar">Ingresar</a>
+      </div>
+    </nav>
+  </div>
+  <p class="wrap legal">© {year} Nutreitor · Hecho en Argentina</p>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--line-2);
+    background: var(--surface);
+    padding-block: 48px 24px;
+  }
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: space-between;
+  }
+  .small {
+    margin: 8px 0 0;
+    color: var(--ink-3);
+    font-size: 14px;
+  }
+  .cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+  }
+  .cols div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .cols a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 15px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .cols a:hover {
+    color: var(--accent);
+  }
+  .legal {
+    margin-top: 32px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+</style>
