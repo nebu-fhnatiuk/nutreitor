@@ -1,0 +1,175 @@
+/*
+ * Dirección A "Clínica luminosa" (elegida 2026-10-19): Manrope, base fría y clara,
+ * acento verde azulado. Tokens en :root; las páginas usan sólo estas variables.
+ */
+@import "@fontsource-variable/manrope";
+
+:root {
+  --ink: #0e1f24;
+  --ink-2: #3b5157;
+  --ink-3: #52686e;
+  --ground: #f6f9f9;
+  --surface: #ffffff;
+  --soft: #f2f8f7;
+  --line: #dce7e7;
+  --line-2: #e3ecec;
+  --accent: #0f766e;
+  --accent-ink: #0b5a54;
+  --accent-bright: #5eead4;
+  --warn: #9a5b00;
+  --night: #0e1f24;
+  --night-ink: #b9cbcb;
+  --radius: 18px;
+  --max: 1200px;
+  --font: "Manrope Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--ground);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.h1 {
+  margin: 0;
+  font-size: clamp(40px, 6vw, 62px);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+}
+
+.h2 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.lead {
+  font-size: clamp(17px, 2vw, 19px);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  transition: background-color 0.15s, transform 0.15s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-ink);
+  color: #fff;
+}
+.btn-ghost {
+  color: var(--ink);
+  padding-inline: 8px;
+}
+.btn-ghost:hover {
+  color: var(--accent);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px;
+}
+
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  gap: 20px;
+}
+
+/* Seis tarjetas: 3 + 3 en desktop (con auto-fit de 270 px quedaban 4 + 2). */
+.grid-auto.cols-3 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+
+.section {
+  padding-block: clamp(56px, 8vw, 88px);
+}
+
+.band {
+  background: var(--surface);
+  border-block: 1px solid var(--line-2);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .btn {
+    transition: none;
+  }
+}

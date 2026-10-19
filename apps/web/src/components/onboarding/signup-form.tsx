@@ -22,13 +22,13 @@ const KINDS: { kind: OrgKind; title: string; desc: string; Icon: typeof User }[]
   {
     kind: "individual",
     title: "Trabajo solo/a",
-    desc: "Profesional independiente: tu consultorio, tus pacientes.",
+    desc: "Nutricionista deportivo independiente: tu consultorio, tus deportistas.",
     Icon: User,
   },
   {
     kind: "team",
     title: "Tenemos un equipo",
-    desc: "Consultorio, centro o club con varios profesionales.",
+    desc: "Club, gimnasio o consultorio con varios nutricionistas.",
     Icon: Users,
   },
 ];
@@ -115,7 +115,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
     return (
       <div className="rounded-3xl border border-ink/10 bg-white p-8 text-center shadow-sm">
         <MailCheck className="mx-auto h-10 w-10 text-brand" aria-hidden />
-        <h1 className="mt-4 font-serif text-2xl font-medium">Revisá tu email</h1>
+        <h1 className="mt-4 text-2xl font-extrabold tracking-tight">Revisá tu email</h1>
         <p className="mt-2 text-sm text-ink/65">
           Te mandamos un link a <span className="font-medium text-ink">{sentTo}</span> para
           confirmar y terminar de crear <span className="font-medium text-ink">{orgName}</span>.
@@ -129,10 +129,10 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
   return (
     <form onSubmit={submit} className="space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Creá tu espacio en Nutreitor</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Creá tu espacio en Nutreitor</h1>
         <p className="mt-2 text-ink/65">
-          Tu vidriera, tus pacientes y tus planes en un solo lugar. Revisamos cada alta para
-          cuidar a los pacientes: mientras tanto ya podés configurar todo.
+          Tu vidriera, tus deportistas y sus planes en un solo lugar. Revisamos cada alta para
+          cuidar sus datos de salud: mientras tanto ya podés configurar todo.
         </p>
       </div>
 
@@ -159,11 +159,11 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
       </fieldset>
 
       <div className="space-y-4 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
-        <Label label={kind === "individual" ? "Nombre de tu consultorio o marca" : "Nombre de la organización"}>
+        <Label label={kind === "individual" ? "Nombre de tu consultorio o marca" : "Nombre del club, gimnasio o consultorio"}>
           <Input
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            placeholder={kind === "individual" ? "Lic. Ana Pérez · Nutrición" : "Centro Nutrición Norte"}
+            placeholder={kind === "individual" ? "Lic. Ana Pérez · Nutrición deportiva" : "Club Atlético Norte"}
             required
             maxLength={120}
           />
@@ -230,7 +230,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5" />
         <span>
           Acepto los términos y la política de privacidad, y me comprometo a tratar los datos
-          de mis pacientes con el consentimiento que corresponde.
+          de mis deportistas y pacientes con el consentimiento que corresponde.
         </span>
       </label>
 

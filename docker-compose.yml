@@ -124,6 +124,8 @@ services:
       ROOT_DOMAIN: localhost
       # Secreto compartido edge↔API (mismo valor que en api).
       EDGE_SHARED_SECRET: dev-edge-shared-secret-change-me
+      # Landing (apps/site): en dev la raíz de la web redirige ahí (ADR 0028).
+      SITE_URL: http://localhost:4321
     ports:
       - "3000:3000"
     volumes:
@@ -139,6 +141,27 @@ services:
              pnpm install &&
              pnpm --filter @nutreitor/shared build &&
              pnpm --filter @nutreitor/web dev"
+
+  # Landing de producto (apps/site, Astro, ADR 0028). En prod es estática en S3 +
+  # CloudFront; en dev, `astro dev` en :4321 con los links apuntando a la web (:3000).
+  # Reusa los node_modules que instala `api` (arranca cuando está sana).
+  site:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PUBLIC_APP_ORIGIN: http://localhost:3000
+      PUBLIC_WORKSPACE_URL_TEMPLATE: http://{slug}.localhost:3000/login
+      SITE_URL: http://localhost:4321
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "4321:4321"
+    volumes:
+      - ./:/app
+      - api_root_node_modules:/app/node_modules
+    command: sh -c "corepack enable && pnpm --filter @nutreitor/site dev"
 
   # Worker de notificaciones (BullMQ sobre Redis, ADR 0023): recordatorios de turno,
   # avisos de mensajes sin leer y recordatorio diario de registro. Rol propio
@@ -213,6 +236,7 @@ services:
     working_dir: /work
     depends_on:
       - web
+      - site
     environment:
       LABEL: actual
     volumes:

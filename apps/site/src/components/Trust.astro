@@ -1,0 +1,65 @@
+---
+/**
+ * Datos de salud: sólo afirmaciones que el producto cumple hoy (ADRs 0001, 0024,
+ * 0025). La línea de clubes es clave: la coordinación no lee el chat clínico.
+ */
+const items = [
+  { title: "Cada organización, aislada", body: "Nadie de otro club o consultorio ve a tus deportistas." },
+  { title: "Chat privado", body: "Lo que habla el deportista con su nutricionista queda entre ellos dos: ni la coordinación lo lee." },
+  { title: "Matrícula revisada", body: "Ningún perfil se publica sin que revisemos la matrícula." },
+  { title: "Vos decidís qué ve", body: "El deportista ve sólo lo que marcás de su ficha clínica." },
+];
+---
+<section id="confianza" class="band section">
+  <div class="wrap row">
+    <div class="intro">
+      <h2 class="h2">Datos de salud, tratados como datos de salud.</h2>
+      <p class="lead">Pensado desde el día uno para la Ley 25.326 de Protección de Datos Personales. También dentro de un club.</p>
+    </div>
+    <ul class="list">
+      {items.map((i) => (
+        <li><strong>{i.title}</strong>{i.body}</li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+  }
+  .intro {
+    flex: 1 1 340px;
+    min-width: 0;
+  }
+  .intro .lead {
+    margin: 16px 0 0;
+  }
+  .list {
+    flex: 1 1 480px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 16px;
+  }
+  .list li {
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .list strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+</style>

@@ -54,7 +54,7 @@ export function ConfirmSignup({ token }: { token: string }) {
   if (state === "invalid" || !preview) {
     return (
       <div className="text-center">
-        <h1 className="font-serif text-2xl font-medium">El link no es válido</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight">El link no es válido</h1>
         <p className="mt-2 text-sm text-ink/65">Venció o ya se usó. Podés registrarte de nuevo.</p>
         <a href="/registro" className="mt-6 inline-block text-sm font-medium text-brand underline-offset-4 hover:underline">
           Volver al registro
@@ -65,7 +65,7 @@ export function ConfirmSignup({ token }: { token: string }) {
 
   return (
     <form onSubmit={confirm} className="rounded-3xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8">
-      <h1 className="font-serif text-2xl font-medium">Último paso, {preview.fullName.split(" ")[0]}</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight">Último paso, {preview.fullName.split(" ")[0]}</h1>
       <p className="mt-2 text-sm text-ink/65">
         Vas a crear <span className="font-medium text-ink">{preview.orgName}</span> con la
         dirección <span className="font-medium text-ink">{preview.slug}</span>, como

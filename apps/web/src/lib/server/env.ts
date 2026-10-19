@@ -17,6 +17,9 @@ const schema = z.object({
   // CloudFront + ALB = 2). La IP real del cliente es la entrada N desde la derecha;
   // lo de más a la izquierda lo puede inventar el cliente. Ver ADR 0017.
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).default(1),
+  // Landing de producto (apps/site, ADR 0028). En prod CloudFront sirve "/" desde S3
+  // y la web nunca la recibe: se deja vacío. En dev, la raíz de la web redirige acá.
+  SITE_URL: z.string().url().optional(),
 });
 
 let cached: z.infer<typeof schema> | null = null;

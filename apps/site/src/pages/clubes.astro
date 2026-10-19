@@ -1,0 +1,97 @@
+---
+import Base from "../layouts/Base.astro";
+import Feature from "../components/Feature.astro";
+import Trust from "../components/Trust.astro";
+import Faq from "../components/Faq.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { links } from "../config";
+import { faqLd } from "../faq";
+
+const faq = [
+  {
+    q: "¿Cada nutricionista ve a todo el plantel?",
+    a: "No. Cada nutricionista ve a los deportistas que tiene asignados. La administración del club da de alta a los deportistas y decide quién atiende a quién.",
+  },
+  {
+    q: "¿La coordinación puede leer los chats con los deportistas?",
+    a: "No. Las conversaciones quedan entre cada deportista y su nutricionista. La coordinación tiene su propio canal con cada profesional y ve los números del equipo.",
+  },
+  {
+    q: "¿Qué números ve la coordinación?",
+    a: "Por profesional: deportistas a cargo, planes armados y cuánto tardan en armarlos, la adherencia de sus deportistas y el tiempo de respuesta en los mensajes.",
+  },
+  {
+    q: "¿Se puede usar con los colores del club?",
+    a: "Sí. La vidriera, el portal del deportista y el panel del equipo llevan el nombre, el logo y los colores del club, en su propia dirección.",
+  },
+];
+---
+<Base
+  title="Nutrición para clubes"
+  description="Un equipo de nutricionistas para todo el plantel: cada deportista con su profesional, la coordinación viendo los números y los colores del club."
+  jsonLd={faqLd(faq)}
+>
+  <section class="wrap hero">
+    <p class="eyebrow">Clubes</p>
+    <h1 class="h1">Nutrición para todo el plantel.</h1>
+    <p class="lead">
+      Tu equipo de nutricionistas trabaja en un solo lugar: cada deportista con su profesional, su plan
+      y su seguimiento, y la coordinación viendo cómo va el equipo. Con los colores del club.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={links.signup}>Creá el espacio del club</a>
+      <a class="btn btn-ghost" href="#como">Ver cómo funciona →</a>
+    </div>
+  </section>
+
+  <section id="como" class="band section">
+    <div class="wrap grid-auto cols-3">
+      <Feature eyebrow="Equipo" title="Cada deportista con su nutricionista">
+        Invitás a tus nutricionistas y asignás a cada deportista. Cada profesional ve sólo a los suyos.
+      </Feature>
+      <Feature eyebrow="Coordinación" title="Los números del equipo, de un vistazo">
+        Planes armados, tiempo de armado, adherencia y tiempo de respuesta, por profesional.
+      </Feature>
+      <Feature eyebrow="Consultas" title="Lo que llega al club, a quien corresponde">
+        Socios y deportistas escriben desde la vidriera del club y la coordinación deriva cada consulta a
+        un nutricionista.
+      </Feature>
+      <Feature eyebrow="Plantel" title="El portal de cada deportista">
+        Su plan del día, el registro de cada comida, su evolución y el reporte mensual que publica su
+        nutricionista.
+      </Feature>
+      <Feature eyebrow="Planes" title="Según el calendario de entrenamiento">
+        Planes semanales con un plan distinto para el día de partido y el de descanso, plantillas para
+        el plantel y macros calculados.
+      </Feature>
+      <Feature eyebrow="Marca" title="Con la identidad del club">
+        Nombre, logo y colores en la vidriera, el portal y el panel, en la dirección del club.
+      </Feature>
+    </div>
+  </section>
+
+  <Trust />
+  <Faq items={faq} />
+  <CtaBand title="Armá el espacio del club." body="Creás la organización, invitás a tu equipo de nutrición y sumás al plantel." />
+</Base>
+
+<style>
+  .hero {
+    padding-block: clamp(32px, 6vw, 72px);
+    max-width: 920px;
+    margin-inline: auto;
+  }
+  .hero .eyebrow {
+    margin-bottom: 16px;
+  }
+  .hero .lead {
+    margin: 22px 0 0;
+    max-width: 40rem;
+  }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+</style>

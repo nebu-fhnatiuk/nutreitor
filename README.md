@@ -1,12 +1,14 @@
 # Nutreitor
 
-**Plataforma SaaS multi-tenant y white-label para nutricionistas**: captación de
-pacientes, ficha clínica, planes alimentarios con cálculo nutricional, agenda,
-seguimiento (adherencia, evolución, chat, reportes) y asistentes de IA, todo en un
-mismo producto que cada consultorio usa con su marca y su subdominio.
+**Plataforma SaaS multi-tenant y white-label para la nutrición deportiva**:
+nutricionistas deportivos, sus deportistas, **clubes** y **gimnasios**. Captación,
+ficha clínica, planes alimentarios con cálculo nutricional (por día de entrenamiento
+y de descanso), agenda, seguimiento (composición corporal, adherencia, chat, reportes)
+y asistentes de IA, en un mismo producto que cada organización usa con su marca y su
+subdominio.
 
 Un mismo deploy sirve a muchas organizaciones (nutricionistas independientes,
-consultorios, gimnasios, clínicas) con **aislamiento de datos fuerte en la base de
+consultorios, clubes, gimnasios) con **aislamiento de datos fuerte en la base de
 datos** (Postgres RLS), porque lo que se guarda son **datos de salud**.
 
 > **Estado (octubre 2026)**: Fases 1–2 cerradas, Fase 4 (eficiencia del profesional)
@@ -36,8 +38,9 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 
 ### Público (sin login)
 
-- **Landing de producto** en el dominio raíz, que vende la plataforma al
-  nutricionista.
+- **Landing de producto** en el dominio raíz (`apps/site`), dirigida a
+  nutricionistas deportivos, clubes y gimnasios, con páginas propias para clubes y
+  gimnasios.
 - **Alta autoservicio** (`/registro`): un equipo o un profesional independiente se
   registra, confirma el email y entra a configurar. La organización queda **en
   revisión** hasta que la plataforma la aprueba (sin vidriera ni pacientes mientras
@@ -174,8 +177,10 @@ Más detalle: [`docs/architecture/overview.md`](docs/architecture/overview.md) y
 
 ```mermaid
 flowchart TB
-  user["Usuarios<br/>*.nutreitor.com"]
+  user["Usuarios<br/>nutreitor.com · *.nutreitor.com"]
   dns["Route 53<br/>wildcard + ACM"]
+  cf["CloudFront<br/>nutreitor.com"]
+  s3[("S3<br/>landing estática (apps/site)")]
 
   subgraph vpc["VPC"]
     subgraph pub["Subnets públicas"]
@@ -200,7 +205,12 @@ flowchart TB
   bedrock["Bedrock (Claude)"]
   logs["CloudWatch Logs / métricas"]
 
-  user --> dns --> alb --> web
+  user --> dns
+  dns -->|"nutreitor.com"| cf
+  cf -->|"/, /clubes, /gimnasios…"| s3
+  cf -->|"/registro, /plataforma, /api"| alb
+  dns -->|"*.nutreitor.com"| alb
+  alb --> web
   web -->|"red privada + secreto de borde"| api
   api --> agents
   api --> pooler --> rds
@@ -219,6 +229,7 @@ flowchart TB
 |---|---|---|
 | Web, API, agentes, worker | **ECS Fargate**, una tarea por servicio, subnets privadas | contenedores stateless que ya existen (Dockerfiles multi-stage); escalan por separado |
 | Entrada | **ALB** + **Route 53** con certificado wildcard (ACM) | un subdominio por consultorio; la API **no** queda expuesta: sólo la alcanza la web |
+| Landing | **S3 + CloudFront** en `nutreitor.com` | sitio estático (Astro); CloudFront manda `/registro`, `/plataforma` y `/api` al ALB y el resto a S3 ([ADR 0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md)) |
 | Base de datos | **RDS PostgreSQL 17** (Multi-AZ, KMS) + **pgBouncer** | RLS con `SET LOCAL` por transacción → compatible con transaction pooling ([ADR 0002](docs/decisions/0002-als-vs-request-scoped-di.md)). RDS Proxy queda a validar (fija la conexión ante algunos `SET`) |
 | Rate limit y colas | **ElastiCache Redis 7** | contadores por ventana ([ADR 0017](docs/decisions/0017-rate-limiting-redis.md)) y cola BullMQ del worker ([ADR 0023](docs/decisions/0023-worker-de-notificaciones.md)) |
 | Email | **SES** | misma cuenta e IAM; avisos sin datos clínicos |
@@ -319,6 +330,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0025](docs/decisions/0025-alta-de-organizaciones-y-consola-de-plataforma.md) | Alta autoservicio con aprobación y consola de plataforma |
 | [0026](docs/decisions/0026-profesional-independiente-org-de-una-persona.md) | Profesional independiente: org de una persona |
 | [0027](docs/decisions/0027-solicitud-de-contacto-desde-la-vidriera.md) | Solicitud de contacto desde la vidriera |
+| [0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md) | Landing separada: Astro en S3 + CloudFront |
 
 </details>
 
@@ -355,19 +367,21 @@ apps/
              métricas, adherencia, conversaciones, reportes, eficiencia, plantillas),
              foods (catálogo, propios, recetas, intercambios), scheduling, portal,
              public, agents (gateway)
-  web/       Next.js 15 App Router + Tailwind — landing, vidrieras, /admin, /pro, /app
-             (PWA), proxy /api/*, manifest e íconos por tenant
+  site/      Astro 5 estático — landing de producto (/, /clubes, /gimnasios, /ingresar),
+             publicada en S3 + CloudFront
+  web/       Next.js 15 App Router + Tailwind — alta (/registro), consola (/plataforma),
+             vidrieras, /admin, /pro, /app (PWA), proxy /api/*, manifest e íconos por tenant
   worker/    Node + BullMQ — escaneo por consultorio y entrega de avisos (SES)
   agents/    Python/FastAPI — NUTRI, CHEF, PSICO (stub | Bedrock)
 packages/
-  db/        schema Drizzle, migraciones SQL numeradas (0001–0037), runner, seed,
+  db/        schema Drizzle, migraciones SQL numeradas (0001–0040), runner, seed,
              catálogo de alimentos y recetario (curación + generadores)
   shared/    DTOs y schemas Zod, capacidades, lógica pura (macros, lista de compras,
              intercambios, adherencia, borrador de plan)
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0027
+  decisions/     ADRs 0001–0028
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -391,7 +405,8 @@ El primer arranque instala dependencias, compila, migra y siembra la base.
 
 | Servicio | URL / puerto | Notas |
 |---|---|---|
-| web | http://localhost:3000 | landing; el tenant demo en **http://demo.localhost:3000** |
+| site | http://localhost:4321 | landing de producto (Astro) |
+| web | http://localhost:3000 | la raíz redirige a la landing; el tenant demo en **http://demo.localhost:3000** |
 | api | http://localhost:3001 | `GET /health` |
 | db | localhost:5432 | Postgres 17 |
 | redis | localhost:6379 | rate limit + colas |
