@@ -98,3 +98,25 @@ ALB y aguanta mucho **antes** de necesitar partir nada.
 Componentes y límites de aislamiento en
 [`../architecture/overview.md`](../architecture/overview.md); modelo de datos
 (tenant/region por tabla) en [`../architecture/data-model.md`](../architecture/data-model.md).
+
+## Actualización (2026-10-19)
+
+Lo que ya se separó: **agents** (Python), **worker** (notificaciones, ADR 0023) y
+**site** (landing estática, ADR 0028), además de **web** y de la tarea de
+**migraciones**. El núcleo clínico sigue siendo un monolito modular y no se parte.
+
+Nuevo orden de extracción:
+
+1. **control-plane** (alta de orgs, consola de plataforma, resolución pre-auth del
+   login), **antes de producción**. Disparador: *blast radius*. Hoy la API clínica
+   tiene credenciales `owner` (bypassa RLS) para estas operaciones; si se compromete,
+   se lleva la llave de todos los tenants. Extraído, la API queda sólo con el rol
+   `app`. Es la extracción más barata: casi no comparte transacciones con el núcleo.
+2. **billing**, cuando haya precios: webhooks de terceros y datos de pago lejos de
+   los de salud.
+3. **integraciones** (wearables, balanzas de bioimpedancia), diferencial para el
+   sector deportivo: ingesta con picos y dependencias externas que no deben afectar
+   al núcleo.
+4. **files**, **capa pública** (vidriera, reserva, consultas), **analytics** y
+   **auditoría de lecturas**, cuando aparezca su disparador (adjuntos, tráfico
+   anónimo, consultas pesadas, Fase 3).
