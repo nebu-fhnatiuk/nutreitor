@@ -66,6 +66,9 @@ export type AuditAction =
   | "recall.recorded"
   | "recall.updated"
   | "recall.deleted"
+  | "food_frequency.recorded"
+  | "food_frequency.updated"
+  | "food_frequency.deleted"
   | "anthropometry.updated"
   | "anthropometry.deleted";
 
