@@ -88,7 +88,7 @@ const mealItemSchema = z.object({
   note: z.string().max(300).optional(),
   food: foodRefSchema.optional(),
 });
-const planMealSchema = z.object({
+export const planMealSchema = z.object({
   name: z.string().min(1).max(120),
   time: z.string().max(20).optional(),
   items: z.array(mealItemSchema).max(50),

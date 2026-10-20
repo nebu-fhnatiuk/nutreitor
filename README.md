@@ -62,6 +62,7 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 | **Pacientes** | ficha clínica, notas append-only, asignaciones versionadas |
 | **Plan alimentario** | editor día-tipo o semanal, versionado; cada item se vincula a la **base de alimentos** y los macros se calculan solos; total del día contra el objetivo; **intercambios** por equivalencia calculada; **plantillas** del consultorio; **lista de compras** semanal; **borrador con NUTRI** |
 | **Requerimiento** | gasto en reposo con 4 fórmulas (Cunningham con la masa libre de grasa de la antropometría), sesiones por MET y **objetivos por tipo de día** (entrenamiento, partido, descanso) en g/kg; la semana tipo pasa al plan como objetivo de cada día |
+| **Ingesta** | **recordatorio de 24 h** guiado por pasadas, con la base de alimentos; kcal, macros en g/kg y por comida, comparado contra el requerimiento del tipo de día y promedio de los días habituales |
 | **Recetas** | biblioteca global + recetas propias; nutrientes calculados desde los ingredientes |
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
 | **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. El deportista ve en su portal lo que el profesional marque visible |
@@ -338,6 +339,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0030](docs/decisions/0030-antropometria-isak.md) | Antropometría deportiva ISAK |
 | [0031](docs/decisions/0031-grupos-y-carga-por-plantel.md) | Grupos de deportistas y carga por plantel |
 | [0032](docs/decisions/0032-requerimiento-energetico-periodizado.md) | Requerimiento energético con periodización deportiva |
+| [0033](docs/decisions/0033-recordatorio-de-24-horas.md) | Recordatorio de 24 horas |
 
 </details>
 
@@ -388,7 +390,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0032
+  decisions/     ADRs 0001–0033
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -459,7 +461,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (287 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (292 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 

@@ -11,6 +11,7 @@ export * from "./dtos/anthropometry.dto.js";
 export * from "./dtos/group.dto.js";
 export * from "./energy.js";
 export * from "./dtos/energy.dto.js";
+export * from "./dtos/intake.dto.js";
 export * from "./dtos/meal-plan.dto.js";
 export * from "./dtos/plan-draft.dto.js";
 export * from "./dtos/adherence.dto.js";

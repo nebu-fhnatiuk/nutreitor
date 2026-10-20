@@ -23,6 +23,7 @@ import { PatientConversation } from "@/components/messages/conversations";
 import { ReportsPanel } from "@/components/reports/reports-panel";
 import { AdherencePanel } from "./adherence-panel";
 import { EnergyPanel } from "./energy-panel";
+import { IntakePanel } from "./intake-panel";
 import { AnthropometryPanel } from "./anthropometry-panel";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -62,8 +63,8 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "requerimiento" | "evolucion" | "antropometria" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "requerimiento", "evolucion", "antropometria", "reportes", "ficha", "notas", "mensajes", "asistentes"];
+type TabId = "resumen" | "plan" | "requerimiento" | "ingesta" | "evolucion" | "antropometria" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "requerimiento", "ingesta", "evolucion", "antropometria", "reportes", "ficha", "notas", "mensajes", "asistentes"];
 
 /**
  * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
@@ -223,6 +224,7 @@ export function PatientDetail({
           { id: "resumen", label: "Resumen" },
           { id: "plan", label: "Plan" },
           { id: "requerimiento", label: "Requerimiento" },
+          { id: "ingesta", label: "Ingesta" },
           { id: "evolucion", label: "Evolución" },
           { id: "antropometria", label: "Antropometría" },
           { id: "reportes", label: "Reportes" },
@@ -247,6 +249,7 @@ export function PatientDetail({
         )}
         {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />}
         {tab === "requerimiento" && <EnergyPanel patientId={p.id} canWrite={canWritePlan} />}
+        {tab === "ingesta" && <IntakePanel patientId={p.id} canWrite={canWritePlan} />}
         {tab === "evolucion" && (
           <div className="space-y-6">
             <AdherencePanel patientId={p.id} />

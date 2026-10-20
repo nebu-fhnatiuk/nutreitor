@@ -346,7 +346,7 @@ export function PlanView({
  * por datos faltantes alarma sin motivo). El paciente sólo ve el total completo,
  * nunca el desvío (es una herramienta del profesional).
  */
-function DayTotals({
+export function DayTotals({
   meals,
   targets,
   forPatient = false,
@@ -502,12 +502,18 @@ function WeekdayTabs({
 
 /** Editor de la lista de comidas de UN día. Reusado por el modo día y por cada
  * día del modo semana (recibe/emite el array completo). */
-function MealsEditor({
+/**
+ * Editor de comidas. `variant="intake"` (recordatorio de 24 h, ADR 0033) oculta lo que
+ * sólo tiene sentido al prescribir: alternativas e intercambios.
+ */
+export function MealsEditor({
   meals,
   onChange,
+  variant = "plan",
 }: {
   meals: PlanMeal[];
   onChange: (m: PlanMeal[]) => void;
+  variant?: "plan" | "intake";
 }) {
   const updateMeal = (i: number, patch: Partial<PlanMeal>) =>
     onChange(meals.map((m, j) => (j === i ? { ...m, ...patch } : m)));
@@ -549,6 +555,7 @@ function MealsEditor({
             {meal.items.map((it, ii) => (
               <ItemEditor
                 key={ii}
+                variant={variant}
                 item={it}
                 onChange={(patch) => updateItem(mi, ii, patch)}
                 onRemove={() => updateMeal(mi, { items: meal.items.filter((_, k) => k !== ii) })}
@@ -1057,11 +1064,14 @@ function ItemEditor({
   item,
   onChange,
   onRemove,
+  variant = "plan",
 }: {
   item: MealItem;
   onChange: (patch: Partial<MealItem>) => void;
   onRemove: () => void;
+  variant?: "plan" | "intake";
 }) {
+  const prescribing = variant === "plan";
   const hasDetail = Boolean(item.alternatives?.length || (item.macros && !item.food));
   const [open, setOpen] = useState(hasDetail);
   const [swapsOpen, setSwapsOpen] = useState(false);
@@ -1124,14 +1134,16 @@ function ItemEditor({
           >
             desvincular
           </button>
-          <button
-            type="button"
-            onClick={() => setSwapsOpen((o) => !o)}
-            className={`transition ${swapsOpen ? "text-brand" : "hover:text-brand"}`}
-            aria-expanded={swapsOpen}
-          >
-            intercambios
-          </button>
+          {prescribing && (
+            <button
+              type="button"
+              onClick={() => setSwapsOpen((o) => !o)}
+              className={`transition ${swapsOpen ? "text-brand" : "hover:text-brand"}`}
+              aria-expanded={swapsOpen}
+            >
+              intercambios
+            </button>
+          )}
         </div>
       )}
       {food && swapsOpen && (
@@ -1155,6 +1167,7 @@ function ItemEditor({
             placeholder="Nota (ej. cocido al vapor)"
             className={inputCls}
           />
+          {prescribing && (
           <div>
             <span className="mb-1 block text-xs text-stone-500">Alternativas / intercambios</span>
             {(item.alternatives ?? []).map((alt, ai) => (
@@ -1208,6 +1221,7 @@ function ItemEditor({
               + Agregar alternativa
             </button>
           </div>
+          )}
           {!food && (
             <div>
               <span className="mb-1 block text-xs text-stone-500">Macros del item</span>
@@ -1510,7 +1524,7 @@ function cleanMacros(m: Macros): Macros | undefined {
   return hasMacros(out) ? out : undefined;
 }
 
-function cleanMeal(meal: PlanMeal): PlanMeal {
+export function cleanMeal(meal: PlanMeal): PlanMeal {
   return {
     name: meal.name.trim(),
     time: meal.time?.trim() || undefined,
@@ -1536,4 +1550,4 @@ function cleanMeal(meal: PlanMeal): PlanMeal {
       .filter((it) => it.text.length > 0),
   };
 }
-const nonEmptyMeal = (m: PlanMeal) => m.name.length > 0 && m.items.length > 0;
+export const nonEmptyMeal = (m: PlanMeal) => m.name.length > 0 && m.items.length > 0;
