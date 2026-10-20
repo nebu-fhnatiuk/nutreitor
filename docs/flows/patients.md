@@ -162,6 +162,35 @@ flowchart LR
   [`docs/validation/antropometria.md`](../validation/antropometria.md) con la planilla de la
   nutricionista.
 
+**Grupos y carga por plantel** ([ADR 0031](../decisions/0031-grupos-y-carga-por-plantel.md)) —
+planteles, divisiones o turnos. El admin los arma; el profesional ve en cada grupo
+solo a sus asignados (un grupo no abre acceso).
+
+| Quién | Endpoints | Capacidad |
+|---|---|---|
+| Admin | `POST /groups`, `PUT/DELETE /groups/{id}`, `POST /groups/{id}/members`, `DELETE /groups/{id}/members/{patientId}` | `group:manage` |
+| Equipo | `GET /groups`, `GET /groups/{id}`, `GET /patients?group={id}` | `patient:read` |
+| Equipo | `GET /groups/{id}/anthropometry` (última sesión de cada uno + ΔΣ6) | `metric:read` |
+| Equipo | `POST /groups/{id}/anthropometry` (una sesión por deportista, todo o nada) | `metric:record` |
+
+```mermaid
+flowchart LR
+  A["Planilla del grupo<br/>filas = deportistas, columnas = sitios"] --> B["Pasada 1: toma 1 de todos"]
+  B --> C["Pasada 2: toma 2"]
+  C --> D{"¿Difieren >5% / >1%?"}
+  D -->|sí| E["Pasada 3: solo esos sitios"]
+  D -->|no| F["Guardar"]
+  E --> F
+  F --> G{"¿Todos en el grupo<br/>y visibles?"}
+  G -->|no| H["400: no se guarda ninguno"]
+  G -->|sí| I["Una sesión por deportista<br/>(misma fecha, una transacción)"]
+  I --> J["Resumen del plantel"]
+```
+
+- El borrador de la planilla vive en el navegador (`localStorage`, por grupo) hasta
+  guardar o descartar.
+- Hasta 60 deportistas por carga; los que quedan vacíos no se envían.
+
 **Mensajes** — conversaciones **privadas por par** ([ADR 0024](../decisions/0024-conversaciones-privadas.md);
 append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)):
 

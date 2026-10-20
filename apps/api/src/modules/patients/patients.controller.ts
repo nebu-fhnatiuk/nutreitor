@@ -33,6 +33,8 @@ import { CareAssignmentsService } from "./care-assignments.service.js";
 import { PatientNotesService } from "./patient-notes.service.js";
 import { PatientsService } from "./patients.service.js";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Endpoints de pacientes, tenant-scoped. JwtAuthGuard setea el contexto RLS;
  * CapabilityGuard autoriza por capacidad. El scoping fino (profesional → sólo
@@ -50,8 +52,9 @@ export class PatientsController {
 
   @Get()
   @RequireCapability("patient:read")
-  list(@Query("search") search?: string): Promise<PatientDto[]> {
-    return this.patients.list(search);
+  list(@Query("search") search?: string, @Query("group") group?: string): Promise<PatientDto[]> {
+    // Un id de grupo mal formado no filtra (no rompe el listado).
+    return this.patients.list(search, group && UUID_RE.test(group) ? group : undefined);
   }
 
   @Post()

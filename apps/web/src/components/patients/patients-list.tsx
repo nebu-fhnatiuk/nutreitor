@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PatientDto } from "@nutreitor/shared";
+import type { GroupDto, PatientDto } from "@nutreitor/shared";
 
 import { api, errorMessage } from "@/lib/api";
 import { MemberSelect } from "./member-select";
@@ -17,24 +17,32 @@ export function PatientsList({
   canCreate,
   canAssign,
   initialSearch = "",
+  initialGroup = "",
 }: {
   basePath: string;
   canCreate: boolean;
   canAssign: boolean;
   /** Búsqueda con la que arranca (p. ej. desde el buscador del inicio). */
   initialSearch?: string;
+  /** Grupo (plantel/división) con el que arranca filtrado. */
+  initialGroup?: string;
 }) {
   const [patients, setPatients] = useState<PatientDto[]>([]);
   const [search, setSearch] = useState(initialSearch);
+  const [group, setGroup] = useState(initialGroup);
+  const [groups, setGroups] = useState<GroupDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (term: string) => {
+  const load = useCallback(async (term: string, groupId: string) => {
     setLoading(true);
     setError(null);
     try {
-      const qs = term ? `?search=${encodeURIComponent(term)}` : "";
-      setPatients(await api<PatientDto[]>(`patients${qs}`));
+      const qs = new URLSearchParams();
+      if (term) qs.set("search", term);
+      if (groupId) qs.set("group", groupId);
+      const q = qs.toString();
+      setPatients(await api<PatientDto[]>(`patients${q ? `?${q}` : ""}`));
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -48,24 +56,25 @@ export function PatientsList({
     (term: string) => {
       setSearch(term);
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => void load(term), 250);
+      timer.current = setTimeout(() => void load(term, group), 250);
     },
-    [load],
+    [load, group],
   );
 
   useEffect(() => {
-    void load(initialSearch);
+    void load(initialSearch, initialGroup);
+    api<GroupDto[]>("groups").then(setGroups, () => setGroups([]));
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [load, initialSearch]);
+  }, [load, initialSearch, initialGroup]);
 
   return (
     <div className="space-y-6">
       {canCreate && (
         <NewPatientForm
           canAssign={canAssign}
-          onCreated={() => load(search)}
+          onCreated={() => load(search, group)}
           onError={setError}
         />
       )}
@@ -80,18 +89,38 @@ export function PatientsList({
         <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-500">
           Pacientes{loading && <span className="ml-2 text-stone-500">cargando…</span>}
         </h2>
+        <div className="flex min-w-0 flex-1 justify-end gap-2">
+        {groups.length > 0 && (
+          <select
+            aria-label="Filtrar por grupo"
+            value={group}
+            onChange={(e) => {
+              setGroup(e.target.value);
+              void load(search, e.target.value);
+            }}
+            className="min-w-0 max-w-[40%] rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+          >
+            <option value="">Todos los grupos</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Buscar por nombre, documento o email"
-          className="w-72 max-w-[55%] rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="w-72 min-w-0 max-w-[55%] rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
         {patients.length === 0 && !loading ? (
           <div className="px-5 py-12 text-center text-sm text-stone-500">
-            {search ? "Sin resultados." : "Todavía no hay pacientes."}
+            {search || group ? "Sin resultados." : "Todavía no hay pacientes."}
           </div>
         ) : (
           <ul className="divide-y divide-stone-100">
@@ -111,6 +140,7 @@ export function PatientsList({
                     <div className="truncate text-xs text-stone-500">
                       {p.documentId ? `Doc ${p.documentId}` : "Sin documento"}
                       {p.email ? ` · ${p.email}` : ""}
+                      {p.groups.length > 0 ? ` · ${p.groups.map((g) => g.name).join(", ")}` : ""}
                     </div>
                   </div>
                   {p.activeProfessionals.length > 0 && (

@@ -8,10 +8,13 @@ import { workspaceHome } from "@nutreitor/shared";
 
 export default async function AdminPatientsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ grupo?: string }>;
 }) {
   const { slug } = await params;
+  const { grupo } = await searchParams;
   const me = await fetchMe(slug);
   if (!me) redirect("/login");
   if (me.role !== "admin") redirect(workspaceHome(me.role, me.org.kind));
@@ -24,7 +27,7 @@ export default async function AdminPatientsPage({
         title="Pacientes"
         description={`Todos los pacientes de ${me.org.name}. Podés crear, asignar profesionales y ver la ficha.`}
       />
-      <PatientsList basePath="/admin/patients" canCreate canAssign />
+      <PatientsList basePath="/admin/patients" canCreate canAssign initialGroup={grupo ?? ""} />
     </WorkspaceShell>
   );
 }

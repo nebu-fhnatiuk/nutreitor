@@ -64,6 +64,7 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 | **Recetas** | biblioteca global + recetas propias; nutrientes calculados desde los ingredientes |
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
 | **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. **Beta hasta validar las fórmulas** |
+| **Grupos** | planteles, divisiones o turnos; **medir a todo el plantel** en una planilla por pasadas (ISAK) y ver la última antropometría de cada uno |
 | **Reportes** | **reporte mensual** que se arma solo, se comenta y se publica al paciente |
 | **Agenda** | disponibilidad semanal (huso IANA), turnos, sin solapamientos |
 | **Mensajes** | conversaciones **privadas** con cada paciente y canal con la administración |
@@ -334,6 +335,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md) | Landing separada: Astro en S3 + CloudFront |
 | [0029](docs/decisions/0029-recuperar-la-contrasena.md) | Recuperar la contraseña |
 | [0030](docs/decisions/0030-antropometria-isak.md) | Antropometría deportiva ISAK |
+| [0031](docs/decisions/0031-grupos-y-carga-por-plantel.md) | Grupos de deportistas y carga por plantel |
 
 </details>
 
@@ -384,7 +386,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0030
+  decisions/     ADRs 0001–0031
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -455,7 +457,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (268 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (275 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 

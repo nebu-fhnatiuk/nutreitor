@@ -3,6 +3,7 @@ import { z } from "zod";
 import { anthroVisibilityFields, type AnthroVisibilityField } from "./anthropometry.dto.js";
 
 import type { CareAssignmentDto } from "./care-assignment.dto.js";
+import type { GroupRefDto } from "./group.dto.js";
 import type { PatientNoteDto } from "./patient-note.dto.js";
 
 /** Catálogos acotados a nivel app (Zod), NO enums de DB: el catálogo evoluciona
@@ -85,6 +86,8 @@ export interface PatientDto {
   hasAccount: boolean;
   /** Profesionales con asignación ACTIVA (nombres), para contexto del listado. */
   activeProfessionals: string[];
+  /** Grupos (plantel, división, turno) a los que pertenece. */
+  groups: GroupRefDto[];
   archived: boolean;
   createdAt: string;
 }
@@ -169,6 +172,7 @@ export interface PatientDetailDto {
   /** Qué campos clínicos ve el paciente en el portal (para la UI de toggles del
    * profesional). Sólo presente si la sesión tiene patient:read_clinical. */
   clinicalVisibility: ClinicalVisibility | null;
+  groups: GroupRefDto[];
   assignments: CareAssignmentDto[];
   notes: PatientNoteDto[];
 }

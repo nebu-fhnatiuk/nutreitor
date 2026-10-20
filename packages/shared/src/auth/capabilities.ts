@@ -32,6 +32,7 @@ export const capabilities = [
   "agent:use",
   "message:send",
   "contact:respond",
+  "group:manage",
   "portal:read",
   "portal:self_report",
   "portal:book",

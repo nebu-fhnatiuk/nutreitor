@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { careAssignments, memberships, patients, users, type TenantTx } from "@nutreitor/db";
+import { careAssignments, memberships, patientGroupMembers, patients, users, type TenantTx } from "@nutreitor/db";
 import {
   hasCapability,
   type CreatePatientDto,
@@ -19,6 +19,7 @@ import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getAuth } from "../../core/tenant/tenant-context.store.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
+import { groupsByPatient } from "./groups.service.js";
 import {
   assertCanAccessPatient,
   assertLocationInTenant,
@@ -43,7 +44,7 @@ export class PatientsService {
   ) {}
 
   /** Listado scopeado: admin ve todos los del tenant; profesional, sólo asignados. */
-  async list(search?: string): Promise<PatientDto[]> {
+  async list(search?: string, groupId?: string): Promise<PatientDto[]> {
     const term = search?.trim();
     const textFilter = term
       ? or(
@@ -55,6 +56,13 @@ export class PatientsService {
 
     return this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
+      // Filtro por grupo (plantel/división): el scoping de abajo se mantiene igual.
+      const groupFilter = groupId
+        ? inArray(
+            patients.id,
+            tx.select({ id: patientGroupMembers.patientId }).from(patientGroupMembers).where(eq(patientGroupMembers.groupId, groupId)),
+          )
+        : undefined;
 
       const cols = {
         id: patients.id,
@@ -71,7 +79,7 @@ export class PatientsService {
         ? await tx
             .select(cols)
             .from(patients)
-            .where(and(isNull(patients.archivedAt), textFilter))
+            .where(and(isNull(patients.archivedAt), textFilter, groupFilter))
             .orderBy(desc(patients.createdAt))
         : access.membershipId
           ? // Profesional: sólo pacientes con asignación ACTIVA suya.
@@ -86,7 +94,7 @@ export class PatientsService {
                   eq(careAssignments.status, "active"),
                 ),
               )
-              .where(and(isNull(patients.archivedAt), textFilter))
+              .where(and(isNull(patients.archivedAt), textFilter, groupFilter))
               .orderBy(desc(patients.createdAt))
           : [];
 
@@ -94,6 +102,7 @@ export class PatientsService {
         tx,
         rows.map((r) => r.id),
       );
+      const groups = await groupsByPatient(tx, rows.map((r) => r.id));
 
       return rows.map((r) => ({
         id: r.id,
@@ -103,6 +112,7 @@ export class PatientsService {
         region: r.region,
         hasAccount: r.userId !== null,
         activeProfessionals: profByPatient.get(r.id) ?? [],
+        groups: groups.get(r.id) ?? [],
         archived: r.archivedAt !== null,
         createdAt: r.createdAt.toISOString(),
       }));
@@ -122,14 +132,15 @@ export class PatientsService {
         .limit(1);
       if (!row) throw new NotFoundException();
 
-      const [assignments, notes] = await Promise.all([
+      const [assignments, notes, groups] = await Promise.all([
         this.assignments.listInTx(tx, id),
         this.notes.listNotes(tx, id),
+        groupsByPatient(tx, [id]),
       ]);
 
       const { user } = getAuth();
       const canClinical = hasCapability(user.role, "patient:read_clinical");
-      return toDetailDto(row, canClinical, assignments, notes);
+      return toDetailDto(row, canClinical, assignments, notes, groups.get(id) ?? []);
     });
   }
 
@@ -179,11 +190,12 @@ export class PatientsService {
         });
       }
 
-      const [assignments, notes] = await Promise.all([
+      const [assignments, notes, groups] = await Promise.all([
         this.assignments.listInTx(tx, row!.id),
         this.notes.listNotes(tx, row!.id),
+        groupsByPatient(tx, [row!.id]),
       ]);
-      return toDetailDto(row!, canClinical, assignments, notes);
+      return toDetailDto(row!, canClinical, assignments, notes, groups.get(row!.id) ?? []);
     });
   }
 
@@ -227,11 +239,12 @@ export class PatientsService {
         });
       }
 
-      const [assignments, notes] = await Promise.all([
+      const [assignments, notes, groups] = await Promise.all([
         this.assignments.listInTx(tx, id),
         this.notes.listNotes(tx, id),
+        groupsByPatient(tx, [id]),
       ]);
-      return toDetailDto(row, canClinical, assignments, notes);
+      return toDetailDto(row, canClinical, assignments, notes, groups.get(id) ?? []);
     });
   }
 
@@ -280,11 +293,12 @@ export class PatientsService {
         metadata: { fields: Object.keys(dto) },
       });
 
-      const [assignments, notes] = await Promise.all([
+      const [assignments, notes, groups] = await Promise.all([
         this.assignments.listInTx(tx, id),
         this.notes.listNotes(tx, id),
+        groupsByPatient(tx, [id]),
       ]);
-      return toDetailDto(row!, canClinical, assignments, notes);
+      return toDetailDto(row!, canClinical, assignments, notes, groups.get(id) ?? []);
     });
   }
 
@@ -399,6 +413,7 @@ function toDetailDto(
   canClinical: boolean,
   assignments: PatientDetailDto["assignments"],
   notes: PatientDetailDto["notes"],
+  groups: PatientDetailDto["groups"],
 ): PatientDetailDto {
   return {
     id: row.id,
@@ -433,6 +448,7 @@ function toDetailDto(
       : null,
     // Visibilidad hacia el paciente: sólo se expone (y edita) con read_clinical.
     clinicalVisibility: canClinical ? row.clinicalVisibility : null,
+    groups,
     assignments,
     notes,
   };
