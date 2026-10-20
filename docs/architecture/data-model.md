@@ -32,6 +32,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `anthropometry_sessions` | Tenant-scoped (RLS) | `tenant_id` | Antropometría ISAK (ADR 0030): **tomas crudas** por sitio (`takes` jsonb, 1 a 3 valores); los resultados se calculan al leer. Editable y borrable, auditada. |
+| `food_frequency_surveys` | Tenant-scoped (RLS) | `tenant_id` | Frecuencia de consumo (ADR 0034): `answers` jsonb (item → frecuencia + porciones); porciones por día y comparación con las GAPA al leer. Editable y borrable, auditado. |
 | `dietary_recalls` | Tenant-scoped (RLS) | `tenant_id` | Recordatorio de 24 h (ADR 0033): `meals` jsonb con la forma de las comidas del plan (items vinculados a la base); `typical` y `day_label` para promediar y comparar contra el requerimiento. Totales derivados al leer. Editable y borrable, auditado. |
 | `energy_requirements` | Tenant-scoped (RLS) | `tenant_id` | Requerimiento energético (ADR 0032): **entradas** (`inputs` jsonb: fórmula, factor, ajuste, peso/talla/MLG usados, tipos de día con sesiones y g/kg, semana tipo); los resultados se calculan al leer. Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_groups` | Tenant-scoped (RLS) | `tenant_id` | Grupo de deportistas: plantel, división o turno (ADR 0031). Nombre único por tenant (`lower(btrim(name))`). Lo arma el admin (`group:manage`). |
@@ -124,6 +125,7 @@ erDiagram
   organizations ||--o{ patient_groups         : "has"
   patients      ||--o{ energy_requirements    : "prescribed"
   patients      ||--o{ dietary_recalls        : "recalled"
+  patients      ||--o{ food_frequency_surveys : "answers"
   patient_groups ||--o{ patient_group_members : "contains"
   patients      ||--o{ patient_group_members  : "belongs to"
   memberships   |o--o{ contact_requests       : "addressed to"
@@ -229,6 +231,15 @@ erDiagram
     text token_hash UK
     timestamptz expires_at
     timestamptz used_at "un solo uso"
+  }
+
+  food_frequency_surveys {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid recorded_by_membership_id FK
+    date answered_on
+    jsonb answers "item → frecuencia + porciones"
   }
 
   dietary_recalls {

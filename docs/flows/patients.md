@@ -194,6 +194,12 @@ flowchart LR
   E --> I["Promedio de los días habituales (≥2)"]
 ```
 
+**Frecuencia de consumo** ([ADR 0034](../decisions/0034-frecuencia-de-consumo.md)) —
+en la misma pestaña "Ingesta". `GET/POST /patients/{id}/food-frequency`, `PUT/DELETE
+…/{surveyId}` (`plan:read` / `plan:write`). 21 items por grupo; frecuencia × porciones →
+porciones por día; comparación con las GAPA (referencia, no objetivo) y % de integrales.
+Uno nuevo arranca con las respuestas del anterior y muestra el "antes".
+
 **Grupos y carga por plantel** ([ADR 0031](../decisions/0031-grupos-y-carga-por-plantel.md)) —
 planteles, divisiones o turnos. El admin los arma; el profesional ve en cada grupo
 solo a sus asignados (un grupo no abre acceso).

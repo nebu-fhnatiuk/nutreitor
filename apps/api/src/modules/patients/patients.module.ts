@@ -5,6 +5,8 @@ import { AnthropometryController } from "./anthropometry.controller.js";
 import { AnthropometryService } from "./anthropometry.service.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import { EnergyController } from "./energy.controller.js";
+import { FoodFrequencyController } from "./food-frequency.controller.js";
+import { FoodFrequencyService } from "./food-frequency.service.js";
 import { RecallsController } from "./recalls.controller.js";
 import { RecallsService } from "./recalls.service.js";
 import { EnergyService } from "./energy.service.js";
@@ -43,6 +45,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     GroupsController,
     EnergyController,
     RecallsController,
+    FoodFrequencyController,
   ],
   providers: [
     PatientsService,
@@ -59,6 +62,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     GroupsService,
     EnergyService,
     RecallsService,
+    FoodFrequencyService,
   ],
   exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService],
 })

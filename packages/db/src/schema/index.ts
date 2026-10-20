@@ -28,6 +28,7 @@ export * from "./anthropometry.js";
 export * from "./patient-groups.js";
 export * from "./energy-requirements.js";
 export * from "./dietary-recalls.js";
+export * from "./food-frequency.js";
 export * from "./notifications.js";
 
 import { organizations } from "./organizations.js";
@@ -59,6 +60,7 @@ import { anthropometrySessions } from "./anthropometry.js";
 import { patientGroups, patientGroupMembers } from "./patient-groups.js";
 import { energyRequirements } from "./energy-requirements.js";
 import { dietaryRecalls } from "./dietary-recalls.js";
+import { foodFrequencySurveys } from "./food-frequency.js";
 import { notificationPreferences } from "./notifications.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
@@ -102,5 +104,6 @@ export const schema = {
   patientGroupMembers,
   energyRequirements,
   dietaryRecalls,
+  foodFrequencySurveys,
   notificationPreferences,
 };

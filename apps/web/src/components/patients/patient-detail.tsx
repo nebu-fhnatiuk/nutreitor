@@ -23,7 +23,7 @@ import { PatientConversation } from "@/components/messages/conversations";
 import { ReportsPanel } from "@/components/reports/reports-panel";
 import { AdherencePanel } from "./adherence-panel";
 import { EnergyPanel } from "./energy-panel";
-import { IntakePanel } from "./intake-panel";
+import { IntakeTab } from "./intake-tab";
 import { AnthropometryPanel } from "./anthropometry-panel";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -249,7 +249,13 @@ export function PatientDetail({
         )}
         {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />}
         {tab === "requerimiento" && <EnergyPanel patientId={p.id} canWrite={canWritePlan} />}
-        {tab === "ingesta" && <IntakePanel patientId={p.id} canWrite={canWritePlan} />}
+        {tab === "ingesta" && (
+          <IntakeTab
+            patientId={p.id}
+            sex={p.sex === "female" || p.sex === "male" ? p.sex : null}
+            canWrite={canWritePlan}
+          />
+        )}
         {tab === "evolucion" && (
           <div className="space-y-6">
             <AdherencePanel patientId={p.id} />
