@@ -153,14 +153,14 @@ flowchart LR
   F --> G["Σ6 · Σ8 · % graso (D-W+Siri, Yuhasz, Faulkner)<br/>Somatotipo · Kerr 5 componentes"]
   G --> H{"¿Validado y visible?"}
   H -->|sí| I["Portal: GET /portal/me/anthropometry"]
-  H -->|no (beta)| J["Portal: nada"]
+  H -->|no| J["Portal: nada"]
 ```
 
 - Lo que no se puede calcular explica por qué (sitios faltantes, sexo no binario,
   menor de 17 para Durnin-Womersley).
-- Beta: `ANTHROPOMETRY_VALIDATED = false` hasta cruzar
-  [`docs/validation/antropometria.md`](../validation/antropometria.md) con la planilla de la
-  nutricionista.
+- Portal: tarjeta "Tu antropometría" con la última medición y la evolución de Σ6,
+  sólo con lo marcado visible. `ANTHROPOMETRY_VALIDATED` (habilitada el 2026-10-20)
+  apaga el portal si vuelve a `false`.
 
 **Requerimiento energético** ([ADR 0032](../decisions/0032-requerimiento-energetico-periodizado.md)) —
 pestaña "Requerimiento" de la ficha. `GET /patients/{id}/energy` (versiones, la

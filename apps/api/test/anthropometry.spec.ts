@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
  * Cálculos de antropometría ISAK (ADR 0030). Los valores esperados salen de una
  * implementación independiente en Python de las mismas fórmulas publicadas: atrapa
  * errores de transcripción. La validación clínica la hace la nutricionista contra su
- * planilla (hasta entonces, ANTHROPOMETRY_VALIDATED = false).
+ * planilla (docs/validation/antropometria.md).
  */
 const single = (v: Partial<Record<AnthroSiteKey, number>>): AnthroTakes =>
   Object.fromEntries(Object.entries(v).map(([k, n]) => [k, [n]])) as AnthroTakes;

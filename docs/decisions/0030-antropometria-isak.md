@@ -1,6 +1,6 @@
 # 0030 — Antropometría deportiva ISAK
 
-- **Estado**: aceptada (cálculos en validación)
+- **Estado**: aceptada (habilitada el 2026-10-20)
 - **Fecha**: 2026-10-19
 
 ## Contexto
@@ -32,9 +32,12 @@ protocolo ISAK es la herramienta de trabajo diaria del sector.
 
   Lo que no se puede calcular dice por qué: sitios faltantes, sexo no binario en la
   ficha, o edad menor a 17 para Durnin-Womersley.
-- **Beta hasta validar**: `ANTHROPOMETRY_VALIDATED = false`. La UI profesional lo avisa
+- **Beta hasta validar**: con `ANTHROPOMETRY_VALIDATED = false` la UI profesional lo avisa
   y el **portal no devuelve nada**, aunque el profesional lo marque visible. La
   validación está en [`docs/validation/antropometria.md`](../validation/antropometria.md).
+  **Habilitada el 2026-10-20** por decisión de la nutricionista: la marca pasó a `true`
+  y el portal muestra lo que el profesional marque visible. Volver a `false` la
+  apaga sin migración.
 - **Portal**: lo que el profesional marque, con las mismas claves del mapa de
   visibilidad clínica (`anthroSkinfolds`, `anthroFat`, `anthroKerr`,
   `anthroSomatotype`). Por defecto, nada.
@@ -53,7 +56,6 @@ protocolo ISAK es la herramienta de trabajo diaria del sector.
 
 ## Consecuencias
 
-- Hasta la validación, los cálculos no se usan para decidir y el deportista no ve nada.
 - Juveniles: Durnin-Womersley no aplica a menores de 17. Para divisiones inferiores
   harían falta ecuaciones pediátricas (por ejemplo, Slaughter), que quedan pendientes.
 - Carga por plantel: resuelta en [ADR 0031](0031-grupos-y-carga-por-plantel.md), con

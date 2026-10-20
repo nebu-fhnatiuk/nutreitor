@@ -64,7 +64,7 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 | **Requerimiento** | gasto en reposo con 4 fórmulas (Cunningham con la masa libre de grasa de la antropometría), sesiones por MET y **objetivos por tipo de día** (entrenamiento, partido, descanso) en g/kg; la semana tipo pasa al plan como objetivo de cada día |
 | **Recetas** | biblioteca global + recetas propias; nutrientes calculados desde los ingredientes |
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
-| **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. **Beta hasta validar las fórmulas** |
+| **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. El deportista ve en su portal lo que el profesional marque visible |
 | **Grupos** | planteles, divisiones o turnos; **medir a todo el plantel** en una planilla por pasadas (ISAK) y ver la última antropometría de cada uno |
 | **Reportes** | **reporte mensual** que se arma solo, se comenta y se publica al paciente |
 | **Agenda** | disponibilidad semanal (huso IANA), turnos, sin solapamientos |

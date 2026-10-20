@@ -18,6 +18,7 @@ import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, button
 import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { DailyReminder, DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
+import { PortalAnthropometry } from "./portal-anthropometry";
 import { PortalAppointments } from "./portal-appointments";
 import { PortalReportsCard } from "./portal-reports";
 import { PortalAssistant } from "./portal-assistant";
@@ -115,6 +116,8 @@ export function PortalView() {
           </div>
         )}
       </Card>
+
+      <PortalAnthropometry />
 
       {me.profile.clinical && <ClinicalCard clinical={me.profile.clinical} goal={me.profile.goal} />}
 

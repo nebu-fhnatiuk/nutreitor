@@ -3,13 +3,13 @@
  * cálculos. Funciones PURAS (sin I/O): las usan la API (al leer, nunca se guardan
  * resultados) y la UI (vista previa mientras se carga).
  *
- * ESTADO: BETA. Las fórmulas siguen los coeficientes publicados (citados en cada
- * función) y tienen tests, pero falta la validación de la nutricionista contra su
- * planilla. Mientras `ANTHROPOMETRY_VALIDATED` sea false, el portal del deportista
- * no muestra resultados y la UI profesional los marca como "en validación".
+ * ESTADO: habilitada (2026-10-20, por decisión de la nutricionista). Las fórmulas
+ * siguen los coeficientes publicados (citados en cada función) y tienen tests. Si
+ * `ANTHROPOMETRY_VALIDATED` vuelve a false, el portal deja de mostrar resultados y la
+ * UI profesional los marca como "en validación".
  */
 
-export const ANTHROPOMETRY_VALIDATED = false;
+export const ANTHROPOMETRY_VALIDATED = true;
 
 export type AnthroUnit = "kg" | "cm" | "mm";
 export type AnthroGroup = "basic" | "skinfold" | "girth" | "breadth";

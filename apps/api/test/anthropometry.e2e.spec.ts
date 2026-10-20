@@ -15,7 +15,7 @@ import { AnthropometryService } from "../src/modules/patients/anthropometry.serv
 /**
  * Antropometría ISAK (ADR 0030) contra Postgres real con el rol app: el scoping es el
  * de las mediciones (profesional → asignados), los resultados salen del sexo y la edad
- * de la ficha a la fecha de la medición, y el portal no ve nada mientras sea beta.
+ * de la ficha a la fecha de la medición, y el portal ve sólo lo marcado visible.
  */
 const APP_URL = process.env.DATABASE_URL!;
 const OWNER_URL = process.env.DATABASE_OWNER_URL!;
@@ -82,7 +82,7 @@ describe("sesiones", () => {
   it("el profesional asignado carga una sesión y recibe los resultados calculados", async () => {
     const s = await asPro(() => svc.create(D1, SESSION));
     id = s.id;
-    expect(s.validated).toBe(false);
+    expect(s.validated).toBe(true);
     expect(s.kerrBlock).toBe(false);
     // Media de dos tomas: 12,1 + 9,5 + 8,55 + 14,1 + 18,2 + 10,0 = 72,45 → 72,5.
     expect(s.results.sum6).toEqual({ ok: true, value: 72.5 });
@@ -121,10 +121,13 @@ describe("sesiones", () => {
 });
 
 describe("portal", () => {
-  it("en beta no devuelve nada, aunque el profesional lo marque visible", async () => {
+  it("devuelve sólo lo que el profesional marcó visible", async () => {
     await owner.execute(sql`update patients set clinical_visibility = clinical_visibility || '{"anthroSkinfolds": true}'::jsonb where id = ${D1}`);
     const r = await withTenant(appDb, T.id, (tx) => svc.forPortal(tx, D1, { anthroSkinfolds: true }));
-    expect(r).toEqual([]);
+    expect(r.length).toBeGreaterThan(0);
+    expect(r[0]!.sum6).not.toBeNull();
+    expect(r[0]).toMatchObject({ fatPct: null, kerr: null, somatotype: null });
+    expect(await withTenant(appDb, T.id, (tx) => svc.forPortal(tx, D1, {}))).toEqual([]);
     await owner.execute(sql`update patients set clinical_visibility = clinical_visibility - 'anthroSkinfolds' where id = ${D1}`);
   });
 });
