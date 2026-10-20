@@ -3,6 +3,7 @@
 import { FlaskConical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ANTHROPOMETRY_VALIDATED,
   ANTHRO_SITES,
   ageAt,
   anthroVisibilityFields,
@@ -49,8 +50,8 @@ const VIS_LABEL: Record<AnthroVisibilityField, string> = {
 
 /**
  * Antropometría ISAK de un deportista (ADR 0030): sesiones con sus tomas, resultados
- * calculados (Σ pliegues, % graso, somatotipo, Kerr) y evolución. Beta hasta que la
- * nutricionista valide las fórmulas: se avisa y el portal no muestra nada.
+ * calculados (Σ pliegues, % graso, somatotipo, Kerr) y evolución. Si la marca de beta
+ * vuelve (`ANTHROPOMETRY_VALIDATED = false`), se avisa y el portal no muestra nada.
  */
 export function AnthropometryPanel({
   patientId,
@@ -107,7 +108,7 @@ export function AnthropometryPanel({
     });
 
   if (!sessions) return err ? <Alert>{err}</Alert> : <Loading />;
-  const beta = sessions.length === 0 || !sessions[0]!.validated;
+  const beta = !ANTHROPOMETRY_VALIDATED;
   const binarySex = sex === "female" || sex === "male";
 
   return (

@@ -1,9 +1,10 @@
 # Validación de las fórmulas de antropometría
 
-**Estado: pendiente.** Hasta que la nutricionista valide estos casos contra su planilla
-o software de referencia, `ANTHROPOMETRY_VALIDATED` queda en `false`: la UI marca los
-cálculos como "en validación" y el portal del deportista no muestra resultados
-([ADR 0030](../decisions/0030-antropometria-isak.md)).
+**Estado: habilitada (2026-10-20).** La nutricionista dio el OK y
+`ANTHROPOMETRY_VALIDATED` pasó a `true`: el portal del deportista muestra lo que el
+profesional marque visible ([ADR 0030](../decisions/0030-antropometria-isak.md)). Los
+casos de abajo quedan como referencia; si alguno no coincide con tu planilla, se
+corrige la fórmula y se recalculan todas las sesiones (los resultados no se guardan).
 
 Los resultados esperados salen de una implementación independiente (Python) de las
 fórmulas publicadas, y son los mismos que verifican los tests

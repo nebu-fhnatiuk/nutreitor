@@ -187,6 +187,6 @@ describe("antropometría del plantel", () => {
 
     const admin = await asAdmin(() => anthro.groupSummary(SEED.groupDemo));
     expect(admin.rows.find((r) => r.patientId === D2)).toMatchObject({ last: { measuredAt: "2026-09-01" }, sum6Delta: null });
-    expect(admin.validated).toBe(false);
+    expect(admin.validated).toBe(true);
   });
 });
