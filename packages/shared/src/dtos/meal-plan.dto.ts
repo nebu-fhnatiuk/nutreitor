@@ -112,6 +112,11 @@ const weekLayoutSchema = z.object({
   // Parcial: no es obligatorio cargar los 7 días.
   days: z.record(z.enum(weekdays), dayPlanSchema),
   targets: macrosSchema.optional(),
+  /**
+   * Objetivo por día (periodización, ADR 0032): partido el sábado, descanso el domingo.
+   * El día que no tiene usa `targets`.
+   */
+  dayTargets: z.record(z.enum(weekdays), macrosSchema).optional(),
   generalNotes: z.string().max(4000).optional(),
 });
 
