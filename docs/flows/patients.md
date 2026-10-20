@@ -162,6 +162,22 @@ flowchart LR
   [`docs/validation/antropometria.md`](../validation/antropometria.md) con la planilla de la
   nutricionista.
 
+**Requerimiento energético** ([ADR 0032](../decisions/0032-requerimiento-energetico-periodizado.md)) —
+pestaña "Requerimiento" de la ficha. `GET /patients/{id}/energy` (versiones, la
+vigente primero), `GET …/energy/context` (peso, talla y masa libre de grasa sugeridos),
+`POST …/energy` (versión nueva). Capacidades `plan:read` / `plan:write`.
+
+```mermaid
+flowchart LR
+  A["Ficha + última antropometría / evolución"] --> B["Peso · talla · MLG sugeridos"]
+  B --> C["GER: Mifflin · Harris-Benedict · FAO/OMS · Cunningham"]
+  C --> D["Tipo de día: GER × factor + Σ (MET − 1) × kg × h"]
+  D --> E["× (1 + ajuste %) → objetivo kcal"]
+  E --> F["CHO y PRO en g/kg · grasa = resto"]
+  F --> G["Semana tipo → promedio"]
+  G --> H["Editor del plan: objetivo diario o un objetivo por día"]
+```
+
 **Grupos y carga por plantel** ([ADR 0031](../decisions/0031-grupos-y-carga-por-plantel.md)) —
 planteles, divisiones o turnos. El admin los arma; el profesional ve en cada grupo
 solo a sus asignados (un grupo no abre acceso).

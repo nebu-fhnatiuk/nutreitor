@@ -32,6 +32,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `anthropometry_sessions` | Tenant-scoped (RLS) | `tenant_id` | Antropometría ISAK (ADR 0030): **tomas crudas** por sitio (`takes` jsonb, 1 a 3 valores); los resultados se calculan al leer. Editable y borrable, auditada. |
+| `energy_requirements` | Tenant-scoped (RLS) | `tenant_id` | Requerimiento energético (ADR 0032): **entradas** (`inputs` jsonb: fórmula, factor, ajuste, peso/talla/MLG usados, tipos de día con sesiones y g/kg, semana tipo); los resultados se calculan al leer. Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_groups` | Tenant-scoped (RLS) | `tenant_id` | Grupo de deportistas: plantel, división o turno (ADR 0031). Nombre único por tenant (`lower(btrim(name))`). Lo arma el admin (`group:manage`). |
 | `patient_group_members` | Tenant-scoped (RLS) | `tenant_id` | Pertenencia paciente↔grupo (M:N, PK `group_id, patient_id`). Sin UPDATE (GRANT). Borrar el grupo o el paciente la borra; un grupo **no** abre acceso a sus miembros. |
 | `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
@@ -120,6 +121,7 @@ erDiagram
   organizations ||--o{ contact_requests       : "scopes"
   patients      ||--o{ anthropometry_sessions : "measured in"
   organizations ||--o{ patient_groups         : "has"
+  patients      ||--o{ energy_requirements    : "prescribed"
   patient_groups ||--o{ patient_group_members : "contains"
   patients      ||--o{ patient_group_members  : "belongs to"
   memberships   |o--o{ contact_requests       : "addressed to"
@@ -225,6 +227,16 @@ erDiagram
     text token_hash UK
     timestamptz expires_at
     timestamptz used_at "un solo uso"
+  }
+
+  energy_requirements {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid created_by_membership_id FK
+    jsonb inputs "fórmula, tipos de día, semana"
+    text note
+    timestamptz created_at
   }
 
   patient_groups {
