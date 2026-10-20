@@ -178,6 +178,22 @@ flowchart LR
   G --> H["Editor del plan: objetivo diario o un objetivo por día"]
 ```
 
+**Recordatorio de 24 h** ([ADR 0033](../decisions/0033-recordatorio-de-24-horas.md)) —
+pestaña "Ingesta" de la ficha. `GET/POST /patients/{id}/recalls`, `PUT/DELETE
+…/{recallId}` (`plan:read` / `plan:write`, profesional → asignados).
+
+```mermaid
+flowchart LR
+  A["1ª pasada: lista rápida"] --> B["2ª pasada: lo que se olvida<br/>(bebidas, aceites, suplementos…)"]
+  B --> C["3ª pasada: cantidades y horarios<br/>(items vinculados a la base)"]
+  C --> D["Guardar: comidas con forma de plan"]
+  D --> E["Al leer: kcal · macros · g/kg · % · kcal por comida"]
+  E --> F{"¿Todos los items<br/>con macros?"}
+  F -->|sí| G["Comparar con el requerimiento<br/>del tipo de día"]
+  F -->|no| H["Total parcial"]
+  E --> I["Promedio de los días habituales (≥2)"]
+```
+
 **Grupos y carga por plantel** ([ADR 0031](../decisions/0031-grupos-y-carga-por-plantel.md)) —
 planteles, divisiones o turnos. El admin los arma; el profesional ve en cada grupo
 solo a sus asignados (un grupo no abre acceso).

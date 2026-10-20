@@ -63,6 +63,9 @@ export type AuditAction =
   | "group.members_added"
   | "group.member_removed"
   | "energy.saved"
+  | "recall.recorded"
+  | "recall.updated"
+  | "recall.deleted"
   | "anthropometry.updated"
   | "anthropometry.deleted";
 

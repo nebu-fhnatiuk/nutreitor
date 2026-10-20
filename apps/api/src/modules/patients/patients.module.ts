@@ -5,6 +5,8 @@ import { AnthropometryController } from "./anthropometry.controller.js";
 import { AnthropometryService } from "./anthropometry.service.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import { EnergyController } from "./energy.controller.js";
+import { RecallsController } from "./recalls.controller.js";
+import { RecallsService } from "./recalls.service.js";
 import { EnergyService } from "./energy.service.js";
 import { GroupsController } from "./groups.controller.js";
 import { GroupsService } from "./groups.service.js";
@@ -40,6 +42,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     AnthropometryController,
     GroupsController,
     EnergyController,
+    RecallsController,
   ],
   providers: [
     PatientsService,
@@ -55,6 +58,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     AnthropometryService,
     GroupsService,
     EnergyService,
+    RecallsService,
   ],
   exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService],
 })
