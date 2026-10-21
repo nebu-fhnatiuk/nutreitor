@@ -303,7 +303,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 (con datos de salud, la credencial vive en nuestra base y es reemplazable por OIDC).
 
 <details>
-<summary><b>Los 24 ADRs</b></summary>
+<summary><b>Todos los ADRs</b></summary>
 
 | # | Decisión |
 |---|---|
@@ -384,7 +384,7 @@ apps/
   worker/    Node + BullMQ — escaneo por consultorio y entrega de avisos (SES)
   agents/    Python/FastAPI — NUTRI, CHEF, PSICO (stub | Bedrock)
 packages/
-  db/        schema Drizzle, migraciones SQL numeradas (0001–0042), runner, seed,
+  db/        schema Drizzle, migraciones SQL numeradas (desde 0000), runner, seed,
              catálogo de alimentos y recetario (curación + generadores)
   shared/    DTOs y schemas Zod, capacidades, lógica pura (macros, lista de compras,
              intercambios, adherencia, borrador de plan)
@@ -573,7 +573,7 @@ Google/Outlook Calendar.
 | [`docs/architecture/overview.md`](docs/architecture/overview.md) | componentes, bordes de red y de tenant, despliegue |
 | [`docs/architecture/multi-tenancy.md`](docs/architecture/multi-tenancy.md) | cómo viaja el tenant del subdominio a la policy RLS |
 | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) | modelo de datos (erDiagram), RLS y GRANTs por tabla |
-| [`docs/decisions/`](docs/decisions/) | los 24 ADRs |
+| [`docs/decisions/`](docs/decisions/) | todos los ADRs |
 | [`docs/flows/auth.md`](docs/flows/auth.md) · [`invitations.md`](docs/flows/invitations.md) | login, sesión, invitaciones |
 | [`docs/flows/onboarding.md`](docs/flows/onboarding.md) | alta de organizaciones, matrícula, consola de plataforma |
 | [`docs/flows/patients.md`](docs/flows/patients.md) | ficha, planes, adherencia, mensajes, portal |

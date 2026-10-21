@@ -59,3 +59,13 @@ acceso" / "ingresar al workspace").
   de producto (no overridibles por tenant), separados del `brand` del white-label.
 
 Implementación en [`apps/web/src/app/page.tsx`](../../apps/web/src/app/page.tsx).
+
+## Nota posterior (octubre 2026)
+
+- El agendamiento dejó de ser un stub: el motor propio está construido
+  ([ADR 0011](0011-agendamiento-motor-propio.md)) y la landing ya lo puede listar como
+  funcionalidad. La IA sigue detrás del gate legal ([ADR 0014](0014-inferencia-bedrock-y-controles-de-costo.md)),
+  así que sigue sin venderse como existente.
+- La landing se movió a `apps/site` (Astro, S3 + CloudFront) por el
+  [ADR 0028](0028-landing-separada-astro-s3-cloudfront.md); la referencia a
+  `apps/web/src/app/page.tsx` de arriba queda como registro histórico.
