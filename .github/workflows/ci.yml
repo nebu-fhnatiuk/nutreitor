@@ -62,6 +62,21 @@ jobs:
       # Worker de notificaciones: genera/entrega bajo RLS con su rol (sin BYPASSRLS).
       - run: pnpm --filter @nutreitor/worker test
 
+  docs:
+    name: Documentación viva
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-docs.mjs origin/${{ github.base_ref }}
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+
   docker:
     name: Build de imágenes Docker
     runs-on: ubuntu-latest

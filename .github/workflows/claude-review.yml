@@ -1,0 +1,46 @@
+name: Revisión con Claude
+
+# Revisa cada PR al abrirse (o al salir de borrador) con el checklist del proyecto.
+# Para volver a pedir una revisión después de nuevos commits: comentar "@claude revisá"
+# (lo atiende claude.yml). No corre en cada push para cuidar el costo.
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # Uno de los dos: token de la suscripción (`claude setup-token`) o API key.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+
+            Revisá este PR siguiendo `.github/claude/review-checklist.md` y las reglas de
+            `CLAUDE.md`. Leé el diff con `gh pr diff` y, cuando haga falta contexto, los
+            archivos completos y los ADRs que toca.
+
+            Dejá comentarios en línea para lo puntual y un comentario general con
+            `gh pr comment`, ordenado: bloqueante, importante, menor.
+          claude_args: |
+            --max-turns 30
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob,Grep"

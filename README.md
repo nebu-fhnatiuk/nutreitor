@@ -341,6 +341,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0032](docs/decisions/0032-requerimiento-energetico-periodizado.md) | Requerimiento energético con periodización deportiva |
 | [0033](docs/decisions/0033-recordatorio-de-24-horas.md) | Recordatorio de 24 horas |
 | [0034](docs/decisions/0034-frecuencia-de-consumo.md) | Frecuencia de consumo por grupos (vs. GAPA) |
+| [0035](docs/decisions/0035-agentes-de-claude-en-github.md) | Agentes de Claude en GitHub y chequeo de documentación viva |
 
 </details>
 
@@ -391,7 +392,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0034
+  decisions/     ADRs 0001–0035
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -479,7 +480,13 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests
 - **CI** (GitHub Actions, en cada push y PR):
   1. lint + typecheck + build de todo el monorepo;
   2. tests de API y worker contra un Postgres de servicio;
-  3. build de las imágenes de producción (api, web, worker).
+  3. build de las imágenes de producción (api, web, worker);
+  4. en los PRs, **documentación viva**: migraciones sin `data-model.md` o un ADR sin
+     su fila en el README hacen fallar el CI (escape: `[sin-doc]` en la descripción).
+- **Agentes de Claude** ([ADR 0035](docs/decisions/0035-agentes-de-claude-en-github.md)):
+  cada PR nuevo recibe una revisión automática con el checklist de
+  `.github/claude/review-checklist.md`, y `@claude` en un issue o PR pide ayuda (otra
+  revisión, implementar un issue, una pregunta sobre el código).
 
 ---
 
