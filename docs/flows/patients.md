@@ -200,6 +200,21 @@ en la misma pestaña "Ingesta". `GET/POST /patients/{id}/food-frequency`, `PUT/D
 porciones por día; comparación con las GAPA (referencia, no objetivo) y % de integrales.
 Uno nuevo arranca con las respuestas del anterior y muestra el "antes".
 
+**Hidratación** ([ADR 0036](../decisions/0036-hidratacion-y-prueba-de-sudoracion.md)) —
+pestaña "Hidratación" de la ficha y "Medir hidratación" en el grupo.
+
+| Quién | Endpoints | Capacidad |
+|---|---|---|
+| Equipo | `GET/POST /patients/{id}/sweat-tests`, `PUT/DELETE …/{testId}` | `metric:read` / `metric:record` |
+| Equipo | `GET /groups/{id}/sweat-tests` (última de cada uno), `POST /groups/{id}/sweat-tests` (plantel, todo o nada) | `metric:read` / `metric:record` |
+
+```mermaid
+flowchart LR
+  A["Peso antes · peso después<br/>tomó · orinó · duración"] --> B["Sudor = pérdida + tomado − orina"]
+  B --> C["L/h · % de pérdida (aviso > 2 %) · % repuesto"]
+  C --> D["Plan: antes 5–7 ml/kg · durante para no pasar el 2 %<br/>después 1,25–1,5 L/kg · sodio si corresponde"]
+```
+
 **Grupos y carga por plantel** ([ADR 0031](../decisions/0031-grupos-y-carga-por-plantel.md)) —
 planteles, divisiones o turnos. El admin los arma; el profesional ve en cada grupo
 solo a sus asignados (un grupo no abre acceso).

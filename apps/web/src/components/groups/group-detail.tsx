@@ -1,10 +1,10 @@
 "use client";
 
-import { FlaskConical, Pencil, Ruler, Trash2, UserPlus, X } from "lucide-react";
+import { Droplets, FlaskConical, Pencil, Ruler, Trash2, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { GroupAnthropometrySummaryDto, GroupDetailDto, PatientDto } from "@nutreitor/shared";
+import type { GroupAnthropometrySummaryDto, GroupDetailDto, GroupSweatRowDto, PatientDto } from "@nutreitor/shared";
 
 import { fmt, fmtMeasured, val } from "@/components/patients/anthro-format";
 import { Alert, Button, Card, EmptyState, Input, Loading, Modal, PageHeader, SectionHeading, Select, buttonClass, cn, useFeedback } from "@/components/ui";
@@ -37,6 +37,7 @@ export function GroupDetail({
   const { confirm, toast } = useFeedback();
   const [group, setGroup] = useState<GroupDetailDto | null>(null);
   const [summary, setSummary] = useState<GroupAnthropometrySummaryDto | null>(null);
+  const [sweat, setSweat] = useState<GroupSweatRowDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -44,12 +45,14 @@ export function GroupDetail({
 
   const load = useCallback(async () => {
     try {
-      const [g, s] = await Promise.all([
+      const [g, s, h] = await Promise.all([
         api<GroupDetailDto>(`groups/${id}`),
         api<GroupAnthropometrySummaryDto>(`groups/${id}/anthropometry`),
+        api<GroupSweatRowDto[]>(`groups/${id}/sweat-tests`).catch(() => []),
       ]);
       setGroup(g);
       setSummary(s);
+      setSweat(h);
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -103,6 +106,11 @@ export function GroupDetail({
             {canRecord && group.members.length > 0 && (
               <Link href={`${basePath}/${id}/medir`} className={buttonClass("primary")}>
                 <Ruler className="h-4 w-4" aria-hidden /> Medir plantel
+              </Link>
+            )}
+            {canRecord && group.members.length > 0 && (
+              <Link href={`${basePath}/${id}/hidratacion`} className={buttonClass("secondary")}>
+                <Droplets className="h-4 w-4" aria-hidden /> Medir hidratación
               </Link>
             )}
             {canManage && (
@@ -219,6 +227,50 @@ export function GroupDetail({
         )}
         <div className="h-3" />
       </Card>
+
+      {sweat.some((r) => r.last) && (
+        <Card className="mt-6 p-0">
+          <div className="px-5 pt-5">
+            <SectionHeading>Hidratación del plantel</SectionHeading>
+            <p className="mt-1 text-sm text-stone-500">Última prueba de sudoración de cada deportista.</p>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-sm">
+              <thead>
+                <tr className="border-y border-stone-100 bg-stone-50 text-left text-xs text-stone-500">
+                  <th className="px-5 py-2 font-medium">Deportista</th>
+                  <th className="px-3 py-2 font-medium">Prueba</th>
+                  <th className="px-3 py-2 text-right font-medium">L/h</th>
+                  <th className="px-3 py-2 text-right font-medium">Pérdida</th>
+                  <th className="px-5 py-2 text-right font-medium">Tomar durante</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {sweat.map((r) => (
+                  <tr key={r.patientId}>
+                    <td className="px-5 py-2.5">
+                      <Link href={`${patientsPath}/${r.patientId}?tab=hidratacion`} className="font-medium text-stone-900 hover:text-brand">
+                        {r.fullName}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2.5 text-stone-600">
+                      {r.last ? `${fmtMeasured(r.last.measuredOn)}${r.last.sessionLabel ? ` · ${r.last.sessionLabel}` : ""}` : <span className="text-stone-400">Sin medir</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{r.last ? fmt(r.last.results.sweatRateLh, 2) : ""}</td>
+                    <td className={cn("px-3 py-2.5 text-right tabular-nums", r.last && r.last.results.dehydrationPct > 2 && "font-medium text-amber-700")}>
+                      {r.last ? `${fmt(r.last.results.dehydrationPct)} %` : ""}
+                    </td>
+                    <td className="px-5 py-2.5 text-right tabular-nums text-stone-600">
+                      {r.last ? (r.last.results.plan.duringMlPerHour > 0 ? `${r.last.results.plan.duringMlPerHour} ml/h` : "alcanza") : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="h-3" />
+        </Card>
+      )}
 
       {editing && (
         <GroupForm

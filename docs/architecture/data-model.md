@@ -32,6 +32,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `patient_metrics` | Tenant-scoped (RLS) | `tenant_id` | Serie temporal editable. |
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `anthropometry_sessions` | Tenant-scoped (RLS) | `tenant_id` | Antropometría ISAK (ADR 0030): **tomas crudas** por sitio (`takes` jsonb, 1 a 3 valores); los resultados se calculan al leer. Editable y borrable, auditada. |
+| `sweat_tests` | Tenant-scoped (RLS) | `tenant_id` | Prueba de sudoración (ADR 0036): pesos antes/después, lo tomado y la orina, duración y condiciones (columnas tipadas con `CHECK`). Tasa, % de pérdida y plan de líquidos al leer. `group_id` (`ON DELETE SET NULL`) marca las cargadas por plantel. Editable y borrable, auditado. |
 | `food_frequency_surveys` | Tenant-scoped (RLS) | `tenant_id` | Frecuencia de consumo (ADR 0034): `answers` jsonb (item → frecuencia + porciones); porciones por día y comparación con las GAPA al leer. Editable y borrable, auditado. |
 | `dietary_recalls` | Tenant-scoped (RLS) | `tenant_id` | Recordatorio de 24 h (ADR 0033): `meals` jsonb con la forma de las comidas del plan (items vinculados a la base); `typical` y `day_label` para promediar y comparar contra el requerimiento. Totales derivados al leer. Editable y borrable, auditado. |
 | `energy_requirements` | Tenant-scoped (RLS) | `tenant_id` | Requerimiento energético (ADR 0032): **entradas** (`inputs` jsonb: fórmula, factor, ajuste, peso/talla/MLG usados, tipos de día con sesiones y g/kg, semana tipo); los resultados se calculan al leer. Append-only (sólo `SELECT`+`INSERT`). |
@@ -126,6 +127,8 @@ erDiagram
   patients      ||--o{ energy_requirements    : "prescribed"
   patients      ||--o{ dietary_recalls        : "recalled"
   patients      ||--o{ food_frequency_surveys : "answers"
+  patients      ||--o{ sweat_tests            : "tested"
+  patient_groups |o--o{ sweat_tests           : "batch"
   patient_groups ||--o{ patient_group_members : "contains"
   patients      ||--o{ patient_group_members  : "belongs to"
   memberships   |o--o{ contact_requests       : "addressed to"
@@ -231,6 +234,19 @@ erDiagram
     text token_hash UK
     timestamptz expires_at
     timestamptz used_at "un solo uso"
+  }
+
+  sweat_tests {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    uuid group_id FK "null = individual"
+    date measured_on
+    integer duration_min
+    numeric pre_weight_kg
+    numeric post_weight_kg
+    integer fluid_intake_ml
+    integer urine_ml
   }
 
   food_frequency_surveys {
