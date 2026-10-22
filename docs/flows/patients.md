@@ -29,6 +29,33 @@ etc.) se aceptan sólo con `patient:read_clinical`. `assignToMembershipId` permi
 crear-y-asignar en una sola transacción. Baja **lógica** vía `archived_at`
 (`POST /patients/{id}/archive`, capacidad `patient:update`).
 
+## Ficha en cuatro momentos (web)
+
+La ficha del profesional (`components/patients/patient-detail.tsx`, KAN-68) se ordena
+por **momento de trabajo**, no por tipo de dato:
+
+```mermaid
+flowchart LR
+  H["Encabezado<br/>nombre · grupos · alertas clínicas<br/>marcador de últimas cifras"] --> M{"Momento"}
+  M --> E["01 Evaluar<br/>Antropometría · Ingesta · Hidratación"]
+  M --> P["02 Prescribir<br/>Requerimiento → Plan"]
+  M --> S["03 Seguir<br/>Evolución y adherencia · Reportes"]
+  M --> C["04 Conversar<br/>Notas · Mensajes · Asistentes"]
+  H -.-> F["Ficha clínica<br/>(panel lateral: lectura, edición,<br/>visibilidad, asignaciones)"]
+```
+
+- **Marcador** (`athlete-scoreboard.tsx`): última masa corporal, Σ6 con la diferencia
+  contra la medición anterior, % graso (Durnin-Womersley, si no Yuhasz), sudoración
+  y requerimiento promedio de la semana tipo. Cada cifra lleva a su sección. Sale de
+  los listados que ya existen (`anthropometry`, `sweat-tests`, `energy`); si uno
+  falla, esa cifra no se muestra.
+- **URL:** `?tab=<momento>&sec=<sección>`. Evaluar → Antropometría no lleva
+  parámetros. Los links viejos de 12 pestañas (`?tab=plan`, `?tab=hidratacion`…)
+  se redirigen con `replace`. `?tab=ficha` abre el panel clínico, y `?tab=resumen`
+  va al inicio. La lógica vive en `components/patients/moments.ts`.
+- **Mensajes** y **Asistentes** se muestran sólo con permiso (igual que antes). Una
+  charla con crisis marca el momento Conversar.
+
 ## Asignación de cuidado (M:N versionada)
 
 ```mermaid
@@ -118,8 +145,8 @@ energía, ánimo de 1 a 5 + nota). Reglas del servidor:
   **upsert**; no hay `DELETE`.
 
 El profesional asignado la lee en `GET /patients/{id}/adherence?from&to`
-(`metric:read`, máx. 62 días; profesional → sólo asignados) y la ve en la pestaña
-**Evolución**: grilla comida × día de las últimas 2 semanas, el % de los últimos 7 y
+(`metric:read`, máx. 62 días; profesional → sólo asignados) y la ve en **Seguir →
+Evolución y adherencia**: grilla comida × día de las últimas 2 semanas, el % de los últimos 7 y
 14 días (sobre lo **registrado**: cumplí = 1, en parte = ½; sin registros no es 0 %)
 y las notas del paciente.
 
@@ -138,7 +165,7 @@ sequenceDiagram
   API-->>Pr: registros + sensaciones → grilla y % en Evolución
 ```
 
-**Antropometría ISAK** ([ADR 0030](../decisions/0030-antropometria-isak.md)) — pestaña
+**Antropometría ISAK** ([ADR 0030](../decisions/0030-antropometria-isak.md)) — sección
 "Antropometría" de la ficha. `GET/POST /patients/{id}/anthropometry`, `PUT/DELETE
 …/{sessionId}` (`metric:read` / `metric:record`, profesional → asignados).
 
@@ -163,7 +190,7 @@ flowchart LR
   apaga el portal si vuelve a `false`.
 
 **Requerimiento energético** ([ADR 0032](../decisions/0032-requerimiento-energetico-periodizado.md)) —
-pestaña "Requerimiento" de la ficha. `GET /patients/{id}/energy` (versiones, la
+sección "Requerimiento" (momento Prescribir) de la ficha. `GET /patients/{id}/energy` (versiones, la
 vigente primero), `GET …/energy/context` (peso, talla y masa libre de grasa sugeridos),
 `POST …/energy` (versión nueva). Capacidades `plan:read` / `plan:write`.
 
@@ -179,7 +206,7 @@ flowchart LR
 ```
 
 **Recordatorio de 24 h** ([ADR 0033](../decisions/0033-recordatorio-de-24-horas.md)) —
-pestaña "Ingesta" de la ficha. `GET/POST /patients/{id}/recalls`, `PUT/DELETE
+sección "Ingesta" (momento Evaluar) de la ficha. `GET/POST /patients/{id}/recalls`, `PUT/DELETE
 …/{recallId}` (`plan:read` / `plan:write`, profesional → asignados).
 
 ```mermaid
@@ -195,13 +222,13 @@ flowchart LR
 ```
 
 **Frecuencia de consumo** ([ADR 0034](../decisions/0034-frecuencia-de-consumo.md)) —
-en la misma pestaña "Ingesta". `GET/POST /patients/{id}/food-frequency`, `PUT/DELETE
+en la misma sección "Ingesta". `GET/POST /patients/{id}/food-frequency`, `PUT/DELETE
 …/{surveyId}` (`plan:read` / `plan:write`). 21 items por grupo; frecuencia × porciones →
 porciones por día; comparación con las GAPA (referencia, no objetivo) y % de integrales.
 Uno nuevo arranca con las respuestas del anterior y muestra el "antes".
 
 **Hidratación** ([ADR 0036](../decisions/0036-hidratacion-y-prueba-de-sudoracion.md)) —
-pestaña "Hidratación" de la ficha y "Medir hidratación" en el grupo.
+sección "Hidratación" (momento Evaluar) de la ficha y "Medir hidratación" en el grupo.
 
 | Quién | Endpoints | Capacidad |
 |---|---|---|
@@ -264,7 +291,7 @@ append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-
   el profesional deja de verla.
 - UI: `/pro/messages` (Administración fija + pacientes), `/admin/messages` (un
   profesional por fila), `/app/mensajes` (un profesional por fila; con uno solo,
-  directo), pestaña **Mensajes** en la ficha para quien atiende. En una org
+  directo), sección **Mensajes** (momento Conversar) en la ficha para quien atiende. En una org
   individual, `/admin/messages` redirige a `/pro/messages` (conservando `?c=`).
 
 **Org individual** ([ADR 0026](../decisions/0026-profesional-independiente-org-de-una-persona.md)):
@@ -282,7 +309,7 @@ profesionales del consultorio; se archivan, no se borran.
 alimento. Los items vinculados suman gramos exactos; una **receta se expande en sus
 ingredientes** (desglose copiado en el item); los de texto libre se listan aparte con
 cuántas veces aparecen; las alternativas no se suman. La ven el paciente
-(`/app/compras`, imprimible) y el profesional (botón en la pestaña Plan).
+(`/app/compras`, imprimible) y el profesional (botón en Prescribir → Plan).
 
 **En la UI del portal** (`/app`, pensado primero para el celular) lo primero es **lo
 que le toca comer hoy**: las comidas del plan activo para la fecha (`mealsForDate`:

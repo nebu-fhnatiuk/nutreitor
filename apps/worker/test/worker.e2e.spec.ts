@@ -130,7 +130,7 @@ describe("Worker — generación", () => {
     expect(appointment!.text).toMatch(/mañana a las \d{2}:\d{2} con Profesional Demo/);
     expect(unread!.text).toContain("Paciente Demo te escribió");
     expect(unread!.text).not.toContain(SECRET_BODY);
-    expect(unread!.text).toContain(`/pro/patients/${D1}?tab=mensajes`);
+    expect(unread!.text).toContain(`/pro/patients/${D1}?tab=conversar&sec=mensajes`);
     expect(adherence).toMatchObject({ to: "patient@demo.test" });
     const report = deliveries.find((d) => d.subject === "Tu reporte de julio está listo");
     expect(report).toMatchObject({ to: "patient@demo.test" });
