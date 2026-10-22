@@ -234,7 +234,18 @@ export class AnthropometryService {
         fatPct: show("anthroFat")
           ? { durninWomersley: val(r.fat.durninWomersley), yuhasz: val(r.fat.yuhasz), faulkner: val(r.fat.faulkner) }
           : null,
-        kerr: show("anthroKerr") && k ? { muscleKg: k.muscleKg, adiposeKg: k.adiposeKg, boneKg: k.boneKg } : null,
+        kerr:
+          show("anthroKerr") && k
+            ? {
+                skinKg: k.skinKg,
+                adiposeKg: k.adiposeKg,
+                muscleKg: k.muscleKg,
+                residualKg: k.residualKg,
+                boneKg: k.boneKg,
+                pct: k.pct,
+                muscleBoneIndex: k.muscleBoneIndex,
+              }
+            : null,
         somatotype: show("anthroSomatotype") && st ? { endo: st.endo, meso: st.meso, ecto: st.ecto } : null,
       };
     });

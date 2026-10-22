@@ -186,7 +186,8 @@ flowchart LR
 - Lo que no se puede calcular explica por qué (sitios faltantes, sexo no binario,
   menor de 17 para Durnin-Womersley).
 - Portal: tarjeta "Tu antropometría" con la última medición y la evolución de Σ6,
-  sólo con lo marcado visible. `ANTHROPOMETRY_VALIDATED` (habilitada el 2026-10-20)
+  sólo con lo marcado visible. Con Kerr visible, el portal recibe los 5 componentes
+  (kg y %) y el índice músculo/óseo, sin el error de estimación, que es técnico. `ANTHROPOMETRY_VALIDATED` (habilitada el 2026-10-20)
   apaga el portal si vuelve a `false`.
 - **Somatocarta de Heath-Carter** (KAN-71, `components/patients/somatochart.tsx`):
   ubica cada somatotipo en x = ecto − endo, y = 2·meso − (endo + ecto), con el eje Y
@@ -196,6 +197,11 @@ flowchart LR
   deportista**, con su última medición, y el **somatotipo medio** del plantel (la
   media de cada componente). Se filtra por fecha de medición y cada punto lleva a la
   ficha. No hay endpoint nuevo: usa el listado de sesiones y el resumen del grupo.
+- **Anillo de Kerr** (KAN-72, `components/patients/kerr-ring.tsx`): los 5 componentes
+  como arcos proporcionales al %, con el índice músculo/óseo en el centro y la tabla
+  de kg y %. Usa la **última sesión con Kerr** (no todas lo llevan) y la compara con
+  la anterior con Kerr: diferencia en kg por componente y variación del índice. Está
+  en la ficha (Evaluar → Antropometría) y, si `anthroKerr` es visible, en el portal.
 
 **Requerimiento energético** ([ADR 0032](../decisions/0032-requerimiento-energetico-periodizado.md)) —
 sección "Requerimiento" (momento Prescribir) de la ficha. `GET /patients/{id}/energy` (versiones, la

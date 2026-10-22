@@ -7,6 +7,7 @@ import {
   type AnthroResults,
   type AnthroSiteKey,
   type AnthroTakes,
+  type KerrResult,
 } from "../anthropometry.js";
 
 /**
@@ -69,12 +70,18 @@ export const anthroVisibilityFields = [
 ] as const;
 export type AnthroVisibilityField = (typeof anthroVisibilityFields)[number];
 
+export type PortalKerr = Pick<
+  KerrResult,
+  "skinKg" | "adiposeKg" | "muscleKg" | "residualKg" | "boneKg" | "pct" | "muscleBoneIndex"
+>;
+
 /** Lo que llega al portal: sólo lo visible y sólo con fórmulas validadas. */
 export interface PortalAnthropometryDto {
   measuredAt: string;
   sum6: number | null;
   sum8: number | null;
   fatPct: { durninWomersley: number | null; yuhasz: number | null; faulkner: number | null } | null;
-  kerr: { muscleKg: number; adiposeKg: number; boneKg: number } | null;
+  /** Los 5 componentes con % e índice músculo/óseo (sin el error de estimación, que es técnico). */
+  kerr: PortalKerr | null;
   somatotype: { endo: number; meso: number; ecto: number } | null;
 }
