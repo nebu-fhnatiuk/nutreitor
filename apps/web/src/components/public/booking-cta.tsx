@@ -5,7 +5,7 @@
  */
 export function BookingCta({ professionalName }: { professionalName: string }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-stone-200 bg-surface p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-stone-900">¿Querés empezar?</h3>
       <p className="mt-1 text-sm text-stone-600">
         Agendá una primera consulta con {professionalName}.

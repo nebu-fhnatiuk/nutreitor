@@ -28,7 +28,7 @@ const AGENTS: {
 ];
 
 const inputCls =
-  "flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "flex-1 rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 /**
  * Dock flotante de asistentes (NUTRI / CHEF) sobre un paciente. Botón siempre
@@ -115,13 +115,13 @@ export function AssistantDock({ patientId }: { patientId: string }) {
           <button
             aria-label="Cerrar asistentes"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-stone-900/20"
+            className="absolute inset-0 bg-black/30"
           />
           {/* Panel */}
           <aside
             role="dialog"
             aria-label="Asistentes del paciente"
-            className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            className="relative flex h-full w-full max-w-md flex-col bg-surface shadow-2xl"
           >
             <header className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
               <div className="flex items-center gap-2">

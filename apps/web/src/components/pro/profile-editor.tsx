@@ -106,7 +106,7 @@ export function ProfileEditor({ initial }: { initial: OwnProfessionalProfile }) 
         </p>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-4">
+      <section className="rounded-2xl border border-stone-200 bg-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-stone-800">Matrícula</h2>
           <LicenseState status={license.status} />

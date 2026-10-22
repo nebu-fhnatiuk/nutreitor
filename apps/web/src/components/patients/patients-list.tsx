@@ -98,7 +98,7 @@ export function PatientsList({
               setGroup(e.target.value);
               void load(search, e.target.value);
             }}
-            className="min-w-0 max-w-[40%] rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="min-w-0 max-w-[40%] rounded-lg border border-stone-200 bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
           >
             <option value="">Todos los grupos</option>
             {groups.map((g) => (
@@ -112,12 +112,12 @@ export function PatientsList({
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Buscar por nombre, documento o email"
-          className="w-72 min-w-0 max-w-[55%] rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="w-72 min-w-0 max-w-[55%] rounded-lg border border-stone-200 bg-surface px-3 py-1.5 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-surface shadow-sm">
         {patients.length === 0 && !loading ? (
           <div className="px-5 py-12 text-center text-sm text-stone-500">
             {search || group ? "Sin resultados." : "Todavía no hay pacientes."}
@@ -224,7 +224,7 @@ function NewPatientForm({
   return (
     <form
       onSubmit={submit}
-      className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
+      className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200 bg-surface p-4 shadow-sm"
     >
       <div className="flex-1 min-w-[12rem]">
         <label htmlFor="patients-list-nombre-y-apellido" className="mb-1 block text-xs text-stone-500">Nombre y apellido</label>
@@ -234,7 +234,7 @@ function NewPatientForm({
           onChange={(e) => setFullName(e.target.value)}
           autoFocus
           placeholder="Nombre del paciente"
-          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
       <div className="flex-1 min-w-[12rem]">
@@ -245,7 +245,7 @@ function NewPatientForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="contacto@email.com"
-          className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+          className="w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
       </div>
       {canAssign && (

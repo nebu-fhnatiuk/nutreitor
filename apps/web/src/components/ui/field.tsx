@@ -12,7 +12,7 @@ import { cn } from "./cn";
  * reimplementaba en ~18 pantallas.
  */
 export const fieldClass =
-  "rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none " +
+  "rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none " +
   "placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20 " +
   "disabled:cursor-not-allowed disabled:opacity-50";
 

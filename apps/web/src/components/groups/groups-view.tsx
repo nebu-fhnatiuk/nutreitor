@@ -53,7 +53,7 @@ export function GroupsView({ basePath, canManage }: { basePath: string; canManag
             <li key={g.id}>
               <Link
                 href={`${basePath}/${g.id}`}
-                className="block h-full rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-brand/40"
+                className="block h-full rounded-2xl border border-stone-200 bg-surface p-5 shadow-sm transition hover:border-brand/40"
               >
                 <p className="font-medium text-stone-900">{g.name}</p>
                 {g.description && <p className="mt-1 line-clamp-2 text-sm text-stone-500">{g.description}</p>}

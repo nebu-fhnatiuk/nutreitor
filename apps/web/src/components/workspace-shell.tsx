@@ -25,7 +25,7 @@ import type { MembershipRole, OrgKind } from "@nutreitor/shared";
 
 import { useNewRequests } from "@/components/contact/use-new-requests";
 import { useUnreadMessages } from "@/components/messages/use-unread";
-import { FeedbackProvider } from "@/components/ui";
+import { FeedbackProvider, ThemeToggle } from "@/components/ui";
 
 const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Administración",
@@ -101,6 +101,7 @@ function activeHref(items: NavItem[], pathname: string): string | null {
  * Layout base de un destino autenticado: sidebar de navegación por rol + topbar
  * persistente con un menú de usuario (quién sos + cerrar sesión) arriba a la
  * derecha. El acento usa el color de marca del tenant (`brand`, vía CSS var).
+ * Es la raíz del tema Estadio (`data-theme`, ADR 0037): oscuro por defecto.
  */
 export function WorkspaceShell({
   orgName,
@@ -131,14 +132,14 @@ export function WorkspaceShell({
   }, [current, unread, requests]);
 
   return (
-    <div className="flex min-h-screen">
+    <div data-theme="estadio" className="flex min-h-screen bg-stone-50 text-stone-900">
       <a
         href="#contenido"
-        className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-sm shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 rounded-lg bg-surface px-4 py-2 text-sm shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Saltar al contenido
       </a>
-      <aside className="hidden w-56 shrink-0 print:!hidden flex-col border-r border-stone-200 bg-white px-4 py-5 sm:flex">
+      <aside className="hidden w-56 shrink-0 print:!hidden flex-col border-r border-stone-200 bg-surface px-4 py-5 sm:flex">
         <div className="mb-8 flex items-center gap-2 px-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
           <span className="truncate text-sm font-semibold tracking-tight">{orgName}</span>
@@ -172,7 +173,7 @@ export function WorkspaceShell({
           tabla con scroll propio) y en celulares la página entera se desborda. */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar persistente (todos los tamaños): org (solo mobile) + menú de usuario. */}
-        <header className="sticky top-0 z-20 flex print:hidden items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex print:hidden items-center justify-between border-b border-stone-200 bg-surface/90 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-2 sm:hidden">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand" />
             <span className="truncate text-sm font-semibold">{orgName}</span>
@@ -188,7 +189,7 @@ export function WorkspaceShell({
           <nav
             ref={mobileNavRef}
             aria-label="Secciones"
-            className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 sm:hidden print:hidden"
+            className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-surface px-4 py-2 sm:hidden print:hidden"
           >
             {items.map((item) => {
               const active = item.href === current;
@@ -272,13 +273,14 @@ function UserMenu({
           />
           <div
             role="menu"
-            className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg"
+            className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-stone-200 bg-surface p-1.5 shadow-lg"
           >
             <div className="px-3 py-2">
               <p className="truncate text-sm font-medium text-stone-900">{userName}</p>
               <p className="text-xs text-stone-500">{role === "admin" && orgKind === "individual" ? "Profesional independiente" : ROLE_LABEL[role]}</p>
             </div>
             <div className="my-1 border-t border-stone-100" />
+            <ThemeToggle className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-stone-700 transition hover:bg-stone-100" />
             <button
               type="button"
               role="menuitem"

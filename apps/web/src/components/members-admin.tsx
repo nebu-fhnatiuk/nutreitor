@@ -191,7 +191,7 @@ export function MembersAdmin({ capabilities }: { capabilities: Capability[] }) {
                             }),
                           )
                         }
-                        className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs"
+                        className="rounded-md border border-stone-200 bg-surface px-2 py-1 text-xs"
                       >
                         {membershipRoles.map((r) => (
                           <option key={r} value={r}>
@@ -288,7 +288,7 @@ function InviteForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-4">
+    <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-surface p-4">
       <div className="flex-1">
         <label htmlFor="members-admin-invitar-por-email" className="mb-1 block text-xs text-stone-500">Invitar por email</label>
         <Input

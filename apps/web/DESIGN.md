@@ -5,7 +5,25 @@ Un solo hilo conductor para TODA la app (captación pública + workspace + login
 (estilo "Accessible & Ethical" para healthcare: alto contraste, tipografía clara,
 sin oscuro/neón en superficies públicas).
 
-## Tokens
+## Tema Estadio (workspace autenticado, ADR 0037)
+
+Todo lo que vive dentro de `WorkspaceShell` usa el tema **Estadio**: oscuro de
+transmisión por defecto (con opción de claro en el menú de usuario), UI en **Barlow**,
+cifras y rótulos en **Barlow Condensed** (`font-display`, `tabular-nums`).
+
+- **Las clases `stone-*`, `red-*`, `amber-*`, `emerald-*` y `sky-*` se siguen usando igual.**
+  Son var-driven y se invierten solas en oscuro: `stone-50` es fondo, `stone-200` borde,
+  `stone-500` texto atenuado, `stone-900` tinta.
+- **Superficie:** `bg-surface` (nunca `bg-white` para tarjetas o paneles).
+- **Zonas:** `ZoneBadge`, `ZoneMark`, `zoneText`, `zoneFill` y `zoneSoft` (de
+  `components/ui`). Nunca color solo: siempre forma + texto.
+- **Cifras:** `Stat` (rótulo condensado + número grande + unidad chica).
+- **Club:** `brand` (color principal del tenant) + `accent2` (segundo color).
+- **Scrims:** `bg-black/30..40` (no `stone-900`, que en oscuro es claro).
+
+Las superficies públicas (landing, vidriera, login) siguen con la identidad de abajo.
+
+## Tokens (superficies públicas)
 
 - **Superficie:** página `bg-stone-50` (crema), tarjetas `bg-white` con
   `border-stone-200` + `shadow-sm`, radios `rounded-2xl` (tarjetas) / `rounded-lg`

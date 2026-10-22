@@ -117,7 +117,7 @@ export function ChatThread({
   if (messages === null && !error) return <Loading />;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-stone-200 bg-white shadow-sm">
+    <div className="flex flex-col rounded-2xl border border-stone-200 bg-surface shadow-sm">
       <div className="max-h-[60vh] min-h-[16rem] space-y-3 overflow-y-auto p-4" aria-live="polite">
         {messages?.length === 0 && <EmptyState>{emptyText}</EmptyState>}
         {messages?.map((m) => (
@@ -159,7 +159,7 @@ export function ChatThread({
             maxLength={MESSAGE_MAX_LENGTH}
             placeholder="Escribí un mensaje…"
             aria-label="Mensaje"
-            className="min-w-0 flex-1 resize-none rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className="min-w-0 flex-1 resize-none rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
           <Button type="submit" disabled={busy || !draft.trim()} aria-label="Enviar">
             <Send className="h-4 w-4" aria-hidden />

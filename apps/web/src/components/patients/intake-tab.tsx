@@ -15,7 +15,7 @@ export function IntakeTab({ patientId, sex, canWrite }: { patientId: string; sex
   const [view, setView] = useState<View>("recall");
   return (
     <div className="space-y-5">
-      <div role="tablist" aria-label="Instrumento" className="inline-flex rounded-lg border border-stone-200 bg-white p-0.5 text-sm">
+      <div role="tablist" aria-label="Instrumento" className="inline-flex rounded-lg border border-stone-200 bg-surface p-0.5 text-sm">
         {(
           [
             ["recall", "Recordatorio de 24 h"],

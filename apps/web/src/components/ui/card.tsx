@@ -16,7 +16,7 @@ export function Card({
   as?: "section" | "div" | "article";
 }) {
   return (
-    <Tag className={cn("rounded-2xl border border-stone-200 bg-white p-5 shadow-sm", className)}>
+    <Tag className={cn("rounded-2xl border border-stone-200 bg-surface p-5 shadow-sm", className)}>
       {children}
     </Tag>
   );
@@ -34,7 +34,7 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <h2 className={cn("text-xs font-semibold uppercase tracking-widest text-stone-500", className)}>
+    <h2 className={cn("font-display text-sm font-semibold uppercase tracking-widest text-stone-500", className)}>
       {children}
     </h2>
   );

@@ -8,7 +8,7 @@ import { LineChart } from "./line-chart";
 import { useFeedback } from "@/components/ui";
 
 const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("es-AR");
 
@@ -66,7 +66,7 @@ export function MetricsPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-stone-200 bg-surface p-5 shadow-sm">
       <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-500">
         Evolución{loading && <span className="ml-2 text-stone-500">cargando…</span>}
       </h2>

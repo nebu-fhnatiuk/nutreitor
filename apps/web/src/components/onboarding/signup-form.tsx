@@ -113,7 +113,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
 
   if (sentTo) {
     return (
-      <div className="rounded-3xl border border-ink/10 bg-white p-8 text-center shadow-sm">
+      <div className="rounded-3xl border border-ink/10 bg-surface p-8 text-center shadow-sm">
         <MailCheck className="mx-auto h-10 w-10 text-brand" aria-hidden />
         <h1 className="mt-4 text-2xl font-extrabold tracking-tight">Revisá tu email</h1>
         <p className="mt-2 text-sm text-ink/65">
@@ -146,7 +146,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
               aria-pressed={kind === k}
               onClick={() => setKind(k)}
               className={cn(
-                "rounded-2xl border bg-white p-4 text-left transition",
+                "rounded-2xl border bg-surface p-4 text-left transition",
                 kind === k ? "border-brand ring-2 ring-brand/20" : "border-ink/10 hover:border-ink/25",
               )}
             >
@@ -158,7 +158,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
         </div>
       </fieldset>
 
-      <div className="space-y-4 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
+      <div className="space-y-4 rounded-3xl border border-ink/10 bg-surface p-5 sm:p-6">
         <Label label={kind === "individual" ? "Nombre de tu consultorio o marca" : "Nombre del club, gimnasio o consultorio"}>
           <Input
             value={orgName}
@@ -170,7 +170,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
         </Label>
         <div>
           <Label label="Tu dirección en Nutreitor" hint="Es la URL de tu vidriera. Después no se puede cambiar.">
-            <div className="flex items-center rounded-lg border border-stone-200 bg-white pr-3 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
+            <div className="flex items-center rounded-lg border border-stone-200 bg-surface pr-3 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
               <input
                 value={slug}
                 onChange={(e) => {
@@ -197,7 +197,7 @@ export function SignupForm({ rootHost }: { rootHost: string }) {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
+      <div className="space-y-4 rounded-3xl border border-ink/10 bg-surface p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Label label="Tu nombre y apellido">
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" />

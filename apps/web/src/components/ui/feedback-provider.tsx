@@ -82,7 +82,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             role={t.tone === "error" ? "alert" : "status"}
             className={cn(
               "pointer-events-auto flex max-w-md items-center gap-2 rounded-xl px-4 py-3 text-sm shadow-lg",
-              t.tone === "success" ? "bg-stone-900 text-white" : "bg-red-700 text-white",
+              t.tone === "success" ? "bg-stone-900 text-stone-50" : "bg-red-600 text-white",
             )}
           >
             {t.tone === "success" ? (

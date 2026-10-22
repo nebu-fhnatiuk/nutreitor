@@ -102,7 +102,7 @@ export function ProToday() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar paciente"
               aria-label="Buscar paciente"
-              className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-9 pr-3 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+              className="w-full rounded-lg border border-stone-200 bg-surface py-2 pl-9 pr-3 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </form>
           {patients === null ? (

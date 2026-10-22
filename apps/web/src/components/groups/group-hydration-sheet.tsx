@@ -184,7 +184,7 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
         </Field>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-surface shadow-sm">
         <table className="w-full min-w-[40rem] text-sm">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-xs text-stone-500">
@@ -204,7 +204,7 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
               const r = resultFor(row);
               return (
                 <tr key={m.patientId}>
-                  <th scope="row" className="sticky left-0 z-10 bg-white px-3 py-1.5 text-left font-medium leading-tight text-stone-800 sm:px-4">
+                  <th scope="row" className="sticky left-0 z-10 bg-surface px-3 py-1.5 text-left font-medium leading-tight text-stone-800 sm:px-4">
                     {m.fullName}
                   </th>
                   {COLS.map((c) => (

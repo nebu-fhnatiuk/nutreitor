@@ -178,7 +178,7 @@ export function DayCheckin({
         }}
         maxLength={500}
         placeholder="Algo que quieras contarle a tu profesional (opcional)"
-        className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+        className="mt-3 w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
     </div>
   );
@@ -243,7 +243,7 @@ export function DailyReminder() {
           disabled={busy || !prefs.adherenceReminder}
           onChange={(e) => void save({ adherenceReminderHour: Number(e.target.value) })}
           aria-label="Hora del recordatorio"
-          className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-sm disabled:opacity-50"
+          className="rounded-lg border border-stone-200 bg-surface px-2 py-1 text-sm disabled:opacity-50"
         >
           {[18, 19, 20, 21, 22, 23].map((h) => (
             <option key={h} value={h}>

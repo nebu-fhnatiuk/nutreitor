@@ -58,7 +58,7 @@ export function PortalReportsList() {
   if (!reports) return <Loading />;
   if (!reports.length) return <EmptyState>Cuando tu profesional publique tu reporte del mes, lo vas a ver acá.</EmptyState>;
   return (
-    <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-white shadow-sm">
+    <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200 bg-surface shadow-sm">
       {reports.map((r) => (
         <li key={r.id}>
           <Link href={`/app/reportes/${r.id}`} className="flex items-center gap-3 px-4 py-3 transition hover:bg-stone-50">
