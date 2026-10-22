@@ -6,6 +6,7 @@ import {
   type AddGroupMembersDto,
   type GroupAnthropometryResultDto,
   type GroupAnthropometrySummaryDto,
+  type GroupBoardDto,
   type GroupDetailDto,
   type GroupDto,
   type SaveGroupAnthropometryDto,
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AnthropometryService } from "./anthropometry.service.js";
+import { GroupBoardService } from "./group-board.service.js";
 import { GroupsService } from "./groups.service.js";
 
 /**
@@ -30,7 +32,15 @@ export class GroupsController {
   constructor(
     private readonly groups: GroupsService,
     private readonly anthro: AnthropometryService,
+    private readonly boardSvc: GroupBoardService,
   ) {}
+
+  /** Pizarra del plantel: semáforo por deportista, ordenada por quién necesita atención. */
+  @Get(":id/board")
+  @RequireCapability("metric:read")
+  board(@Param("id", ParseUUIDPipe) id: string): Promise<GroupBoardDto> {
+    return this.boardSvc.board(id);
+  }
 
   @Get()
   @RequireCapability("patient:read")

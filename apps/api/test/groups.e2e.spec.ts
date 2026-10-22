@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
-import { anthropometrySessions, createDb, patientGroups, patients, withTenant, type Database } from "@nutreitor/db";
+import { adherenceMealLogs, anthropometrySessions, createDb, patientGroups, patients, withTenant, type Database } from "@nutreitor/db";
 import { runMigrations } from "@nutreitor/db/migrate";
 import { runSeed, SEED } from "@nutreitor/db/seed";
 import { saveGroupAnthropometrySchema, type AuthOrg, type MembershipRole } from "@nutreitor/shared";
-import { eq, inArray, like } from "drizzle-orm";
+import { and, eq, gte, inArray, like } from "drizzle-orm";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -12,7 +12,9 @@ import { TenantDbService } from "../src/core/database/tenant-db.service.js";
 import { tenantStorage } from "../src/core/tenant/tenant-context.store.js";
 import { AnthropometryService } from "../src/modules/patients/anthropometry.service.js";
 import { CareAssignmentsService } from "../src/modules/patients/care-assignments.service.js";
+import { GroupBoardService } from "../src/modules/patients/group-board.service.js";
 import { GroupsService } from "../src/modules/patients/groups.service.js";
+import { HydrationService } from "../src/modules/patients/hydration.service.js";
 import { PatientNotesService } from "../src/modules/patients/patient-notes.service.js";
 import { PatientsService } from "../src/modules/patients/patients.service.js";
 
@@ -38,6 +40,9 @@ let ownerPool: pg.Pool;
 let groups: GroupsService;
 let anthro: AnthropometryService;
 let patientsSvc: PatientsService;
+let board: GroupBoardService;
+/** Adherencia en una semana futura, lejos de los registros del seed. */
+const BOARD_TODAY = "2027-03-10";
 
 function as<X>(userId: string, role: MembershipRole, fn: () => Promise<X>): Promise<X> {
   return tenantStorage.run(
@@ -69,10 +74,12 @@ beforeAll(async () => {
   const audit = new AuditService();
   groups = new GroupsService(tenantDb, audit);
   anthro = new AnthropometryService(tenantDb, audit);
+  board = new GroupBoardService(tenantDb, anthro, new HydrationService(tenantDb, audit));
   patientsSvc = new PatientsService(tenantDb, audit, new CareAssignmentsService(tenantDb, audit), new PatientNotesService(tenantDb, audit));
 });
 
 afterAll(async () => {
+  await owner?.delete(adherenceMealLogs).where(and(inArray(adherenceMealLogs.patientId, [D1, D2]), gte(adherenceMealLogs.date, "2027-01-01")));
   await owner?.delete(anthropometrySessions).where(inArray(anthropometrySessions.patientId, [D1, D2]));
   await owner?.delete(patientGroups).where(like(patientGroups.name, `%${RUN}%`));
   await appPool?.end();
@@ -188,5 +195,40 @@ describe("antropometría del plantel", () => {
     const admin = await asAdmin(() => anthro.groupSummary(SEED.groupDemo));
     expect(admin.rows.find((r) => r.patientId === D2)).toMatchObject({ last: { measuredAt: "2026-09-01" }, sum6Delta: null });
     expect(admin.validated).toBe(true);
+  });
+
+  it("pizarra: semáforo por deportista, ordenada por quién necesita atención", async () => {
+    // Usa las sesiones del test anterior: D1 medido el 2026-10-01, D2 el 2026-09-01.
+    const log = (date: string, mealName: string, status: "done" | "partial" | "skipped") => ({
+      tenantId: T.id,
+      region: T.region,
+      patientId: D1,
+      date,
+      mealName,
+      status,
+    });
+    await owner.insert(adherenceMealLogs).values([
+      // Semana anterior: todo cumplido (100 %).
+      log("2027-03-01", "Desayuno", "done"),
+      log("2027-03-01", "Almuerzo", "done"),
+      // Esta semana: 1 de 4 (25 %) → fuera de rango.
+      log("2027-03-08", "Desayuno", "done"),
+      log("2027-03-08", "Almuerzo", "skipped"),
+      log("2027-03-09", "Desayuno", "skipped"),
+      log("2027-03-09", "Almuerzo", "skipped"),
+    ]);
+
+    const admin = await asAdmin(() => board.board(SEED.groupDemo, BOARD_TODAY));
+    expect(admin.rows.map((r) => r.patientId)).toEqual([D1, D2]);
+    const [d1, d2] = admin.rows;
+    expect(d1).toMatchObject({ adherence7: 25, adherencePrev7: 100, sum6: 50, sum6Delta: -2, lastMeasuredOn: "2026-10-01" });
+    expect(d1!.status.zone).toBe("bad");
+    expect(d1!.status.flags[0]).toMatchObject({ kind: "adherenceLow", text: "Adherencia 25 %" });
+    expect(d1!.status.flags.map((f) => f.kind)).toContain("stale");
+    expect(d2).toMatchObject({ adherence7: null, status: { zone: "warn", daysSinceMeasured: 190 } });
+
+    // El profesional ve sólo a su asignado.
+    const pro = await asPro(() => board.board(SEED.groupDemo, BOARD_TODAY));
+    expect(pro.rows.map((r) => r.patientId)).toEqual([D1]);
   });
 });
