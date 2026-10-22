@@ -69,6 +69,9 @@ export type AuditAction =
   | "food_frequency.recorded"
   | "food_frequency.updated"
   | "food_frequency.deleted"
+  | "sweat_test.recorded"
+  | "sweat_test.updated"
+  | "sweat_test.deleted"
   | "anthropometry.updated"
   | "anthropometry.deleted";
 

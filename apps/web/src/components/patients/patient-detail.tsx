@@ -23,6 +23,7 @@ import { PatientConversation } from "@/components/messages/conversations";
 import { ReportsPanel } from "@/components/reports/reports-panel";
 import { AdherencePanel } from "./adherence-panel";
 import { EnergyPanel } from "./energy-panel";
+import { HydrationPanel } from "./hydration-panel";
 import { IntakeTab } from "./intake-tab";
 import { AnthropometryPanel } from "./anthropometry-panel";
 import { MetricsPanel } from "./metrics-panel";
@@ -63,8 +64,8 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "requerimiento" | "ingesta" | "evolucion" | "antropometria" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "requerimiento", "ingesta", "evolucion", "antropometria", "reportes", "ficha", "notas", "mensajes", "asistentes"];
+type TabId = "resumen" | "plan" | "requerimiento" | "ingesta" | "evolucion" | "antropometria" | "hidratacion" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
+const TAB_IDS: TabId[] = ["resumen", "plan", "requerimiento", "ingesta", "evolucion", "antropometria", "hidratacion", "reportes", "ficha", "notas", "mensajes", "asistentes"];
 
 /**
  * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
@@ -227,6 +228,7 @@ export function PatientDetail({
           { id: "ingesta", label: "Ingesta" },
           { id: "evolucion", label: "Evolución" },
           { id: "antropometria", label: "Antropometría" },
+          { id: "hidratacion", label: "Hidratación" },
           { id: "reportes", label: "Reportes" },
           { id: "ficha", label: "Ficha clínica" },
           { id: "notas", label: "Notas", count: p.notes.length },
@@ -273,6 +275,7 @@ export function PatientDetail({
             onVisibilityChange={load}
           />
         )}
+        {tab === "hidratacion" && <HydrationPanel patientId={p.id} canRecord={canRecord} />}
         {tab === "reportes" && <ReportsPanel patientId={p.id} canWrite={canWritePlan} />}
         {tab === "ficha" && (
           <div className="space-y-6">
