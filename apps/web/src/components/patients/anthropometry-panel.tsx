@@ -25,6 +25,7 @@ import { api, errorMessage } from "@/lib/api";
 
 import { fmt, fmtMeasured, parseDecimal, val } from "./anthro-format";
 import { LineChart } from "./line-chart";
+import { KerrRing } from "./kerr-ring";
 import { Somatochart, type SomatoPoint } from "./somatochart";
 
 const GROUPS: { id: AnthroGroup; label: string }[] = [
@@ -114,6 +115,13 @@ export function AnthropometryPanel({
     return so ? [{ id: s.id, label: fmtMeasured(s.measuredAt), ...so }] : [];
   });
 
+  // Anillo de Kerr: la última sesión con Kerr, contra la anterior con Kerr.
+  const withKerr = (sessions ?? []).flatMap((s) => {
+    const k = val(s.results.kerr);
+    return k ? [{ s, k }] : [];
+  });
+  const [kerrLast, kerrPrev] = withKerr;
+
   if (!sessions) return err ? <Alert>{err}</Alert> : <Loading />;
   const beta = !ANTHROPOMETRY_VALIDATED;
   const binarySex = sex === "female" || sex === "male";
@@ -178,22 +186,43 @@ export function AnthropometryPanel({
             </Card>
           </div>
 
-          {somatoTrail.length > 0 && (
-            <Card>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-stone-700">Somatocarta · Heath-Carter</p>
-                <p className="text-xs text-stone-500">
-                  {somatoTrail.length > 1
-                    ? `Estela de ${somatoTrail.length} mediciones; el punto grande es la última.`
-                    : "Una medición: con la próxima se ve la estela."}
-                </p>
-              </div>
-              <Somatochart
-                trail={somatoTrail}
-                label={`Somatocarta: ${somatoTrail.length} mediciones`}
-                className="mx-auto mt-3 max-w-md"
-              />
-            </Card>
+          {(somatoTrail.length > 0 || kerrLast) && (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {kerrLast && (
+                <Card>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-stone-700">Composición corporal · Kerr</p>
+                    <p className="text-xs text-stone-500">
+                      {fmtMeasured(kerrLast.s.measuredAt)}
+                      {kerrPrev ? ` · comparado con ${fmtMeasured(kerrPrev.s.measuredAt)}` : ""}
+                    </p>
+                  </div>
+                  <KerrRing
+                    kerr={kerrLast.k}
+                    previous={kerrPrev?.k}
+                    previousLabel={kerrPrev ? shortDay(kerrPrev.s.measuredAt) : undefined}
+                    className="mt-4"
+                  />
+                </Card>
+              )}
+              {somatoTrail.length > 0 && (
+                <Card>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-stone-700">Somatocarta · Heath-Carter</p>
+                    <p className="text-xs text-stone-500">
+                      {somatoTrail.length > 1
+                        ? `Estela de ${somatoTrail.length} mediciones; el punto grande es la última.`
+                        : "Una medición: con la próxima se ve la estela."}
+                    </p>
+                  </div>
+                  <Somatochart
+                    trail={somatoTrail}
+                    label={`Somatocarta: ${somatoTrail.length} mediciones`}
+                    className="mx-auto mt-3 max-w-md"
+                  />
+                </Card>
+              )}
+            </div>
           )}
 
           <ul className="space-y-4">
@@ -558,4 +587,10 @@ function SessionForm({
       </form>
     </Modal>
   );
+}
+
+/** "15/10" a partir de "2026-10-15". */
+function shortDay(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
 }

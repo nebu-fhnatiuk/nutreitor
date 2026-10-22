@@ -130,5 +130,27 @@ describe("portal", () => {
     expect(await withTenant(appDb, T.id, (tx) => svc.forPortal(tx, D1, {}))).toEqual([]);
     await owner.execute(sql`update patients set clinical_visibility = clinical_visibility - 'anthroSkinfolds' where id = ${D1}`);
   });
+
+  it("con Kerr visible, manda los 5 componentes, el % y el índice músculo/óseo (no el error de estimación)", async () => {
+    const full = {
+      measuredAt: "2026-10-05",
+      takes: Object.fromEntries(Object.entries(KERR_TAKES).map(([k, v]) => [k, [v]])),
+    } as SaveAnthropometryDto;
+    const { id } = await asPro(() => svc.create(D1, full));
+    const [r] = await withTenant(appDb, T.id, (tx) => svc.forPortal(tx, D1, { anthroKerr: true }));
+    expect(Object.keys(r!.kerr!).sort()).toEqual(["adiposeKg", "boneKg", "muscleBoneIndex", "muscleKg", "pct", "residualKg", "skinKg"]);
+    const pct = r!.kerr!.pct;
+    expect(pct.skin + pct.adipose + pct.muscle + pct.residual + pct.bone).toBeCloseTo(100, 0);
+    expect(r).toMatchObject({ sum6: null, fatPct: null, somatotype: null });
+    await asAdmin(() => svc.remove(D1, id));
+  });
 });
+
+/** Perfil completo (corredora de la validación) para que Kerr se pueda calcular. */
+const KERR_TAKES = {
+  bodyMass: 56.8, stature: 164.0, sittingHeight: 86.0,
+  triceps: 12.0, subscapular: 9.5, biceps: 6.0, iliacCrest: 13.0, supraspinale: 8.5, abdominal: 14.0, frontThigh: 18.0, medialCalf: 10.0,
+  armRelaxed: 26.0, armFlexed: 27.5, waist: 66.0, hip: 91.0, calf: 34.5, forearm: 23.5, chest: 84.0, midThigh: 51.0, head: 55.0,
+  humerus: 6.0, wrist: 4.9, femur: 8.7, biacromial: 35.5, biiliocristal: 26.5, chestTransverse: 25.5, chestAP: 17.0,
+};
 
