@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { AnthroResults } from "../anthropometry.js";
+import type { BoardStatus } from "../squad-board.js";
 import { saveAnthropometrySchema } from "./anthropometry.dto.js";
 
 /**
@@ -87,4 +88,25 @@ export interface GroupAnthropometryRowDto {
 export interface GroupAnthropometrySummaryDto {
   validated: boolean;
   rows: GroupAnthropometryRowDto[];
+}
+
+/** Una tarjeta de la pizarra del plantel (KAN-70). */
+export interface GroupBoardRowDto {
+  patientId: string;
+  fullName: string;
+  lastMeasuredOn: string | null;
+  bodyMass: number | null;
+  sum6: number | null;
+  sum6Delta: number | null;
+  sweatRateLh: number | null;
+  lossPct: number | null;
+  adherence7: number | null;
+  adherencePrev7: number | null;
+  status: BoardStatus;
+}
+
+export interface GroupBoardDto {
+  /** Fecha de referencia (YYYY-MM-DD) de los días sin medir y la adherencia. */
+  today: string;
+  rows: GroupBoardRowDto[];
 }

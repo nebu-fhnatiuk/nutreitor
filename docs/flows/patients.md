@@ -271,6 +271,33 @@ flowchart LR
   guardar o descartar.
 - Hasta 60 deportistas por carga; los que quedan vacíos no se envían.
 
+**Pizarra del plantel** (KAN-70): el grupo abre en una grilla de tarjetas, una por
+deportista visible, con un semáforo y ordenada por quién necesita atención.
+
+```mermaid
+flowchart LR
+  A["GET /groups/{id}/board<br/>metric:read"] --> B["última antropometría<br/>(groupSummary)"]
+  A --> C["última prueba de sudoración<br/>(groupSummary)"]
+  A --> D["adherencia 7 + 7 días<br/>(adherence_meal_logs)"]
+  B & C & D --> E["boardStatus (shared, puro)<br/>zona + avisos"]
+  E --> F["orden: fuera → límite → en rango"]
+```
+
+| Aviso | Zona | Criterio |
+|---|---|---|
+| Sin antropometría / sin medir hace N días | en el límite | nunca medido, o más de 30 días |
+| Perdió X % entrenando | límite / fuera | más de 2 % / más de 3 % en la última prueba |
+| Σ6 subió X mm | en el límite | 2 mm o más contra la medición anterior |
+| Adherencia bajó N puntos | en el límite | 15 puntos o más de una semana a la otra |
+| Adherencia X % | fuera | menos de 50 % en los últimos 7 días |
+
+- Nada se guarda: la zona se calcula al leer. Los miembros siguen el scoping de
+  pacientes (el profesional ve sólo a sus asignados).
+- La vista **Tabla** conserva el detalle (somatotipo, Kerr, ecuación de % graso,
+  plan de hidratación) y, para la admin, sacar deportistas del grupo.
+- Los umbrales están en `BOARD_THRESHOLDS` y se validan en
+  [`../validation/pizarra-plantel.md`](../validation/pizarra-plantel.md).
+
 **Mensajes** — conversaciones **privadas por par** ([ADR 0024](../decisions/0024-conversaciones-privadas.md);
 append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)):
 

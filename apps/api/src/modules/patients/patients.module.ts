@@ -13,6 +13,7 @@ import { RecallsController } from "./recalls.controller.js";
 import { RecallsService } from "./recalls.service.js";
 import { EnergyService } from "./energy.service.js";
 import { GroupsController } from "./groups.controller.js";
+import { GroupBoardService } from "./group-board.service.js";
 import { GroupsService } from "./groups.service.js";
 import { MealPlansController } from "./meal-plans.controller.js";
 import { MealPlansService } from "./meal-plans.service.js";
@@ -68,6 +69,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
     RecallsService,
     FoodFrequencyService,
     HydrationService,
+    GroupBoardService,
   ],
   exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService],
 })
