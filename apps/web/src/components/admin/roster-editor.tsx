@@ -63,7 +63,7 @@ function RosterRow({ entry }: { entry: RosterAdminEntry }) {
   }
 
   return (
-    <li className="rounded-xl border border-stone-200 bg-white p-4">
+    <li className="rounded-xl border border-stone-200 bg-surface p-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium text-stone-900">{entry.fullName}</div>

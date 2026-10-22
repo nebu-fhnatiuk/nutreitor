@@ -168,7 +168,7 @@ function Stat({
     </>
   );
   const cls = cn(
-    "block rounded-2xl border bg-white p-4 shadow-sm transition",
+    "block rounded-2xl border bg-surface p-4 shadow-sm transition",
     attention ? "border-amber-200 bg-amber-50" : "border-stone-200",
     href && "hover:border-brand/40",
   );

@@ -61,7 +61,7 @@ export function BrandingForm({ initial }: { initial: BrandingDto | null }) {
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="h-10 w-14 cursor-pointer rounded-lg border border-stone-200 bg-white"
+            className="h-10 w-14 cursor-pointer rounded-lg border border-stone-200 bg-surface"
           />
           <span className="font-mono text-sm text-stone-500">{color}</span>
           <span

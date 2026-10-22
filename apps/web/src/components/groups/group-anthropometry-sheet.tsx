@@ -255,7 +255,7 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
           <input type="checkbox" checked={kerrBlock} onChange={(e) => setKerrBlock(e.target.checked)} />
           Bloque de Kerr
         </label>
-        <div role="tablist" aria-label="Pasada" className="flex rounded-lg border border-stone-200 bg-white p-0.5">
+        <div role="tablist" aria-label="Pasada" className="flex rounded-lg border border-stone-200 bg-surface p-0.5">
           {passes.map((p) => (
             <button
               key={p.id}
@@ -285,7 +285,7 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
           : "Enter baja al siguiente deportista en el mismo sitio; Tab avanza al sitio siguiente."}
       </p>
 
-      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-surface shadow-sm">
         <table className="text-sm">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-xs text-stone-500">
@@ -306,7 +306,7 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
               const preview = anthropometryResults(rowTakes(row, kerrBlock), { sex, ageYears: ageAt(m.birthDate, measuredAt) });
               return (
                 <tr key={m.patientId}>
-                  <th scope="row" className="sticky left-0 z-10 bg-white px-3 py-1.5 text-left font-medium leading-tight text-stone-800 sm:px-4">
+                  <th scope="row" className="sticky left-0 z-10 bg-surface px-3 py-1.5 text-left font-medium leading-tight text-stone-800 sm:px-4">
                     {m.fullName}
                   </th>
                   {sites.map((s) => {
@@ -330,7 +330,7 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
                           aria-label={`${m.fullName}, ${s.label}, toma ${pass + 1}`}
                           className={cn(
                             "h-9 w-full min-w-0 rounded-md border px-1.5 text-right tabular-nums outline-none focus:border-brand focus:ring-2 focus:ring-brand/20",
-                            can ? "border-stone-200 bg-white" : "border-transparent bg-stone-50 text-stone-400",
+                            can ? "border-stone-200 bg-surface" : "border-transparent bg-stone-50 text-stone-400",
                             wantsThird && "border-amber-400 bg-amber-50",
                             can && outOfRange(s.key, value) && "border-red-400 bg-red-50",
                           )}

@@ -15,7 +15,7 @@ export function RootFrame({ children, wide }: { children: ReactNode; wide?: bool
       // El acento de la landing manda sobre el verde por defecto de la app.
       style={{ ["--brand-rgb" as string]: "15 118 110" }}
     >
-      <header className="border-b border-[#E3ECEC] bg-white">
+      <header className="border-b border-[#E3ECEC] bg-surface">
         <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
           <a href="/" className="flex min-h-11 items-center gap-2.5" aria-label="Nutreitor, inicio">
             <span className="inline-block h-7 w-7 rounded-lg bg-[#0F766E]" aria-hidden />

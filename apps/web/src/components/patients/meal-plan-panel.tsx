@@ -34,9 +34,9 @@ import { ShoppingListView } from "./shopping-list";
 import { Alert, Button, Input, Label, Modal, useFeedback } from "@/components/ui";
 
 const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 const narrowCls =
-  "rounded-lg border border-stone-200 bg-white px-2 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "rounded-lg border border-stone-200 bg-surface px-2 py-2 text-sm outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20";
 const fmtDate = (d: string | null) =>
   d ? new Date(`${d}T00:00:00`).toLocaleDateString("es-AR") : null;
 
@@ -135,7 +135,7 @@ export function MealPlanPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-stone-200 bg-surface p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-500">
           Plan alimentario
@@ -838,7 +838,7 @@ function PlanEditor({
 
       <div>
         <span className="mb-2 block text-xs text-stone-500">¿Cómo organizás el plan?</span>
-        <div className="inline-flex rounded-lg border border-stone-200 bg-white p-0.5 text-sm">
+        <div className="inline-flex rounded-lg border border-stone-200 bg-surface p-0.5 text-sm">
           {(["day", "week"] as const).map((l) => (
             <button
               key={l}
@@ -1279,7 +1279,7 @@ function SwapSuggestions({
   }, [food.source, food.id, grams]);
 
   return (
-    <div className="mt-2 rounded-lg border border-stone-200 bg-white p-2 text-xs">
+    <div className="mt-2 rounded-lg border border-stone-200 bg-surface p-2 text-xs">
       <p className="mb-1.5 text-stone-500">
         Mismo grupo{food.group ? ` (${food.group})` : ""}, mismas kcal que {grams} g. Diferencia de macros en g.
       </p>

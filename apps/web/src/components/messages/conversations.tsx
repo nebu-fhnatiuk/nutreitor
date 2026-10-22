@@ -92,7 +92,7 @@ export function Conversations({ audience, solo = false }: { audience: Audience; 
     <div className="grid gap-4 md:grid-cols-[18rem_1fr]">
       <ul
         className={cn(
-          "divide-y divide-stone-100 self-start rounded-2xl border border-stone-200 bg-white shadow-sm",
+          "divide-y divide-stone-100 self-start rounded-2xl border border-stone-200 bg-surface shadow-sm",
           selected && "hidden md:block",
         )}
       >

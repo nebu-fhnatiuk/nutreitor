@@ -119,7 +119,7 @@ export default async function OrgPublicPage({
                 <li key={m.profileSlug}>
                   <Link
                     href={`/${m.profileSlug}`}
-                    className="group flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition hover:border-brand/50 hover:shadow-sm"
+                    className="group flex items-center gap-4 rounded-2xl border border-stone-200 bg-surface p-5 transition hover:border-brand/50 hover:shadow-sm"
                   >
                     {m.photoUrl ? (
                       <img

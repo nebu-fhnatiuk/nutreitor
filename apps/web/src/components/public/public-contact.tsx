@@ -59,7 +59,7 @@ export function PublicContact({
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-brand/30 bg-white p-6 shadow-sm" role="status">
+      <div className="rounded-2xl border border-brand/30 bg-surface p-6 shadow-sm" role="status">
         <h2 className="font-serif text-xl text-stone-900">¡Gracias, {fullName.split(" ")[0]}!</h2>
         <p className="mt-2 text-stone-600">
           Le hicimos llegar tu consulta a <span className="text-stone-900">{done.to}</span>. Te van a
@@ -71,7 +71,7 @@ export function PublicContact({
 
   const field = "mb-1 block text-xs text-stone-500";
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+    <form onSubmit={submit} className="rounded-2xl border border-stone-200 bg-surface p-6 shadow-sm">
       <h2 className="font-serif text-xl text-stone-900">Escribile a {recipientName}</h2>
       <p className="mt-1 text-sm text-stone-600">
         ¿Tenés dudas antes de reservar? Dejá tu consulta y te responden por email.

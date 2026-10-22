@@ -86,7 +86,7 @@ export function ReportsPanel({ patientId, canWrite }: { patientId: string; canWr
               value={month}
               onChange={(e) => setMonth(e.target.value)}
               aria-label="Mes del reporte"
-              className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize"
+              className="rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm capitalize"
             >
               {recentMonths().map((m) => (
                 <option key={m} value={m}>
@@ -138,7 +138,7 @@ export function ReportsPanel({ patientId, canWrite }: { patientId: string; canWr
                 rows={4}
                 maxLength={4000}
                 placeholder="Qué salió bien, qué ajustar el mes que viene…"
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                className="w-full rounded-lg border border-stone-200 bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" disabled={busy} onClick={() => void run(saveComment, "Comentario guardado")}>

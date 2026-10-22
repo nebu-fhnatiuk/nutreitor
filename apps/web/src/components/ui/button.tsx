@@ -20,7 +20,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   // Acción destructiva secundaria (texto rojo, sin relleno).
   danger: "text-red-600 hover:bg-red-50",
   // Acción destructiva principal (botón de confirmación de un diálogo).
-  destructive: "bg-red-600 text-white hover:bg-red-700",
+  destructive: "bg-red-600 text-white hover:brightness-110",
 };
 
 const SIZES: Record<ButtonSize, string> = {

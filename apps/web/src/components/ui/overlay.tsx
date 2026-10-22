@@ -22,10 +22,13 @@ function useEscape(open: boolean, onClose: () => void) {
  * Los overlays se montan en <body> (portal): renderizados en su lugar heredaban
  * estilos del contenedor — p. ej. `space-y-*` le sumaba margin-top a un `fixed
  * inset-0` y el panel arrancaba 24 px más abajo, dejando una franja sin cubrir.
+ * Dentro del workspace se montan en la raíz del tema (no en <body>) para heredar
+ * las variables del tema Estadio.
  */
 function Portal({ children }: { children: ReactNode }) {
   if (typeof document === "undefined") return null;
-  return createPortal(children, document.body);
+  const root = document.querySelector<HTMLElement>("[data-theme]") ?? document.body;
+  return createPortal(children, root);
 }
 
 function CloseButton({ onClose }: { onClose: () => void }) {
@@ -63,14 +66,14 @@ export function Modal({
   if (!open) return null;
   return (
     <Portal>
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/30 p-0 sm:items-center sm:p-4">
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
         <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 cursor-default" />
         <div
           role="dialog"
           aria-modal="true"
           className={cn(
             // Alto máximo + scroll propio: un formulario largo no queda fuera de la pantalla.
-            "relative max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:rounded-2xl",
+            "relative max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-stone-200 bg-surface p-5 shadow-xl sm:rounded-2xl",
             className,
           )}
         >
@@ -114,12 +117,12 @@ export function SlideOver({
   return (
     <Portal>
       <div className="fixed inset-0 z-50 flex justify-end">
-        <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-stone-900/20" />
+        <button aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-black/30" />
         <aside
           role="dialog"
           aria-modal="true"
           className={cn(
-            "relative flex h-full w-full flex-col bg-white shadow-2xl",
+            "relative flex h-full w-full flex-col bg-surface shadow-2xl",
             wide ? "max-w-2xl" : "max-w-md",
             className,
           )}

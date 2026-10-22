@@ -64,7 +64,7 @@ export function ConfirmSignup({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={confirm} className="rounded-3xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8">
+    <form onSubmit={confirm} className="rounded-3xl border border-ink/10 bg-surface p-6 shadow-sm sm:p-8">
       <h1 className="text-2xl font-extrabold tracking-tight">Último paso, {preview.fullName.split(" ")[0]}</h1>
       <p className="mt-2 text-sm text-ink/65">
         Vas a crear <span className="font-medium text-ink">{preview.orgName}</span> con la

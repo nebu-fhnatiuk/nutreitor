@@ -47,7 +47,7 @@ export function PublicBooking({
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-brand/30 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-brand/30 bg-surface p-6 shadow-sm">
         <h2 className="font-serif text-xl text-stone-900">¡Listo, {fullName.split(" ")[0]}!</h2>
         <p className="mt-2 text-stone-600">
           Reservaste una consulta con <span className="text-stone-900">{done.professionalName}</span>{" "}
@@ -59,7 +59,7 @@ export function PublicBooking({
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-stone-200 bg-surface p-6 shadow-sm">
       <h2 className="font-serif text-xl text-stone-900">Reservá tu consulta</h2>
       <p className="mt-1 text-sm text-stone-500">
         Dejá tus datos y elegí un horario disponible con {professionalName}.
