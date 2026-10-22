@@ -67,6 +67,7 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
 | **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. El deportista ve en su portal lo que el profesional marque visible |
 | **Grupos** | planteles, divisiones o turnos; **medir a todo el plantel** en una planilla por pasadas (ISAK) y ver la última antropometría de cada uno |
+| **Hidratación** | prueba de sudoración (individual o de todo el plantel en una planilla): L/h, % de pérdida con aviso sobre el 2 % y plan de líquidos antes, durante y después |
 | **Reportes** | **reporte mensual** que se arma solo, se comenta y se publica al paciente |
 | **Agenda** | disponibilidad semanal (huso IANA), turnos, sin solapamientos |
 | **Mensajes** | conversaciones **privadas** con cada paciente y canal con la administración |
@@ -341,6 +342,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0032](docs/decisions/0032-requerimiento-energetico-periodizado.md) | Requerimiento energético con periodización deportiva |
 | [0033](docs/decisions/0033-recordatorio-de-24-horas.md) | Recordatorio de 24 horas |
 | [0034](docs/decisions/0034-frecuencia-de-consumo.md) | Frecuencia de consumo por grupos (vs. GAPA) |
+| [0036](docs/decisions/0036-hidratacion-y-prueba-de-sudoracion.md) | Hidratación: prueba de sudoración y plan de líquidos |
 
 </details>
 
@@ -391,7 +393,7 @@ packages/
   config/    tsconfig / eslint compartidos
 docs/
   architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0034
+  decisions/     ADRs 0001–0036
   flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
@@ -462,7 +464,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (298 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (305 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 
