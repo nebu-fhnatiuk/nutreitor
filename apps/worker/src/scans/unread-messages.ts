@@ -91,6 +91,6 @@ function pathFor(r: Row): string {
   if (r.recipient_role === "patient") return `/app/mensajes?c=${r.conversation_id}`;
   if (r.recipient_role === "admin") return `/admin/messages?c=${r.conversation_id}`;
   return r.kind === "patient_professional"
-    ? `/pro/patients/${r.patient_id}?tab=mensajes`
+    ? `/pro/patients/${r.patient_id}?tab=conversar&sec=mensajes`
     : `/pro/messages?c=${r.conversation_id}`;
 }

@@ -189,7 +189,7 @@ export function GroupDetail({
                   return (
                     <tr key={r.patientId} className="hover:bg-stone-50">
                       <td className="px-5 py-2.5">
-                        <Link href={`${patientsPath}/${r.patientId}?tab=antropometria`} className="font-medium text-stone-900 hover:text-brand">
+                        <Link href={`${patientsPath}/${r.patientId}`} className="font-medium text-stone-900 hover:text-brand">
                           {r.fullName}
                         </Link>
                       </td>
@@ -249,7 +249,7 @@ export function GroupDetail({
                 {sweat.map((r) => (
                   <tr key={r.patientId}>
                     <td className="px-5 py-2.5">
-                      <Link href={`${patientsPath}/${r.patientId}?tab=hidratacion`} className="font-medium text-stone-900 hover:text-brand">
+                      <Link href={`${patientsPath}/${r.patientId}?tab=evaluar&sec=hidratacion`} className="font-medium text-stone-900 hover:text-brand">
                         {r.fullName}
                       </Link>
                     </td>

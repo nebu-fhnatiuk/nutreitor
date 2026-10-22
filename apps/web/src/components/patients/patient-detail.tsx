@@ -1,9 +1,9 @@
 "use client";
 
-import { AlertTriangle, ClipboardList, LineChart as LineChartIcon, NotebookPen } from "lucide-react";
+import { AlertTriangle, ArrowRight, FileText, Pencil } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   activityLevels,
   clinicalFields,
@@ -14,7 +14,7 @@ import {
 } from "@nutreitor/shared";
 
 import { api, errorMessage } from "@/lib/api";
-import { Alert, Button, Card, EmptyState, Loading, SectionHeading, Tabs, Toggle, fieldClass, tabPanelProps, type TabItem, useFeedback } from "@/components/ui";
+import { Alert, Button, Card, Loading, SectionHeading, SlideOver, Toggle, cn, fieldClass, tabPanelProps, useFeedback } from "@/components/ui";
 import { MealPlanPanel } from "./meal-plan-panel";
 import { AssistantDock } from "./assistant-dock";
 import { AgentConversations } from "./agent-conversations";
@@ -26,6 +26,8 @@ import { EnergyPanel } from "./energy-panel";
 import { HydrationPanel } from "./hydration-panel";
 import { IntakeTab } from "./intake-tab";
 import { AnthropometryPanel } from "./anthropometry-panel";
+import { AthleteScoreboard } from "./athlete-scoreboard";
+import { MOMENTS, resolveTab, tabHref, type Moment, type Section } from "./moments";
 import { MetricsPanel } from "./metrics-panel";
 
 const SEX_LABEL: Record<string, string> = {
@@ -64,15 +66,14 @@ function ageFrom(birthDate: string | null): string | null {
   return age >= 0 && age < 130 ? `${age} años` : null;
 }
 
-type TabId = "resumen" | "plan" | "requerimiento" | "ingesta" | "evolucion" | "antropometria" | "hidratacion" | "reportes" | "ficha" | "notas" | "mensajes" | "asistentes";
-const TAB_IDS: TabId[] = ["resumen", "plan", "requerimiento", "ingesta", "evolucion", "antropometria", "hidratacion", "reportes", "ficha", "notas", "mensajes", "asistentes"];
-
 /**
- * Ficha del paciente en pestañas: un encabezado fijo (quién es + acciones) y una
- * pestaña por tarea (Resumen, Plan, Evolución, Ficha clínica, Notas, Asistentes).
- * Antes era una sola página de ~6 pantallas donde el plan y la evolución quedaban
- * enterrados. La pestaña activa vive en la URL (?tab=), así el "atrás" y los links
- * funcionan. La API ya hace el access check (404 si no corresponde).
+ * Ficha del deportista en cuatro momentos de trabajo (KAN-68, tema Estadio):
+ * encabezado con el marcador de las últimas cifras, alertas clínicas siempre a la
+ * vista y los momentos Evaluar · Prescribir · Seguir · Conversar, cada uno con sus
+ * secciones. La ficha clínica vive en un panel lateral. El momento y la sección
+ * van en la URL (`?tab=&sec=`), así el "atrás" y los links funcionan; los links
+ * viejos de 12 pestañas se redirigen (ver `resolveTab`). La API ya hace el access
+ * check (404 si no corresponde).
  */
 export function PatientDetail({
   id,
@@ -102,19 +103,16 @@ export function PatientDetail({
 }) {
   const [p, setP] = useState<PatientDetailDto | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "notfound">("loading");
+  const [clinicalOpen, setClinicalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const requested = params.get("tab") as TabId | null;
-  const tab: TabId =
-    requested && TAB_IDS.includes(requested) && (requested !== "asistentes" || canUseAgent) &&
-    (requested !== "mensajes" || canMessage)
-      ? requested
-      : "resumen";
+  const allowed = (s: Section) => (s !== "asistentes" || canUseAgent) && (s !== "mensajes" || canMessage);
+  const view = resolveTab(params.get("tab"), params.get("sec"), allowed);
   const { toast } = useFeedback();
-  // ¿Hay charlas con crisis? Marca la pestaña "Asistentes" para que se vea sin
+  // ¿Hay charlas con crisis? Marca "Conversar" y "Asistentes" para que se vea sin
   // tener que entrar (PSICO es supervisado: el profesional tiene que revisarlas).
   const [hasCrisis, setHasCrisis] = useState(false);
   useEffect(() => {
@@ -123,8 +121,16 @@ export function PatientDetail({
       .then((list) => setHasCrisis(list.some((c) => c.crisis)))
       .catch(() => setHasCrisis(false));
   }, [canUseAgent, id]);
-  const setTab = (next: TabId) =>
-    router.replace(next === "resumen" ? pathname : `${pathname}?tab=${next}`, { scroll: false });
+  const go = (moment: Moment, section: Section) =>
+    router.replace(tabHref(pathname, moment, section), { scroll: false });
+
+  // Links viejos (`?tab=plan`, `?tab=ficha`…): a la URL nueva; la ficha abre el panel.
+  const legacy = !view.canonical;
+  useEffect(() => {
+    if (!legacy) return;
+    if (view.clinical) setClinicalOpen(true);
+    router.replace(tabHref(pathname, view.moment, view.section), { scroll: false });
+  }, [legacy, view.clinical, view.moment, view.section, pathname, router]);
 
   const load = useCallback(async () => {
     try {
@@ -154,25 +160,33 @@ export function PatientDetail({
   }
 
   const age = ageFrom(p.birthDate);
+  const alerts = clinicalAlerts(p);
+  const moment = MOMENTS.find((m) => m.id === view.moment)!;
+  const sections = moment.sections.filter((s) => allowed(s.id));
+  const openClinical = (edit = false) => {
+    setEditing(edit);
+    setClinicalOpen(true);
+  };
 
   return (
     // pb: que el botón flotante de asistentes no tape la última fila.
     <div className={canUseAgent ? "space-y-6 pb-24" : "space-y-6"}>
       <BackLink basePath={basePath} />
 
-      <header className="flex flex-wrap items-center gap-4">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand/10 text-2xl font-semibold text-brand">
+      <header className="flex flex-wrap items-start gap-4">
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-brand/15 font-display text-4xl font-bold text-brand">
           {p.fullName.slice(0, 1).toUpperCase()}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-stone-900">
+          <h1 className="font-serif text-4xl font-semibold leading-none tracking-tight text-stone-900 sm:text-5xl">
             {p.fullName}
           </h1>
-          <p className="mt-0.5 text-sm text-stone-500">
+          <p className="mt-1.5 font-display text-sm font-semibold uppercase tracking-wider text-stone-500">
             {[
               p.documentId ? `Doc ${p.documentId}` : null,
               age,
               p.sex ? SEX_LABEL[p.sex] : null,
+              p.goal,
             ]
               .filter(Boolean)
               .join(" · ") || "Sin datos de identificación"}
@@ -183,12 +197,12 @@ export function PatientDetail({
             )}
           </p>
           {p.groups.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {p.groups.map((g) => (
                 <Link
                   key={g.id}
                   href={`${basePath.replace(/\/patients$/, "/groups")}/${g.id}`}
-                  className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600 hover:bg-brand/10 hover:text-brand"
+                  className="rounded-full border border-accent2/40 px-2.5 py-0.5 font-display text-xs font-semibold uppercase tracking-wider text-accent2 transition hover:bg-accent2/10"
                 >
                   {g.name}
                 </Link>
@@ -198,73 +212,57 @@ export function PatientDetail({
         </div>
         <div className="flex flex-wrap gap-2">
           {canInvite && <InviteToPortal patient={p} onDone={load} onError={setError} />}
-          {canEdit && !editing && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setTab("ficha");
-                setEditing(true);
-              }}
-            >
-              Editar ficha
-            </Button>
-          )}
+          <Button variant="secondary" onClick={() => openClinical(false)}>
+            <FileText className="h-4 w-4" aria-hidden />
+            Ficha clínica
+          </Button>
         </div>
       </header>
 
+      {alerts.length > 0 && (
+        <button
+          type="button"
+          onClick={() => openClinical(false)}
+          className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-left text-sm transition hover:border-amber-300"
+        >
+          <span className="flex items-center gap-1.5 font-display font-semibold uppercase tracking-wider text-amber-700">
+            <AlertTriangle className="h-4 w-4" aria-hidden />A tener en cuenta
+          </span>
+          {alerts.map(([label, value]) => (
+            <span key={label} className="text-amber-900">
+              <span className="text-amber-700">{label}:</span> {value}
+            </span>
+          ))}
+        </button>
+      )}
+
       {error && <Alert>{error}</Alert>}
 
-      <Tabs<TabId>
-        label="Secciones de la ficha"
-        value={tab}
-        onChange={(t) => {
-          setEditing(false);
-          setTab(t);
+      <AthleteScoreboard patientId={p.id} onGo={(m, s) => go(m, s as Section)} />
+
+      <MomentTabs
+        value={view.moment}
+        onChange={(m) => go(m, MOMENTS.find((x) => x.id === m)!.sections.find((s) => allowed(s.id))!.id)}
+        badges={{
+          conversar: { count: p.notes.length, alert: hasCrisis },
         }}
-        items={[
-          { id: "resumen", label: "Resumen" },
-          { id: "plan", label: "Plan" },
-          { id: "requerimiento", label: "Requerimiento" },
-          { id: "ingesta", label: "Ingesta" },
-          { id: "evolucion", label: "Evolución" },
-          { id: "antropometria", label: "Antropometría" },
-          { id: "hidratacion", label: "Hidratación" },
-          { id: "reportes", label: "Reportes" },
-          { id: "ficha", label: "Ficha clínica" },
-          { id: "notas", label: "Notas", count: p.notes.length },
-          ...(canMessage ? [{ id: "mensajes", label: "Mensajes" } as TabItem<TabId>] : []),
-          ...(canUseAgent
-            ? [{ id: "asistentes", label: "Asistentes", alert: hasCrisis } as TabItem<TabId>]
-            : []),
-        ]}
       />
 
-      <div {...tabPanelProps(tab)} className="focus-visible:outline-none">
-        {tab === "resumen" && (
-          <Summary
-            patient={p}
-            canWritePlan={canWritePlan}
-            canRecord={canRecord}
-            canAddNote={canAddNote}
-            onGo={setTab}
+      <div {...tabPanelProps(view.moment)} className="space-y-5 focus-visible:outline-none">
+        {sections.length > 1 && (
+          <SectionPills
+            label={`Secciones de ${moment.label}`}
+            items={sections.map((s) => ({
+              ...s,
+              count: s.id === "notas" ? p.notes.length : undefined,
+              alert: s.id === "asistentes" && hasCrisis,
+            }))}
+            value={view.section}
+            onChange={(s) => go(view.moment, s)}
           />
         )}
-        {tab === "plan" && <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />}
-        {tab === "requerimiento" && <EnergyPanel patientId={p.id} canWrite={canWritePlan} />}
-        {tab === "ingesta" && (
-          <IntakeTab
-            patientId={p.id}
-            sex={p.sex === "female" || p.sex === "male" ? p.sex : null}
-            canWrite={canWritePlan}
-          />
-        )}
-        {tab === "evolucion" && (
-          <div className="space-y-6">
-            <AdherencePanel patientId={p.id} />
-            <MetricsPanel patientId={p.id} canRecord={canRecord} />
-          </div>
-        )}
-        {tab === "antropometria" && (
+
+        {view.section === "antropometria" && (
           <AnthropometryPanel
             patientId={p.id}
             sex={p.sex}
@@ -275,187 +273,240 @@ export function PatientDetail({
             onVisibilityChange={load}
           />
         )}
-        {tab === "hidratacion" && <HydrationPanel patientId={p.id} canRecord={canRecord} />}
-        {tab === "reportes" && <ReportsPanel patientId={p.id} canWrite={canWritePlan} />}
-        {tab === "ficha" && (
-          <div className="space-y-6">
-            {editing ? (
-              <EditForm
-                patient={p}
-                onCancel={() => setEditing(false)}
-                onSaved={() => {
-                  setEditing(false);
-                  toast("Ficha actualizada");
-                  void load();
-                }}
-                onError={setError}
-              />
-            ) : (
-              <ReadView patient={p} age={age} />
-            )}
-            {!editing && canEditVisibility && p.clinical && p.clinicalVisibility && (
-              <ClinicalVisibilityPanel
-                patientId={p.id}
-                visibility={p.clinicalVisibility}
-                onChange={load}
-                onError={setError}
-              />
-            )}
-            <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />
+        {view.section === "ingesta" && (
+          <IntakeTab
+            patientId={p.id}
+            sex={p.sex === "female" || p.sex === "male" ? p.sex : null}
+            canWrite={canWritePlan}
+          />
+        )}
+        {view.section === "hidratacion" && <HydrationPanel patientId={p.id} canRecord={canRecord} />}
+        {view.section === "requerimiento" && (
+          <div className="space-y-4">
+            <EnergyPanel patientId={p.id} canWrite={canWritePlan} />
+            <NextStep onClick={() => go("prescribir", "plan")}>
+              Armar el plan con estos objetivos por día
+            </NextStep>
           </div>
         )}
-        {tab === "notas" && (
+        {view.section === "plan" && (
+          <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />
+        )}
+        {view.section === "evolucion" && (
+          <div className="space-y-6">
+            <AdherencePanel patientId={p.id} />
+            <MetricsPanel patientId={p.id} canRecord={canRecord} />
+          </div>
+        )}
+        {view.section === "reportes" && <ReportsPanel patientId={p.id} canWrite={canWritePlan} />}
+        {view.section === "notas" && (
           <Notes patient={p} canAddNote={canAddNote} onChange={load} onError={setError} />
         )}
-        {tab === "mensajes" && canMessage && <PatientConversation patientId={p.id} />}
-        {tab === "asistentes" && canUseAgent && <AgentConversations patientId={p.id} />}
+        {view.section === "mensajes" && canMessage && <PatientConversation patientId={p.id} />}
+        {view.section === "asistentes" && canUseAgent && <AgentConversations patientId={p.id} />}
       </div>
+
+      <SlideOver
+        open={clinicalOpen}
+        onClose={() => {
+          setClinicalOpen(false);
+          setEditing(false);
+        }}
+        wide
+        header={
+          <div>
+            <p className="font-display text-xs font-semibold uppercase tracking-widest text-stone-500">Ficha clínica</p>
+            <p className="truncate font-serif text-xl font-semibold">{p.fullName}</p>
+          </div>
+        }
+      >
+        <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain p-5">
+          {editing ? (
+            <EditForm
+              patient={p}
+              onCancel={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false);
+                toast("Ficha actualizada");
+                void load();
+              }}
+              onError={setError}
+            />
+          ) : (
+            <>
+              {canEdit && (
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  Editar ficha
+                </Button>
+              )}
+              <ReadView patient={p} age={age} />
+            </>
+          )}
+          {!editing && canEditVisibility && p.clinical && p.clinicalVisibility && (
+            <ClinicalVisibilityPanel
+              patientId={p.id}
+              visibility={p.clinicalVisibility}
+              onChange={load}
+              onError={setError}
+            />
+          )}
+          {!editing && <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />}
+        </div>
+      </SlideOver>
 
       {canUseAgent && <AssistantDock patientId={p.id} />}
     </div>
   );
 }
 
-/**
- * Resumen: lo que hay que tener presente antes de atender, sin pedidos extra a la
- * API (sale de la ficha ya cargada) + accesos a las tareas de cada pestaña.
- */
-function Summary({
-  patient: p,
-  canWritePlan,
-  canRecord,
-  canAddNote,
-  onGo,
-}: {
-  patient: PatientDetailDto;
-  canWritePlan: boolean;
-  canRecord: boolean;
-  canAddNote: boolean;
-  onGo: (tab: TabId) => void;
-}) {
-  const alerts = p.clinical
-    ? (
-        [
-          ["Alergias / intolerancias", p.clinical.allergies],
-          ["Patologías diagnosticadas", p.clinical.diagnosedConditions],
-          ["Medicación actual", p.clinical.currentMedication],
-        ] as const
-      ).filter(([, v]) => v && !/^(ninguna?|no|nada|sin datos|-|—)[.\s]*$/i.test(v.trim()))
-    : [];
-  const active = p.assignments.filter((a) => a.status === "active");
-  const lastNote = p.notes[0];
-
+/** Datos clínicos que hay que tener presentes siempre (se ignoran "ninguna", "no"…). */
+function clinicalAlerts(p: PatientDetailDto) {
+  if (!p.clinical) return [];
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-      <div className="space-y-6">
-        {alerts.length > 0 && (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900">
-              <AlertTriangle className="h-4 w-4" aria-hidden />A tener en cuenta
-            </h2>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {alerts.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-amber-800">{label}</dt>
-                  <dd className="text-sm text-amber-950">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        )}
+    [
+      ["Alergias / intolerancias", p.clinical.allergies],
+      ["Patologías", p.clinical.diagnosedConditions],
+      ["Medicación", p.clinical.currentMedication],
+    ] as const
+  ).filter(([, v]) => v && !/^(ninguna?|no|nada|sin datos|-|—)[.\s]*$/i.test(v.trim()));
+}
 
-        <Card>
-          <SectionHeading className="mb-4">Objetivo</SectionHeading>
-          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <Field label="Objetivo" value={p.goal} />
-            <Field label="Motivo de consulta" value={p.clinical?.reasonForConsult ?? null} />
-            <Field label="Preferencias / restricciones" value={p.dietaryPreferences} wide />
-            <Field label="Altura" value={p.heightCm ? `${p.heightCm} cm` : null} />
-            <Field label="Peso inicial" value={p.initialWeightKg ? `${p.initialWeightKg} kg` : null} />
-            <Field
-              label="Actividad física"
-              value={p.activityLevel ? ACTIVITY_LABEL[p.activityLevel] : null}
-            />
-          </dl>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <SectionHeading>Última nota</SectionHeading>
-            {p.notes.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onGo("notas")}
-                className="text-sm text-brand hover:underline"
-              >
-                Ver todas ({p.notes.length})
-              </button>
+/**
+ * Los cuatro momentos, como el marcador de una transmisión: número + nombre
+ * grande. Patrón WAI-ARIA tabs (←/→/Inicio/Fin), igual que `Tabs`.
+ */
+function MomentTabs({
+  value,
+  onChange,
+  badges,
+}: {
+  value: Moment;
+  onChange: (m: Moment) => void;
+  badges: Partial<Record<Moment, { count?: number; alert?: boolean }>>;
+}) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  function onKey(e: KeyboardEvent, index: number) {
+    const last = MOMENTS.length - 1;
+    const next =
+      e.key === "ArrowRight" ? (index === last ? 0 : index + 1)
+      : e.key === "ArrowLeft" ? (index === 0 ? last : index - 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? last
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    onChange(MOMENTS[next]!.id);
+    refs.current[next]?.focus();
+  }
+  return (
+    <div role="tablist" aria-label="Momentos de la ficha" className="grid grid-cols-4 gap-1.5 sm:gap-2">
+      {MOMENTS.map((m, i) => {
+        const active = m.id === value;
+        const b = badges[m.id];
+        return (
+          <button
+            key={m.id}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="button"
+            role="tab"
+            id={`tab-${m.id}`}
+            aria-selected={active}
+            aria-controls={`panel-${m.id}`}
+            tabIndex={active ? 0 : -1}
+            onClick={() => onChange(m.id)}
+            onKeyDown={(e) => onKey(e, i)}
+            className={cn(
+              "relative flex min-h-14 flex-col items-start justify-center rounded-xl border px-2.5 py-2 text-left transition sm:px-4 sm:py-3",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+              active
+                ? "border-brand bg-brand/15"
+                : "border-stone-200 bg-surface hover:border-stone-300 hover:bg-stone-100",
             )}
-          </div>
-          {lastNote ? (
-            <div>
-              <p className="whitespace-pre-line text-sm text-stone-800">{lastNote.content}</p>
-              <p className="mt-2 text-xs text-stone-500">
-                {lastNote.authorName} · {new Date(lastNote.createdAt).toLocaleDateString("es-AR")}
-              </p>
-            </div>
-          ) : (
-            <EmptyState>Todavía no hay notas.</EmptyState>
-          )}
-        </Card>
-      </div>
-
-      <div className="space-y-6">
-        <Card>
-          <SectionHeading className="mb-3">Acciones</SectionHeading>
-          <div className="flex flex-col gap-2">
-            <QuickAction icon={ClipboardList} onClick={() => onGo("plan")}>
-              {canWritePlan ? "Revisar el plan" : "Ver el plan"}
-            </QuickAction>
-            <QuickAction icon={LineChartIcon} onClick={() => onGo("evolucion")}>
-              {canRecord ? "Registrar una medición" : "Ver la evolución"}
-            </QuickAction>
-            {canAddNote && (
-              <QuickAction icon={NotebookPen} onClick={() => onGo("notas")}>
-                Agregar una nota
-              </QuickAction>
+          >
+            <span className={cn("font-display text-xs font-bold tabular-nums", active ? "text-accent2" : "text-stone-500")}>
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span
+              className={cn(
+                "font-display text-base font-bold uppercase leading-tight tracking-wide sm:text-2xl",
+                active ? "text-stone-900" : "text-stone-600",
+              )}
+            >
+              {m.label}
+            </span>
+            <span className="hidden text-xs text-stone-500 md:block">{m.hint}</span>
+            {(b?.alert || (b?.count ?? 0) > 0) && (
+              <span className="absolute right-2 top-2 flex items-center gap-1">
+                {b?.alert && <span className="h-2 w-2 rounded-full bg-zone-warn" aria-label="requiere atención" />}
+                {(b?.count ?? 0) > 0 && (
+                  <span className="rounded-full bg-stone-100 px-1.5 text-xs tabular-nums text-stone-600">{b!.count}</span>
+                )}
+              </span>
             )}
-          </div>
-        </Card>
-        <Card>
-          <SectionHeading className="mb-3">Profesionales a cargo</SectionHeading>
-          {active.length ? (
-            <ul className="space-y-1 text-sm text-stone-800">
-              {active.map((a) => (
-                <li key={a.id}>{a.professionalName}</li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState>Sin profesional asignado.</EmptyState>
-          )}
-        </Card>
-      </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function QuickAction({
-  icon: Icon,
-  onClick,
-  children,
+/** Secciones dentro de un momento: chips (no compiten con los momentos). */
+function SectionPills({
+  label,
+  items,
+  value,
+  onChange,
 }: {
-  icon: typeof ClipboardList;
-  onClick: () => void;
-  children: React.ReactNode;
+  label: string;
+  items: { id: Section; label: string; count?: number; alert?: boolean }[];
+  value: Section;
+  onChange: (s: Section) => void;
 }) {
+  return (
+    <nav aria-label={label} className="-mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      {items.map((s) => {
+        const active = s.id === value;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            aria-current={active ? "page" : undefined}
+            onClick={() => onChange(s.id)}
+            className={cn(
+              "flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm transition",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+              active
+                ? "border-stone-900 bg-stone-900 font-medium text-stone-50"
+                : "border-stone-200 text-stone-600 hover:border-stone-300 hover:text-stone-900",
+            )}
+          >
+            {s.label}
+            {s.count != null && s.count > 0 && (
+              <span className={cn("rounded-full px-1.5 text-xs tabular-nums", active ? "bg-stone-50/20" : "bg-stone-100")}>
+                {s.count}
+              </span>
+            )}
+            {s.alert && <span className="h-2 w-2 rounded-full bg-zone-warn" aria-label="requiere atención" />}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Puente al paso siguiente del mismo momento (requerimiento → plan). */
+function NextStep({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-11 items-center gap-3 rounded-lg border border-stone-200 px-3 text-left text-sm text-stone-700 transition hover:border-brand/40 hover:text-brand"
+      className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-brand/50 px-4 py-3 text-left text-sm font-medium text-brand transition hover:bg-brand/10"
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {children}
+      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
     </button>
   );
 }
