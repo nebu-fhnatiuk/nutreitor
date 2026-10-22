@@ -12,6 +12,7 @@ import { api, errorMessage } from "@/lib/api";
 
 import { GroupForm } from "./groups-view";
 import { SquadBoard } from "./squad-board";
+import { SquadSomatochart } from "./squad-somatochart";
 
 type FatEq = "durninWomersley" | "yuhasz" | "faulkner";
 const FAT_LABEL: Record<FatEq, string> = { durninWomersley: "D-W + Siri", yuhasz: "Yuhasz", faulkner: "Faulkner" };
@@ -163,7 +164,10 @@ export function GroupDetail({
       )}
 
       {board && group.members.length > 0 && view === "pizarra" ? (
-        <SquadBoard board={board} patientsPath={patientsPath} />
+        <div className="space-y-6">
+          <SquadBoard board={board} patientsPath={patientsPath} />
+          <SquadSomatochart rows={summary.rows} patientsPath={patientsPath} />
+        </div>
       ) : (
         <>
         <Card className="p-0">

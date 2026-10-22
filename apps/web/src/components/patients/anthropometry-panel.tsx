@@ -25,6 +25,7 @@ import { api, errorMessage } from "@/lib/api";
 
 import { fmt, fmtMeasured, parseDecimal, val } from "./anthro-format";
 import { LineChart } from "./line-chart";
+import { Somatochart, type SomatoPoint } from "./somatochart";
 
 const GROUPS: { id: AnthroGroup; label: string }[] = [
   { id: "basic", label: "Básicas" },
@@ -107,6 +108,12 @@ export function AnthropometryPanel({
       return v === null ? [] : [{ label: s.measuredAt.slice(5).split("-").reverse().join("/"), value: v }];
     });
 
+  // Estela de la somatocarta: una sesión por punto, de la más vieja a la última.
+  const somatoTrail: SomatoPoint[] = chrono.flatMap((s) => {
+    const so = val(s.results.somatotype);
+    return so ? [{ id: s.id, label: fmtMeasured(s.measuredAt), ...so }] : [];
+  });
+
   if (!sessions) return err ? <Alert>{err}</Alert> : <Loading />;
   const beta = !ANTHROPOMETRY_VALIDATED;
   const binarySex = sex === "female" || sex === "male";
@@ -170,6 +177,24 @@ export function AnthropometryPanel({
               </div>
             </Card>
           </div>
+
+          {somatoTrail.length > 0 && (
+            <Card>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium text-stone-700">Somatocarta · Heath-Carter</p>
+                <p className="text-xs text-stone-500">
+                  {somatoTrail.length > 1
+                    ? `Estela de ${somatoTrail.length} mediciones; el punto grande es la última.`
+                    : "Una medición: con la próxima se ve la estela."}
+                </p>
+              </div>
+              <Somatochart
+                trail={somatoTrail}
+                label={`Somatocarta: ${somatoTrail.length} mediciones`}
+                className="mx-auto mt-3 max-w-md"
+              />
+            </Card>
+          )}
 
           <ul className="space-y-4">
             {sessions.map((s) => (

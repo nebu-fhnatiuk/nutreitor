@@ -188,6 +188,14 @@ flowchart LR
 - Portal: tarjeta "Tu antropometría" con la última medición y la evolución de Σ6,
   sólo con lo marcado visible. `ANTHROPOMETRY_VALIDATED` (habilitada el 2026-10-20)
   apaga el portal si vuelve a `false`.
+- **Somatocarta de Heath-Carter** (KAN-71, `components/patients/somatochart.tsx`):
+  ubica cada somatotipo en x = ecto − endo, y = 2·meso − (endo + ecto), con el eje Y
+  comprimido por √3 como la carta clásica (los polos 7-1-1, 1-7-1 y 1-1-7 forman un
+  triángulo equilátero). En la ficha se dibuja la **estela** de todas las sesiones,
+  con la última resaltada. En el grupo (pizarra) se dibuja **un punto por
+  deportista**, con su última medición, y el **somatotipo medio** del plantel (la
+  media de cada componente). Se filtra por fecha de medición y cada punto lleva a la
+  ficha. No hay endpoint nuevo: usa el listado de sesiones y el resumen del grupo.
 
 **Requerimiento energético** ([ADR 0032](../decisions/0032-requerimiento-energetico-periodizado.md)) —
 sección "Requerimiento" (momento Prescribir) de la ficha. `GET /patients/{id}/energy` (versiones, la
