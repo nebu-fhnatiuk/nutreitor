@@ -31,6 +31,12 @@ mientras la org está `pending_review` se puede invitar al equipo, pero invitar 
 **paciente** responde 403 ("Vas a poder invitar pacientes cuando aprobemos tu
 organización").
 
+**En lote** (KAN-43, [ADR 0043](../decisions/0043-import-de-deportistas-desde-csv.md)):
+el import de deportistas crea las invitaciones de paciente vinculadas a cada ficha,
+marcadas con `queued_at` y sin mandar nada. Las envía el worker de a poco
+([`notifications.md`](notifications.md)): genera el token al enviar y cada
+invitación sale una sola vez. Aceptarlas es el mismo flujo de siempre.
+
 ## Token y estados
 
 - Token opaco de 256 bits; en DB sólo el `sha256` (`token_hash`). El raw viaja sólo

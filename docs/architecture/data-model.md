@@ -25,7 +25,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
-| `invitations` | Tenant-scoped (RLS) | `organization_id` | |
+| `invitations` | Tenant-scoped (RLS) | `organization_id` | `queued_at` (0050): invitación al portal del import en lote que manda el worker, no la API (ADR 0043). El worker lee y sólo puede actualizar `token_hash` y `expires_at`. |
 | `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). |
 | `locations` | Tenant-scoped (RLS) | `tenant_id` | Sede esquelética (referencia). |
 | `care_assignments` | Tenant-scoped (RLS) | `tenant_id` | Paciente↔profesional M:N versionado. |
@@ -78,7 +78,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 >
 > El **worker de notificaciones** usa el rol `nutreitor_worker` (sin `BYPASSRLS`):
 > `SELECT` acotado a lo que necesita para decidir y redactar, `SELECT/INSERT/UPDATE`
-> sólo en `notifications`. Recorre los consultorios fijando el tenant; la lista de
+> sólo en `notifications`, y `UPDATE (token_hash, expires_at)` en `invitations` para
+> generar el token de las invitaciones en lote al enviarlas (ADR 0043). Recorre los consultorios fijando el tenant; la lista de
 > ids sale de `worker_tenant_ids()` (SECURITY DEFINER, sólo ids). ADR 0023.
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
 > demás tablas referencian su `id` como `tenant_id` / `organization_id`.
@@ -382,6 +383,7 @@ erDiagram
     timestamptz expires_at
     uuid invited_by_user_id FK
     uuid patient_id FK
+    timestamptz queued_at "import en lote: la manda el worker"
     timestamptz created_at
   }
 

@@ -2,7 +2,7 @@ import type { TenantTx } from "@nutreitor/db";
 
 import type { Rendered } from "../templates.js";
 
-export type NotificationKind = "appointment_reminder" | "unread_message" | "adherence_reminder" | "report_published" | "contact_request";
+export type NotificationKind = "appointment_reminder" | "unread_message" | "adherence_reminder" | "report_published" | "contact_request" | "portal_invitation";
 
 /** Un aviso a generar. `refKey` + destinatario = idempotencia (UNIQUE en la base). */
 export interface Candidate {
@@ -19,6 +19,8 @@ export interface ScanContext {
   now: Date;
   org: { slug: string; name: string };
   link: (path: string) => string;
+  /** Días de vigencia de una invitación (mismo valor que INVITE_TTL_DAYS de la API). */
+  inviteTtlDays: number;
 }
 
 export type Scan = (ctx: ScanContext) => Promise<Candidate[]>;

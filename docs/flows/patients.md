@@ -423,3 +423,41 @@ sequenceDiagram
 La admin lo consulta en la ficha clínica ("Quién vio esta ficha"), que usa
 `GET /access-log?patientId=` con la capacidad `audit:read`.
 
+## Import desde un CSV
+
+Alta masiva de deportistas (KAN-42/43/44, ADR [`0043`](../decisions/0043-import-de-deportistas-desde-csv.md)).
+Pantalla `/admin/patients/import` (admin, o la profesional independiente), con
+`patient:create` + `patient:assign`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant W as Web (admin)
+  participant A as API (patients/import)
+  participant DB as Postgres (RLS)
+  participant K as Worker
+  W->>A: POST /patients/import/preview {csv, invite}
+  A->>DB: duplicados, grupos por nombre, profesionales por email
+  A-->>W: filas con sus errores (no escribe)
+  W->>A: POST /patients/import {csv, invite}
+  A->>DB: revalida en la misma transacción
+  alt alguna fila con error
+    A-->>W: 422 (no se escribe nada)
+  else todo bien
+    A->>DB: patients + grupo + asignación + invitations(queued_at) + audit
+    A-->>W: {created, grouped, assigned, invited}
+    K->>DB: scan: toma las invitaciones marcadas (SKIP LOCKED), genera el token
+    K-->>K: envía de a SEND_PER_SECOND, una vez cada una
+  end
+```
+
+- **Archivo**: separador `,` o `;`, encabezados en castellano (con alias, sin
+  importar tildes ni mayúsculas), hasta 1000 filas. La web relee en Windows-1252 si
+  no es UTF-8 (Excel).
+- **Columnas**: `nombre` (obligatoria), `email`, `documento`, `fecha_nacimiento`
+  (`DD/MM/AAAA` o `AAAA-MM-DD`), `sexo` (F/M/X), `telefono`, `grupo` (uno que exista;
+  varios con `|`), `profesional` (email de un miembro activo).
+- **Todo o nada**: duplicados en el archivo o contra la organización (email o
+  documento, también archivados), grupos o profesionales inexistentes y datos
+  inválidos son errores de fila; con uno solo no se importa nada.
+

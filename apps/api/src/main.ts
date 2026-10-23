@@ -1,6 +1,7 @@
 import "reflect-metadata";
 
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 
 import { AppModule } from "./app.module.js";
@@ -9,7 +10,7 @@ import { edgeSecretMiddleware } from "./core/security/edge-secret.middleware.js"
 import { TenantContextMiddleware } from "./core/tenant/tenant.middleware.js";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const env = app.get<ApiEnv>(APP_ENV);
 
   // Cierra pools de Postgres en SIGTERM/SIGINT (dispara onModuleDestroy).
@@ -18,6 +19,10 @@ async function bootstrap(): Promise<void> {
   // Borde: exige el secreto compartido edge↔API (salvo /health). Primero de todo,
   // antes de parsear cookies o abrir scopes.
   app.use(edgeSecretMiddleware(env));
+
+  // JSON de hasta 3 MB: el import de deportistas manda el CSV entero (hasta 1 MB
+  // de texto, KAN-42). El default de Express (100 KB) cortaba un archivo de ~1000 filas.
+  app.useBodyParser("json", { limit: "3mb" });
 
   // Parsea cookies (access_token / refresh_token) para el flujo de auth.
   app.use(cookieParser());

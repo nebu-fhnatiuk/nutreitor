@@ -48,6 +48,8 @@ export const invitations = pgTable(
     invitedByUserId: uuid("invited_by_user_id"),
     patientId: uuid("patient_id"),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** Import en lote (KAN-43): la manda el worker, no la API (0050). */
+    queuedAt: timestamp("queued_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
