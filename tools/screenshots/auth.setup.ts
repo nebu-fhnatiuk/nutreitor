@@ -26,7 +26,7 @@ export default async function globalSetup(config: FullConfig) {
       const page = await browser.newPage({ baseURL: use.baseURL });
       await page.goto("/login");
       await page.getByLabel("Email").fill(email);
-      await page.getByLabel("Contraseña").fill(process.env.DEMO_PASSWORD ?? "demo1234");
+      await page.getByLabel("Contraseña", { exact: true }).fill(process.env.DEMO_PASSWORD ?? "demo1234");
       await page.locator('button[type="submit"]').click();
       await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 20_000 });
       await page.context().storageState({ path: authFile(role) });

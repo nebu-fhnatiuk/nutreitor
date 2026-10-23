@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
+import { AuthShell } from "@/components/auth/auth-shell";
 import { ResetPassword } from "@/components/auth/reset-password";
+import { authBrand } from "@/lib/auth-brand";
 import { fetchTenant } from "@/lib/server/api";
 
 export const metadata: Metadata = { title: "Contraseña nueva", robots: { index: false } };
@@ -14,16 +16,9 @@ export default async function TenantResetPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const [{ slug }, { token = "" }] = await Promise.all([params, searchParams]);
-  const org = await fetchTenant(slug);
   return (
-    <main className="grid min-h-screen place-items-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
-          <span className="text-lg font-semibold tracking-tight">{org?.name ?? slug}</span>
-        </div>
-        <ResetPassword token={token} loginBase="/login" forgotHref="/olvide" />
-      </div>
-    </main>
+    <AuthShell brand={authBrand(await fetchTenant(slug), slug)}>
+      <ResetPassword token={token} loginBase="/login" forgotHref="/olvide" />
+    </AuthShell>
   );
 }

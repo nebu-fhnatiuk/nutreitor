@@ -181,3 +181,16 @@ la consola ni al revés. Detalle en [`onboarding.md`](./onboarding.md).
 Para mover a Cognito/Auth0/OIDC se cambia el verificador del token (la estrategia
 JWT); el contrato (guards, roles, ALS, RLS) no se toca. Ver el ADR
 [`../decisions/0003-auth-self-hosted-identidad-global.md`](../decisions/0003-auth-self-hosted-identidad-global.md).
+
+## Pantallas de acceso (KAN-77)
+
+Login, recuperar y elegir contraseña, aceptar invitación y alta usan `AuthShell`
+(tema Estadio, ADR 0037) con el nombre, el escudo y los colores del club del
+subdominio.
+
+- **401:** "El email o la contraseña no coinciden" (no dice cuál de los dos falla).
+- **429:** el proxy reenvía `Retry-After` y el login muestra la cuenta regresiva
+  ("Probá de nuevo en 4:32"); el botón queda deshabilitado hasta entonces, con un
+  link para restablecer la contraseña.
+- **Link vencido o usado** (recuperar, invitación, alta): pantalla propia con la
+  salida ("Pedir un link nuevo", "Volver al registro").

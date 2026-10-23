@@ -124,3 +124,16 @@ export function paletteVars(p: ClubPalette): Record<string, string> {
     "--accent2-on-dark-rgb": toTriplet(p.secondary.onDark),
   };
 }
+
+/**
+ * Iniciales del escudo cuando el club no tiene logo: las dos primeras palabras de
+ * más de dos letras ("Club Atlético Norte" → "CA"; "Demo" → "D").
+ */
+export function clubInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const long = words.filter((w) => w.length > 2);
+  return (long.length ? long : words)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("") || "N";
+}

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { OrgSignupCompleted, OrgSignupPreview } from "@nutreitor/shared";
 
-import { Alert, Button, Input, Label, Loading } from "@/components/ui";
+import { AuthButton, AuthHeading, AuthNotice, PasswordField, authButtonClass } from "@/components/auth/auth-shell";
+import { Loading } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 
 /**
@@ -53,45 +54,37 @@ export function ConfirmSignup({ token }: { token: string }) {
   if (state === "loading") return <Loading label="Verificando el link…" />;
   if (state === "invalid" || !preview) {
     return (
-      <div className="text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight">El link no es válido</h1>
-        <p className="mt-2 text-sm text-ink/65">Venció o ya se usó. Podés registrarte de nuevo.</p>
-        <a href="/registro" className="mt-6 inline-block text-sm font-medium text-brand underline-offset-4 hover:underline">
-          Volver al registro
-        </a>
+      <div role="alert">
+        <span aria-hidden className="mb-5 block h-5 w-5 rounded-full bg-zone-bad" />
+        <AuthHeading title="Este link ya no sirve">Venció o ya se usó. Podés registrarte de nuevo.</AuthHeading>
+        <a href="/registro" className={`${authButtonClass} mt-7`}>Volver al registro</a>
       </div>
     );
   }
 
   return (
-    <form onSubmit={confirm} className="rounded-3xl border border-ink/10 bg-surface p-6 shadow-sm sm:p-8">
-      <h1 className="text-2xl font-extrabold tracking-tight">Último paso, {preview.fullName.split(" ")[0]}</h1>
-      <p className="mt-2 text-sm text-ink/65">
-        Vas a crear <span className="font-medium text-ink">{preview.orgName}</span> con la
-        dirección <span className="font-medium text-ink">{preview.slug}</span>, como
-        administrador/a ({preview.email}).
-      </p>
-
-      {preview.needsAccount ? (
-        <div className="mt-6 space-y-4">
-          <Label label="Elegí una contraseña" hint="Mínimo 8 caracteres.">
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required autoComplete="new-password" />
-          </Label>
-          <Label label="Repetila">
-            <Input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} minLength={8} required autoComplete="new-password" />
-          </Label>
-        </div>
-      ) : (
-        <p className="mt-6 rounded-xl bg-stone-50 p-3 text-sm text-ink/70">
-          Ya tenés una cuenta en Nutreitor con este email: vas a entrar con tu contraseña de siempre.
-        </p>
-      )}
-
-      {err && <div className="mt-4"><Alert>{err}</Alert></div>}
-
-      <Button type="submit" disabled={busy} className="mt-6 w-full">
-        {busy ? "Creando…" : `Crear ${preview.orgName}`}
-      </Button>
+    <form onSubmit={confirm} className="space-y-4">
+      <AuthHeading kicker="Último paso" title={`Hola, ${preview.fullName.split(" ")[0]}`}>
+        Vas a crear <strong className="font-semibold text-stone-900">{preview.orgName}</strong> con la dirección{" "}
+        <strong className="font-semibold text-stone-900">{preview.slug}</strong>, como administrador/a ({preview.email}).
+      </AuthHeading>
+      <div className="space-y-4 pt-3">
+        {preview.needsAccount ? (
+          <>
+            <input type="email" value={preview.email} autoComplete="username" readOnly hidden />
+            <PasswordField label="Elegí una contraseña" hint="Mínimo 8 caracteres." value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required autoComplete="new-password" />
+            <PasswordField label="Repetila" value={password2} onChange={(e) => setPassword2(e.target.value)} minLength={8} required autoComplete="new-password" />
+          </>
+        ) : (
+          <AuthNotice zone="ok" title="Ya tenés una cuenta con este email." live="status">
+            Vas a entrar con tu contraseña de siempre.
+          </AuthNotice>
+        )}
+        {err && <AuthNotice zone="bad" title={err} />}
+        <AuthButton type="submit" disabled={busy} className="!mt-6">
+          {busy ? "Creando…" : `Crear ${preview.orgName}`}
+        </AuthButton>
+      </div>
     </form>
   );
 }

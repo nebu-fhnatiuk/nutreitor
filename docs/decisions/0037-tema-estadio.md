@@ -22,7 +22,11 @@ rojos/ámbar/verdes para estados. Reescribir pantalla por pantalla era caro y fr
   significando lo mismo ("fondo", "borde", "texto atenuado") sin tocar los componentes.
 - **Alcance.** `WorkspaceShell` (todo destino autenticado: profesional, admin y portal
   del deportista) es la raíz del tema. Los overlays se montan dentro de esa raíz, no en
-  `<body>`, para heredar las variables.
+  `<body>`, para heredar las variables. Desde KAN-77 también lo son las pantallas de
+  acceso (`components/auth/auth-shell.tsx`: login, recuperar y elegir contraseña,
+  aceptar invitación, alta y su confirmación), con los colores y el escudo del club;
+  en el dominio raíz, con los de Nutreitor. Sólo la consola de plataforma sigue con
+  el marco del dominio raíz (`RootFrame`).
 - **Tokens nuevos:**
   - `surface`: tarjetas y paneles; reemplaza a `bg-white`.
   - `zone.ok`, `zone.warn`, `zone.bad`.
