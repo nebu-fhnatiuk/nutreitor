@@ -12,6 +12,13 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  createLeadSchema,
+  leadStatuses,
+  updateLeadStatusSchema,
+  type CreateLeadDto,
+  type LeadStatus,
+  type SalesLeadDto,
+  type UpdateLeadStatusDto,
   confirmOrgSignupSchema,
   licenseDecisionSchema,
   orgDecisionSchema,
@@ -41,6 +48,8 @@ import { RequireCapability } from "../../core/auth/require-capability.decorator.
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { RateLimit } from "../../core/rate-limit/rate-limit.decorator.js";
 import {
+  LEAD_BY_EMAIL,
+  LEAD_BY_IP,
   LOGIN_BY_EMAIL,
   LOGIN_BY_IP,
   SIGNUP_BY_EMAIL,
@@ -55,6 +64,7 @@ import {
   PlatformGuard,
   type PlatformRequest,
 } from "./platform-auth.js";
+import { LeadsService } from "./leads.service.js";
 import { PlatformService } from "./platform.service.js";
 import { SignupService } from "./signup.service.js";
 
@@ -158,6 +168,45 @@ export class PlatformController {
     @Body(new ZodValidationPipe(licenseDecisionSchema)) dto: LicenseDecisionDto,
   ): Promise<PlatformLicenseEntry> {
     return this.platform.decideLicense(profileId, dto, req.platformUser!);
+  }
+}
+
+/**
+ * Consulta comercial desde la landing (KAN-80). Pública y sin sesión. Responde
+ * igual aunque el campo trampa la descarte.
+ */
+@Controller("public/leads")
+export class PublicLeadsController {
+  constructor(private readonly leads: LeadsService) {}
+
+  @Post()
+  @HttpCode(202)
+  @RateLimit(LEAD_BY_IP, LEAD_BY_EMAIL)
+  async create(@Body(new ZodValidationPipe(createLeadSchema)) dto: CreateLeadDto): Promise<{ ok: true }> {
+    await this.leads.create(dto);
+    return { ok: true };
+  }
+}
+
+/** Consola: las consultas comerciales y su seguimiento. */
+@Controller("platform/leads")
+@UseGuards(PlatformGuard)
+export class PlatformLeadsController {
+  constructor(private readonly leads: LeadsService) {}
+
+  @Get()
+  list(@Query("status") status?: string): Promise<SalesLeadDto[]> {
+    const s = (leadStatuses as readonly string[]).includes(status ?? "") ? (status as LeadStatus) : undefined;
+    return this.leads.list(s);
+  }
+
+  @Post(":id/status")
+  setStatus(
+    @Req() req: PlatformRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(updateLeadStatusSchema)) dto: UpdateLeadStatusDto,
+  ): Promise<SalesLeadDto> {
+    return this.leads.setStatus(id, dto.status, req.platformUser!);
   }
 }
 

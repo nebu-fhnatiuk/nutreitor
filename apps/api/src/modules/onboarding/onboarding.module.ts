@@ -7,13 +7,16 @@ import {
   OnboardingStatusController,
   PlatformAuthController,
   PlatformController,
+  PlatformLeadsController,
+  PublicLeadsController,
   SignupController,
 } from "./onboarding.controllers.js";
+import { LeadsService } from "./leads.service.js";
 import { PlatformAuthService, PlatformGuard } from "./platform-auth.js";
 import { PlatformService } from "./platform.service.js";
 import { SignupService } from "./signup.service.js";
 
-/** Alta de organizaciones + consola de plataforma (ADR 0025). */
+/** Alta de organizaciones + consola de plataforma (ADR 0025) + consultas comerciales (ADR 0041). */
 @Module({
   imports: [AuthModule, JwtModule.register({})],
   controllers: [
@@ -21,6 +24,8 @@ import { SignupService } from "./signup.service.js";
     PlatformAuthController,
     PlatformController,
     OnboardingStatusController,
+    PublicLeadsController,
+    PlatformLeadsController,
   ],
   providers: [
     SignupService,
@@ -28,6 +33,7 @@ import { SignupService } from "./signup.service.js";
     PlatformGuard,
     PlatformService,
     OnboardingStatusService,
+    LeadsService,
   ],
   exports: [PlatformGuard, PlatformAuthService],
 })

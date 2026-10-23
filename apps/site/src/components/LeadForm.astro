@@ -1,0 +1,220 @@
+---
+/**
+ * "Hablemos para tu club" (KAN-80, ADR 0041). Funciona sin JavaScript: POST clásico
+ * a la web, que lo manda a la API y vuelve a `/clubes?consulta=…#contacto`. El
+ * script sólo muestra el resultado. `website` es un campo trampa para bots: queda
+ * fuera de la vista y del orden de tabulación.
+ */
+import { links } from "../config";
+const kinds = [
+  ["club", "Club"],
+  ["gimnasio", "Gimnasio"],
+  ["consultorio", "Consultorio o equipo de nutrición"],
+  ["otro", "Otro"],
+];
+const roles = [
+  ["nutricion", "Nutricionista"],
+  ["coordinacion", "Coordinación de nutrición"],
+  ["cuerpo_tecnico", "Cuerpo técnico"],
+  ["dirigencia", "Dirigencia o gerencia"],
+  ["otro", "Otro"],
+];
+const sizes = [
+  ["hasta_30", "Hasta 30"],
+  ["31_100", "31 a 100"],
+  ["101_300", "101 a 300"],
+  ["mas_300", "Más de 300"],
+];
+---
+<section id="contacto" class="wrap section contact" aria-labelledby="contacto-title">
+  <div class="intro">
+    <p class="eyebrow">Hablemos para tu club</p>
+    <h2 id="contacto-title" class="h2">Contanos de tu club.</h2>
+    <p class="lead">
+      Te escribimos para mostrarte Nutreitor con tu plantel: cómo se reparte el trabajo entre nutricionistas, qué
+      ve la coordinación y cómo queda con los colores del club.
+    </p>
+  </div>
+
+  <form class="card form" method="post" action={links.leadForm}>
+    <p class="result" id="lead-result" tabindex="-1" hidden></p>
+    <div class="grid">
+      <div class="field">
+        <label for="lead-fullName">Tu nombre</label>
+        <input id="lead-fullName" name="fullName" required minlength="2" maxlength="120" autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="lead-email">Email</label>
+        <input id="lead-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" />
+      </div>
+      <div class="field wide">
+        <label for="lead-orgName">Club u organización</label>
+        <input id="lead-orgName" name="orgName" required minlength="2" maxlength="120" autocomplete="organization" />
+      </div>
+      <div class="field">
+        <label for="lead-orgKind">Tipo</label>
+        <select id="lead-orgKind" name="orgKind" required>
+          {kinds.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="lead-role">Tu rol</label>
+        <select id="lead-role" name="role" required>
+          {roles.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+      <div class="field wide">
+        <label for="lead-athletes">¿Cuántos deportistas acompañan?</label>
+        <select id="lead-athletes" name="athletes" required>
+          {sizes.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+      <div class="field wide">
+        <label for="lead-message">Mensaje (opcional)</label>
+        <textarea id="lead-message" name="message" rows="4" maxlength="1000" aria-describedby="msg-hint"></textarea>
+        <small id="msg-hint">No incluyas datos de salud de deportistas.</small>
+      </div>
+    </div>
+    <div class="trap" aria-hidden="true">
+      <label>No completar <input name="website" tabindex="-1" autocomplete="off" /></label>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="consent" required />
+      <span>Acepto que Nutreitor me contacte por email por esta consulta.</span>
+    </label>
+    <button class="btn btn-primary" type="submit">Enviar consulta</button>
+  </form>
+</section>
+
+<script>
+  // Al volver del POST: el resultado, anunciado y con foco (sin JS no hay mensaje,
+  // pero el envío funciona igual).
+  const MESSAGES: Record<string, { text: string; ok: boolean }> = {
+    enviada: { text: "¡Listo! Recibimos tu consulta y te escribimos pronto.", ok: true },
+    revisar: { text: "Revisá los datos: falta algo o hay un campo inválido.", ok: false },
+    espera: { text: "Ya recibimos varias consultas desde acá. Probá de nuevo en un rato.", ok: false },
+    error: { text: "No pudimos enviar la consulta. Probá de nuevo en unos minutos.", ok: false },
+  };
+  const outcome = new URLSearchParams(location.search).get("consulta");
+  const el = document.getElementById("lead-result");
+  const m = outcome ? MESSAGES[outcome] : undefined;
+  if (el && m) {
+    el.textContent = m.text;
+    el.dataset.ok = String(m.ok);
+    el.setAttribute("role", m.ok ? "status" : "alert");
+    el.hidden = false;
+    el.focus();
+  }
+</script>
+
+<style>
+  .contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+  }
+  .intro {
+    flex: 1 1 340px;
+    min-width: 0;
+  }
+  .intro .h2 {
+    margin-top: 8px;
+  }
+  .intro .lead {
+    margin: 16px 0 0;
+  }
+  .form {
+    flex: 1 1 480px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 28px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 16px;
+  }
+  .wide {
+    grid-column: 1 / -1;
+  }
+  .field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-height: 52px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px;
+    padding: 0 14px;
+  }
+  textarea {
+    padding: 12px 14px;
+    resize: vertical;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 3px solid var(--brand-ink);
+    outline-offset: 1px;
+  }
+  small {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .check {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .check input {
+    width: 22px;
+    height: 22px;
+    min-height: 0;
+    margin: 0;
+    flex: none;
+    accent-color: var(--brand);
+  }
+  .form .btn {
+    align-self: flex-start;
+  }
+  .trap {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .result {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid var(--zone-bad);
+    color: var(--zone-bad);
+    background: var(--surface);
+  }
+  .result[data-ok="true"] {
+    border-color: var(--zone-ok);
+    color: var(--zone-ok);
+  }
+  .result:focus {
+    outline: none;
+  }
+</style>

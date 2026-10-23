@@ -155,6 +155,9 @@ a:hover {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
+  /* En <button> el navegador pone su borde: se limpia (el ghost pone el suyo). */
+  border: 0;
+  cursor: pointer;
   transition: filter 0.15s, background-color 0.15s, color 0.15s;
 }
 .btn-primary {

@@ -137,3 +137,32 @@ stateDiagram-v2
 `PUT /organizations/current/kind` (admin). En una org individual, invitar a un
 colega responde 409 con la indicación de pasar a equipo. El rol app puede escribir
 `kind` (GRANT por columna, migración 0039), pero no `status`.
+
+## Consultas comerciales: "Hablemos para tu club" (KAN-80)
+
+Antes de registrarse, un club puede dejar una consulta desde la landing. Decisión en
+[ADR 0041](../decisions/0041-consultas-comerciales-desde-la-landing.md).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant V as Visitante (landing /clubes)
+  participant W as Web (Next) /api/form/leads
+  participant API as LeadsService
+  participant DB as Postgres (owner)
+  participant Op as Operador (consola)
+  V->>W: POST form (sin JS)
+  W->>API: POST /public/leads (JSON, x-client-ip)
+  API->>API: zod + rate limit (IP, email) + campo trampa
+  API->>DB: INSERT sales_leads (consent_at)
+  API-->>V: mail de acuse (sin el mensaje)
+  API-->>Op: mail "Nueva consulta comercial" (sin el mensaje)
+  W-->>V: 303 → /clubes?consulta=enviada#contacto
+  Op->>API: GET /platform/leads · POST /platform/leads/{id}/status
+```
+
+| Acción | Método y path | Quién |
+|---|---|---|
+| Dejar una consulta | `POST /public/leads` (o el form en `/api/form/leads`) | público: 5 cada 10 min por IP, 3/h por email |
+| Listar | `GET /platform/leads?status=new\|contacted\|closed` | operador de plataforma |
+| Cambiar el estado | `POST /platform/leads/{id}/status` `{status}` | operador de plataforma |

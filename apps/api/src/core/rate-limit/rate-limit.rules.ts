@@ -50,3 +50,7 @@ export const FORGOT_BY_IP: RateLimitRule = { name: "forgot-ip", limit: 10, windo
 export const FORGOT_BY_EMAIL: RateLimitRule = { name: "forgot-email", limit: 3, windowSec: 60 * 60, by: "email" };
 export const RESET_LOOKUP: RateLimitRule = { name: "reset-lookup", limit: 30, windowSec: 60, by: "ip" };
 export const RESET_CONFIRM: RateLimitRule = { name: "reset-confirm", limit: 10, windowSec: 60, by: "ip" };
+
+/** Consulta comercial desde la landing (KAN-80): pocas por IP y por email. */
+export const LEAD_BY_IP: RateLimitRule = { name: "lead-ip", limit: 5, windowSec: 10 * 60, by: "ip" };
+export const LEAD_BY_EMAIL: RateLimitRule = { name: "lead-email", limit: 3, windowSec: 60 * 60, by: "email" };
