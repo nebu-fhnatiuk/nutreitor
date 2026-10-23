@@ -23,6 +23,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { MembershipRole, OrgKind } from "@nutreitor/shared";
 
+import { CommandPalette } from "@/components/command-palette";
 import { useNewRequests } from "@/components/contact/use-new-requests";
 import { useUnreadMessages } from "@/components/messages/use-unread";
 import { FeedbackProvider, ThemeToggle } from "@/components/ui";
@@ -180,7 +181,17 @@ export function WorkspaceShell({
           </div>
           {/* En desktop la org vive en el sidebar; este spacer empuja el menú a la derecha. */}
           <div className="hidden sm:block" />
-          <UserMenu userName={userName} role={role} orgKind={orgKind} />
+          <div className="flex items-center gap-2">
+            {role !== "patient" && (
+              <CommandPalette
+                nav={items.map((i) => ({ href: i.href, label: i.label }))}
+                patientsPath={items.find((i) => i.label === "Pacientes")?.href ?? "/pro/patients"}
+                groupsPath={items.find((i) => i.label === "Grupos")?.href ?? "/pro/groups"}
+                canMessage={role === "professional" || orgKind === "individual"}
+              />
+            )}
+            <UserMenu userName={userName} role={role} orgKind={orgKind} />
+          </div>
         </header>
 
         {/* Navegación mobile: en celular el sidebar está oculto, así que las

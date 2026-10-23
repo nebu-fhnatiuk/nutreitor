@@ -19,6 +19,7 @@ export * from "./dtos/hydration.dto.js";
 export * from "./squad-board.js";
 export * from "./club-palette.js";
 export * from "./spoken-measure.js";
+export * from "./command-search.js";
 export * from "./dtos/meal-plan.dto.js";
 export * from "./dtos/plan-draft.dto.js";
 export * from "./dtos/adherence.dto.js";

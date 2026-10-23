@@ -56,6 +56,20 @@ flowchart LR
 - **Mensajes** y **Asistentes** se muestran sólo con permiso (igual que antes). Una
   charla con crisis marca el momento Conversar.
 
+**Paleta de comandos** (KAN-75, `components/command-palette.tsx`): con Ctrl+K o ⌘K
+(o el botón "Buscar" del encabezado) el profesional y la admin buscan deportistas,
+planteles y acciones: "medir a Juan", "plan de Sofía", "sudor Martina", "plantel
+Sub-17". Cada acción va a su momento y sección de la ficha, o a la planilla del
+plantel.
+
+- Los datos salen de `GET /patients` y `GET /groups`, que ya aplican el alcance de
+  acceso: la paleta no ve más que la lista de pacientes. Se piden al abrirla por
+  primera vez.
+- La búsqueda es pura (`buildCommands` y `searchCommands` en shared): cada palabra
+  tiene que ser el comienzo de una palabra del ítem, sin tildes, ignorando "de" y "a".
+  Un verbo ("medir", "plan", "sudor") lleva a la acción; el nombre solo, a la ficha.
+- "Mensajes" sólo para quien atiende (no para la admin de un equipo, ADR 0024).
+
 ## Asignación de cuidado (M:N versionada)
 
 ```mermaid
