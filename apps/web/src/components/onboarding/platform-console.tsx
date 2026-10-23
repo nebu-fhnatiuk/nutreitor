@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { LogOut } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type {
   LeadStatus,
   LicenseStatus,
@@ -20,20 +21,33 @@ import {
 } from "@nutreitor/shared";
 
 import {
+  AuthButton,
+  AuthField,
+  AuthHeading,
+  AuthLink,
+  AuthNotice,
+  AuthShell,
+  PasswordField,
+} from "@/components/auth/auth-shell";
+import {
   Alert,
   Button,
   Card,
   EmptyState,
   FeedbackProvider,
-  Input,
   Label,
   Loading,
   Modal,
   Tabs,
   Textarea,
+  ThemeToggle,
+  ZoneMark,
   cn,
   tabPanelProps,
   useFeedback,
+  zoneSoft,
+  zoneText,
+  type Zone,
 } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 
@@ -53,16 +67,39 @@ const LICENSE_LABEL: Record<LicenseStatus, string> = {
   rejected: "Rechazada",
 };
 
-const LICENSE_TONE: Record<LicenseStatus, string> = {
-  missing: "bg-stone-100 text-stone-600",
-  declared: "bg-amber-50 text-amber-800",
-  reviewed: "bg-emerald-50 text-emerald-800",
-  rejected: "bg-red-50 text-red-700",
+/** Estados como zonas del tema Estadio (forma + color); `null` = neutro. */
+const ORG_ZONE: Record<OrgStatus, Zone | null> = {
+  pending_review: "warn",
+  active: "ok",
+  rejected: "bad",
+  suspended: "bad",
 };
+
+const LICENSE_ZONE: Record<LicenseStatus, Zone | null> = {
+  missing: null,
+  declared: "warn",
+  reviewed: "ok",
+  rejected: "bad",
+};
+
+/** Chip de estado: rótulo condensado y la forma de la zona (nunca sólo color). */
+function StatusChip({ zone, children }: { zone: Zone | null; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 font-display text-xs font-semibold uppercase tracking-wider",
+        zone ? cn(zoneText[zone], zoneSoft[zone]) : "bg-stone-100 text-stone-600",
+      )}
+    >
+      {zone && <ZoneMark zone={zone} />}
+      {children}
+    </span>
+  );
+}
 
 /**
  * Consola de plataforma (dominio raíz, ADR 0025): aprobar organizaciones y revisar
- * matrículas. Sesión propia, separada de la de los tenants.
+ * matrículas, y seguir las consultas de clubes. Sesión propia, separada de la de los tenants.
  */
 export function PlatformConsole() {
   const [me, setMe] = useState<PlatformMe | null | undefined>(undefined);
@@ -73,12 +110,75 @@ export function PlatformConsole() {
       .catch(() => setMe(null));
   }, []);
 
-  if (me === undefined) return <Loading />;
-  if (!me) return <PlatformLogin onDone={setMe} />;
+  if (me === undefined) {
+    return (
+      <div data-theme="estadio" className="grid min-h-screen place-items-center bg-stone-50">
+        <Loading />
+      </div>
+    );
+  }
+  if (!me) {
+    return (
+      <AuthShell>
+        <PlatformLogin onDone={setMe} />
+      </AuthShell>
+    );
+  }
   return (
-    <FeedbackProvider>
-      <Console me={me} onLogout={() => setMe(null)} />
-    </FeedbackProvider>
+    <ConsoleShell me={me} onLogout={() => setMe(null)}>
+      <FeedbackProvider>
+        <Console onLogout={() => setMe(null)} />
+      </FeedbackProvider>
+    </ConsoleShell>
+  );
+}
+
+/**
+ * Marco de la consola (KAN-87): tema Estadio, oscuro por defecto, con la marca de
+ * Nutreitor (no hay club). Topbar con quién opera, claro/oscuro y salir.
+ */
+function ConsoleShell({ me, onLogout, children }: { me: PlatformMe; onLogout: () => void; children: ReactNode }) {
+  async function logout() {
+    await api("platform/auth/logout", { method: "POST" }).catch(() => undefined);
+    onLogout();
+  }
+
+  return (
+    <div data-theme="estadio" className="min-h-screen bg-stone-50 text-stone-900">
+      <a
+        href="#contenido"
+        className="sr-only z-50 rounded-lg bg-surface px-4 py-2 text-sm shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Saltar al contenido
+      </a>
+      <header className="sticky top-0 z-20 border-b border-stone-200 bg-surface/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
+            <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">Nutreitor</span>
+            <span className="hidden font-display text-sm font-semibold uppercase tracking-[0.16em] text-stone-500 sm:inline">· Consola</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="hidden max-w-[16rem] truncate text-sm text-stone-600 md:inline">{me.fullName}</span>
+            <ThemeToggle
+              menuItem={false}
+              className="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            />
+            <button
+              type="button"
+              onClick={logout}
+              className="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              <LogOut className="h-4 w-4" aria-hidden />
+              Salir
+            </button>
+          </div>
+        </div>
+      </header>
+      <main id="contenido" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        {children}
+      </main>
+    </div>
   );
 }
 
@@ -108,29 +208,41 @@ function PlatformLogin({ onDone }: { onDone: (me: PlatformMe) => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-sm space-y-4">
-      <h1 className="text-2xl font-extrabold tracking-tight">Consola de plataforma</h1>
-      <p className="text-sm text-ink/60">Sólo para el equipo de operación de Nutreitor.</p>
-      <Label label="Email">
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
-      </Label>
-      <Label label="Contraseña">
-        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-      </Label>
-      {err && <Alert>{err}</Alert>}
-      <Button type="submit" disabled={busy} className="w-full">
+    <form onSubmit={submit} className="space-y-6">
+      <AuthHeading kicker="Equipo Nutreitor" title="Consola">
+        Altas de organizaciones, matrículas y consultas de clubes. Sólo para quienes operan la plataforma.
+      </AuthHeading>
+      <div className="space-y-4">
+        <AuthField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="username"
+          aria-invalid={err ? true : undefined}
+        />
+        <PasswordField
+          label="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          aria-invalid={err ? true : undefined}
+        />
+      </div>
+      {err && <AuthNotice zone="bad" title={err} />}
+      <AuthButton type="submit" disabled={busy}>
         {busy ? "Ingresando…" : "Ingresar"}
-      </Button>
-      <p className="text-center text-sm">
-        <a href="/olvide" className="text-ink/60 underline-offset-4 hover:text-brand hover:underline">
-          ¿Olvidaste tu contraseña?
-        </a>
-      </p>
+      </AuthButton>
+      <div className="text-center">
+        <AuthLink href="/olvide">¿Olvidaste tu contraseña?</AuthLink>
+      </div>
     </form>
   );
 }
 
-function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
+function Console({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("pending_review");
   const [orgs, setOrgs] = useState<PlatformOrgEntry[] | null>(null);
   const [licenses, setLicenses] = useState<PlatformLicenseEntry[] | null>(null);
@@ -158,11 +270,6 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
     void load();
   }, [load]);
 
-  async function logout() {
-    await api("platform/auth/logout", { method: "POST" }).catch(() => undefined);
-    onLogout();
-  }
-
   const byTab = (t: Tab) =>
     (orgs ?? []).filter((o) =>
       t === "closed" ? o.status === "rejected" || o.status === "suspended" : o.status === t,
@@ -172,19 +279,12 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Consola de plataforma</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            Altas de organizaciones, matrículas y consultas de clubes. No muestra datos de pacientes.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-ink/60">
-          <span>{me.fullName}</span>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            Salir
-          </Button>
-        </div>
+      <div>
+        <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-accent2">Plataforma</p>
+        <h1 className="mt-1 font-serif text-4xl sm:text-5xl">Consola de plataforma</h1>
+        <p className="mt-2 text-sm text-stone-600">
+          Altas de organizaciones, matrículas y consultas de clubes. No muestra datos de deportistas.
+        </p>
       </div>
 
       <div className="mt-6">
@@ -268,33 +368,33 @@ function OrgCard({ org, onChanged }: { org: PlatformOrgEntry; onChanged: () => P
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold tracking-tight">{org.name}</h2>
-          <p className="mt-0.5 break-all text-sm text-ink/55">
+          <h2 className="font-display text-2xl font-bold uppercase tracking-[0.02em]">{org.name}</h2>
+          <p className="mt-0.5 break-all text-sm text-stone-500">
             {org.slug} · {org.kind === "individual" ? "Profesional independiente" : "Equipo"} · registrada el{" "}
             {new Date(org.createdAt).toLocaleDateString("es-AR")}
           </p>
         </div>
-        <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs text-stone-700">{STATUS_LABEL[org.status]}</span>
+        <StatusChip zone={ORG_ZONE[org.status]}>{STATUS_LABEL[org.status]}</StatusChip>
       </div>
 
-      {org.reviewNote && <p className="mt-3 text-sm text-ink/70">Motivo: {org.reviewNote}</p>}
+      {org.reviewNote && <p className="mt-3 text-sm text-stone-700">Motivo: {org.reviewNote}</p>}
 
       <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-ink/45">Administración</dt>
+          <dt className="font-display text-xs font-semibold uppercase tracking-widest text-stone-500">Administración</dt>
           {org.admins.map((a) => (
             <dd key={a.email} className="mt-1 break-all">
-              {a.fullName} · <span className="text-ink/60">{a.email}</span>
+              {a.fullName} · <span className="text-stone-600">{a.email}</span>
             </dd>
           ))}
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-ink/45">Matrículas</dt>
-          {org.licenses.length === 0 && <dd className="mt-1 text-ink/55">Nadie declaró matrícula.</dd>}
+          <dt className="font-display text-xs font-semibold uppercase tracking-widest text-stone-500">Matrículas</dt>
+          {org.licenses.length === 0 && <dd className="mt-1 text-stone-500">Nadie declaró matrícula.</dd>}
           {org.licenses.map((l) => (
             <dd key={l.profileId} className="mt-1 flex flex-wrap items-center gap-2">
               <span>{l.fullName}</span>
-              <span className="text-ink/60">{formatLicense(l.licenseNumber, l.licenseJurisdiction) ?? "—"}</span>
+              <span className="text-stone-600">{formatLicense(l.licenseNumber, l.licenseJurisdiction) ?? "—"}</span>
               <LicenseBadge status={l.licenseStatus} />
             </dd>
           ))}
@@ -302,7 +402,7 @@ function OrgCard({ org, onChanged }: { org: PlatformOrgEntry; onChanged: () => P
       </dl>
 
       {org.status === "pending_review" && declared > 0 && (
-        <p className="mt-4 text-xs text-ink/55">
+        <p className="mt-4 text-xs text-stone-500">
           Aprobar también marca como revisadas las {declared} matrícula(s) declaradas: verificalas antes en el registro correspondiente.
         </p>
       )}
@@ -357,7 +457,7 @@ function decisionTarget(d: OrgDecisionDto["decision"]): OrgStatus {
 }
 
 function LicenseBadge({ status }: { status: LicenseStatus }) {
-  return <span className={cn("rounded-full px-2 py-0.5 text-xs", LICENSE_TONE[status])}>{LICENSE_LABEL[status]}</span>;
+  return <StatusChip zone={LICENSE_ZONE[status]}>{LICENSE_LABEL[status]}</StatusChip>;
 }
 
 function LicenseQueue({ entries, onChanged }: { entries: PlatformLicenseEntry[]; onChanged: () => Promise<void> }) {
@@ -393,8 +493,8 @@ function LicenseQueue({ entries, onChanged }: { entries: PlatformLicenseEntry[];
       {entries.map((l) => (
         <Card key={l.profileId} className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-medium">{l.fullName}</p>
-            <p className="break-all text-sm text-ink/60">
+            <p className="font-semibold">{l.fullName}</p>
+            <p className="break-all text-sm text-stone-600">
               {formatLicense(l.licenseNumber, l.licenseJurisdiction)} · {l.orgName} · {l.email}
             </p>
           </div>
@@ -433,10 +533,10 @@ function LicenseQueue({ entries, onChanged }: { entries: PlatformLicenseEntry[];
   );
 }
 
-const LEAD_TONE: Record<LeadStatus, string> = {
-  new: "bg-amber-50 text-amber-800",
-  contacted: "bg-emerald-50 text-emerald-800",
-  closed: "bg-stone-100 text-stone-600",
+const LEAD_ZONE: Record<LeadStatus, Zone | null> = {
+  new: "warn",
+  contacted: "ok",
+  closed: null,
 };
 
 /** Qué se puede hacer con una consulta según su estado. */
@@ -485,11 +585,11 @@ function LeadsQueue({ entries, onChanged }: { entries: SalesLeadDto[]; onChanged
         <Card key={l.id} className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-2 font-medium">
+              <p className="flex flex-wrap items-center gap-2 font-display text-xl font-bold uppercase tracking-[0.02em]">
                 {l.orgName}
-                <span className={cn("rounded-full px-2 py-0.5 text-xs", LEAD_TONE[l.status])}>{LEAD_STATUS_LABEL[l.status]}</span>
+                <StatusChip zone={LEAD_ZONE[l.status]}>{LEAD_STATUS_LABEL[l.status]}</StatusChip>
               </p>
-              <p className="text-sm text-ink/60">
+              <p className="text-sm text-stone-600">
                 {LEAD_ORG_KIND_LABEL[l.orgKind]} · {LEAD_SIZE_LABEL[l.athletes]} deportistas ·{" "}
                 {new Date(l.createdAt).toLocaleDateString("es-AR")}
               </p>
@@ -508,8 +608,8 @@ function LeadsQueue({ entries, onChanged }: { entries: SalesLeadDto[]; onChanged
               ))}
             </div>
           </div>
-          {l.message && <p className="whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-sm text-ink/80">{l.message}</p>}
-          {l.handledBy && l.status !== "new" && <p className="text-xs text-ink/50">Marcada por {l.handledBy}</p>}
+          {l.message && <p className="whitespace-pre-wrap rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">{l.message}</p>}
+          {l.handledBy && l.status !== "new" && <p className="text-xs text-stone-500">Marcada por {l.handledBy}</p>}
         </Card>
       ))}
     </div>
