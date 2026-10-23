@@ -23,8 +23,8 @@ sequenceDiagram
 
 - **Evolución**: peso, % grasa y cintura — primera y última medición del mes y
   diferencia.
-- **Adherencia**: % sobre lo registrado (en parte = ½), días con registro y % por
-  comida.
+- **Adherencia**: % sobre lo registrado (en parte = ½), días con registro, la
+  racha más larga de días seguidos (`longestStreak`, KAN-76) y % por comida.
 - **Cómo se sintió**: promedio de hambre, energía y ánimo (1–5).
 - **Turnos**: realizados, cancelados (sólo el profesional) y reservados.
 - **Plan**: el vigente a fin de mes y cuántos ajustes hubo.
@@ -40,3 +40,14 @@ sequenceDiagram
   leer, `report:write` para armar/publicar). El paciente ve **sólo los publicados de
   su ficha** (`portal:read`).
 - Auditoría: `report.created`, `report.published`.
+
+## "Tu mes en números" (KAN-76, ADR 0040)
+
+En el portal, un reporte publicado tiene el botón **Tu mes en números**: arma una
+historia vertical (1080×1920) con los colores del club para descargar o compartir
+(Instagram, por la hoja de compartir del celular).
+
+- Sólo hábitos: % del plan, días con registro, racha, consultas y energía.
+- **Nunca** peso, % grasa, cintura, el plan ni el comentario del profesional.
+- Sin nada para contar (o en borrador) no hay historia.
+- Se dibuja en el navegador; nada sale del dispositivo hasta que el deportista la comparte.

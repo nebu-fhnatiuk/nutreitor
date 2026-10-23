@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { monthLabel, type PatientReportDto } from "@nutreitor/shared";
 
+import { ReportStory } from "@/components/reports/report-story";
 import { ReportView } from "@/components/reports/report-view";
 import { Alert, Button, Card, EmptyState, Loading, SectionHeading } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
@@ -72,7 +73,7 @@ export function PortalReportsList() {
   );
 }
 
-export function PortalReport({ id }: { id: string }) {
+export function PortalReport({ id, athleteName, club }: { id: string; athleteName: string; club: string }) {
   const [report, setReport] = useState<PatientReportDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -88,9 +89,12 @@ export function PortalReport({ id }: { id: string }) {
         <Link href="/app/reportes" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800">
           <ArrowLeft className="h-4 w-4" aria-hidden /> Reportes
         </Link>
-        <Button variant="secondary" onClick={() => window.print()}>
-          <Printer className="h-4 w-4" aria-hidden /> Imprimir
-        </Button>
+        <div className="flex gap-2">
+          <ReportStory report={report} athleteName={athleteName} club={club} />
+          <Button variant="secondary" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" aria-hidden /> Imprimir
+          </Button>
+        </div>
       </div>
       <ReportView report={report} forPatient />
     </div>

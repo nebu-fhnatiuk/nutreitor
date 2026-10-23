@@ -12,7 +12,7 @@ export default async function PatientReportPage({ params }: { params: Promise<{ 
   if (me.role !== "patient") redirect(workspaceHome(me.role, me.org.kind));
   return (
     <WorkspaceShell orgName={me.org.name} role={me.role} orgKind={me.org.kind} userName={me.user.fullName}>
-      <PortalReport id={id} />
+      <PortalReport id={id} athleteName={me.user.fullName} club={me.org.name} />
     </WorkspaceShell>
   );
 }
