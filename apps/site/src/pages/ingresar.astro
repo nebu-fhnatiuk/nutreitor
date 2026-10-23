@@ -21,12 +21,27 @@ import { links } from "../config";
 
 <script>
   // Lleva al login del subdominio. El slug se normaliza; el servidor lo valida.
+  // La última dirección usada queda en este navegador para precargarla (KAN-86); es
+  // sólo una comodidad: sin storage (modo privado) se escribe de nuevo.
+  const KEY = "nutreitor-ultimo-espacio";
   const form = document.getElementById("ingresar") as HTMLFormElement | null;
+  const input = form?.querySelector("input") as HTMLInputElement | null;
+  try {
+    const last = localStorage.getItem(KEY);
+    if (input && last && !input.value) input.value = last;
+  } catch {
+    // Sin acceso al storage.
+  }
   form?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const input = form.querySelector("input") as HTMLInputElement;
+    if (!input) return;
     const slug = input.value.trim().toLowerCase();
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return input.reportValidity();
+    try {
+      localStorage.setItem(KEY, slug);
+    } catch {
+      // Sin acceso al storage.
+    }
     window.location.assign((form.dataset.template ?? "").replace("{slug}", slug));
   });
 </script>

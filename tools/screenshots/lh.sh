@@ -2,7 +2,7 @@
 # Lighthouse contra el build estático de la landing (KAN-79), no contra el dev server.
 #
 #   docker compose exec api sh -c "cd /app && pnpm --filter @nutreitor/site build"
-#   docker compose exec -d site sh -c "cd /app/apps/site && npx astro preview --host 0.0.0.0 --port 4322"
+#   docker compose exec -d site sh -c "cd /app/apps/site && npx astro preview --host 0.0.0.0 --port 4322 --allowed-hosts site"
 #   docker compose --profile tools run --rm --no-deps screenshots ./lh.sh
 #
 # Salida: out/lighthouse/<celular|escritorio>-<página>.json y una línea de puntajes
