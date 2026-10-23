@@ -99,3 +99,25 @@ export function licenseDecisionMail(p: {
           `Corregila desde tu perfil: ${p.link}\n`,
       };
 }
+
+/** Acuse a quien deja una consulta comercial (KAN-80). No repite el mensaje. */
+export function leadReceivedMail(p: { to: string; fullName: string; orgName: string }): PlainEmail {
+  return {
+    to: p.to,
+    subject: "Recibimos tu consulta — Nutreitor",
+    text:
+      `Hola ${firstName(p.fullName)}:\n\n` +
+      `Gracias por escribirnos sobre ${p.orgName}. Te vamos a contactar a este email ` +
+      `para contarte cómo Nutreitor puede acompañar al cuerpo de nutrición.\n\n` +
+      `Si no fuiste vos, ignorá este mail.\n`,
+  };
+}
+
+/** Aviso a los operadores: hay una consulta comercial nueva. Sin el mensaje. */
+export function platformNewLeadMail(p: { to: string; orgName: string; kind: string; link: string }): PlainEmail {
+  return {
+    to: p.to,
+    subject: `Nueva consulta comercial: ${p.orgName}`,
+    text: `${p.orgName} (${p.kind}) dejó una consulta desde la landing.\n\nVela en ${p.link}\n`,
+  };
+}

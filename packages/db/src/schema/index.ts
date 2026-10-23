@@ -22,6 +22,7 @@ export * from "./adherence.js";
 export * from "./conversations.js";
 export * from "./patient-reports.js";
 export * from "./org-signups.js";
+export * from "./sales-leads.js";
 export * from "./contact-requests.js";
 export * from "./password-resets.js";
 export * from "./anthropometry.js";
@@ -55,6 +56,7 @@ import { adherenceCheckins, adherenceMealLogs } from "./adherence.js";
 import { conversationReads, conversations, messages } from "./conversations.js";
 import { patientReports } from "./patient-reports.js";
 import { orgSignups } from "./org-signups.js";
+import { salesLeads } from "./sales-leads.js";
 import { contactRequests } from "./contact-requests.js";
 import { passwordResets } from "./password-resets.js";
 import { anthropometrySessions } from "./anthropometry.js";
@@ -99,6 +101,7 @@ export const schema = {
   conversationReads,
   patientReports,
   orgSignups,
+  salesLeads,
   contactRequests,
   passwordResets,
   anthropometrySessions,

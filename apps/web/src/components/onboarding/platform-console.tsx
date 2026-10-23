@@ -2,14 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type {
+  LeadStatus,
   LicenseStatus,
   OrgDecisionDto,
   OrgStatus,
   PlatformLicenseEntry,
   PlatformMe,
   PlatformOrgEntry,
+  SalesLeadDto,
 } from "@nutreitor/shared";
-import { formatLicense } from "@nutreitor/shared";
+import {
+  LEAD_ORG_KIND_LABEL,
+  LEAD_ROLE_LABEL,
+  LEAD_SIZE_LABEL,
+  LEAD_STATUS_LABEL,
+  formatLicense,
+} from "@nutreitor/shared";
 
 import {
   Alert,
@@ -29,7 +37,7 @@ import {
 } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 
-type Tab = "pending_review" | "active" | "closed" | "licenses";
+type Tab = "pending_review" | "active" | "closed" | "licenses" | "leads";
 
 const STATUS_LABEL: Record<OrgStatus, string> = {
   pending_review: "En revisión",
@@ -126,16 +134,19 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("pending_review");
   const [orgs, setOrgs] = useState<PlatformOrgEntry[] | null>(null);
   const [licenses, setLicenses] = useState<PlatformLicenseEntry[] | null>(null);
+  const [leads, setLeads] = useState<SalesLeadDto[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [o, l] = await Promise.all([
+      const [o, l, c] = await Promise.all([
         api<PlatformOrgEntry[]>("platform/orgs"),
         api<PlatformLicenseEntry[]>("platform/licenses"),
+        api<SalesLeadDto[]>("platform/leads"),
       ]);
       setOrgs(o);
       setLicenses(l);
+      setLeads(c);
       setErr(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return onLogout();
@@ -157,6 +168,7 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
       t === "closed" ? o.status === "rejected" || o.status === "suspended" : o.status === t,
     );
   const pendingCount = byTab("pending_review").length;
+  const newLeads = (leads ?? []).filter((l) => l.status === "new").length;
 
   return (
     <div>
@@ -164,7 +176,7 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Consola de plataforma</h1>
           <p className="mt-1 text-sm text-ink/60">
-            Altas de organizaciones y matrículas. No muestra datos de pacientes.
+            Altas de organizaciones, matrículas y consultas de clubes. No muestra datos de pacientes.
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm text-ink/60">
@@ -183,6 +195,7 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
           items={[
             { id: "pending_review", label: "En revisión", count: pendingCount, alert: pendingCount > 0 },
             { id: "licenses", label: "Matrículas", count: licenses?.length ?? 0 },
+            { id: "leads", label: "Consultas de clubes", count: newLeads, alert: newLeads > 0 },
             { id: "active", label: "Activas", count: byTab("active").length },
             { id: "closed", label: "Rechazadas y suspendidas", count: byTab("closed").length },
           ]}
@@ -196,6 +209,8 @@ function Console({ me, onLogout }: { me: PlatformMe; onLogout: () => void }) {
           <Loading />
         ) : tab === "licenses" ? (
           <LicenseQueue entries={licenses ?? []} onChanged={load} />
+        ) : tab === "leads" ? (
+          <LeadsQueue entries={leads ?? []} onChanged={load} />
         ) : byTab(tab).length === 0 ? (
           <EmptyState>{tab === "pending_review" ? "No hay altas por revisar." : "Nada por acá."}</EmptyState>
         ) : (
@@ -414,6 +429,89 @@ function LicenseQueue({ entries, onChanged }: { entries: PlatformLicenseEntry[];
           </div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+const LEAD_TONE: Record<LeadStatus, string> = {
+  new: "bg-amber-50 text-amber-800",
+  contacted: "bg-emerald-50 text-emerald-800",
+  closed: "bg-stone-100 text-stone-600",
+};
+
+/** Qué se puede hacer con una consulta según su estado. */
+const LEAD_ACTIONS: Record<LeadStatus, { to: LeadStatus; label: string; variant: "primary" | "secondary" | "ghost" }[]> = {
+  new: [
+    { to: "contacted", label: "Marcar contactada", variant: "primary" },
+    { to: "closed", label: "Cerrar", variant: "ghost" },
+  ],
+  contacted: [{ to: "closed", label: "Cerrar", variant: "secondary" }],
+  closed: [{ to: "new", label: "Reabrir", variant: "ghost" }],
+};
+
+/**
+ * Consultas de "Hablemos para tu club" (KAN-80, ADR 0041): las nuevas arriba. El
+ * contacto se hace por fuera (mail); acá queda el seguimiento y quién la marcó.
+ */
+function LeadsQueue({ entries, onChanged }: { entries: SalesLeadDto[]; onChanged: () => Promise<void> }) {
+  const { toast } = useFeedback();
+  const [err, setErr] = useState<string | null>(null);
+  const order: Record<LeadStatus, number> = { new: 0, contacted: 1, closed: 2 };
+  const sorted = [...entries].sort((a, b) => order[a.status] - order[b.status]);
+
+  async function move(l: SalesLeadDto, to: LeadStatus) {
+    setErr(null);
+    try {
+      await api(`platform/leads/${l.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: to }),
+      });
+      toast(`${l.orgName}: ${LEAD_STATUS_LABEL[to].toLowerCase()}.`);
+      await onChanged();
+    } catch (e) {
+      setErr(errorMessage(e));
+    }
+  }
+
+  if (entries.length === 0) {
+    return <EmptyState>Todavía no hay consultas. Llegan desde el formulario de la landing (/clubes).</EmptyState>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {err && <Alert>{err}</Alert>}
+      {sorted.map((l) => (
+        <Card key={l.id} className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-2 font-medium">
+                {l.orgName}
+                <span className={cn("rounded-full px-2 py-0.5 text-xs", LEAD_TONE[l.status])}>{LEAD_STATUS_LABEL[l.status]}</span>
+              </p>
+              <p className="text-sm text-ink/60">
+                {LEAD_ORG_KIND_LABEL[l.orgKind]} · {LEAD_SIZE_LABEL[l.athletes]} deportistas ·{" "}
+                {new Date(l.createdAt).toLocaleDateString("es-AR")}
+              </p>
+              <p className="mt-1 break-all text-sm">
+                {l.fullName} ({LEAD_ROLE_LABEL[l.role]}) ·{" "}
+                <a href={`mailto:${l.email}?subject=${encodeURIComponent(`Nutreitor para ${l.orgName}`)}`} className="text-brand hover:underline">
+                  {l.email}
+                </a>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {LEAD_ACTIONS[l.status].map((a) => (
+                <Button key={a.to} size="sm" variant={a.variant} onClick={() => move(l, a.to)}>
+                  {a.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {l.message && <p className="whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-sm text-ink/80">{l.message}</p>}
+          {l.handledBy && l.status !== "new" && <p className="text-xs text-ink/50">Marcada por {l.handledBy}</p>}
+        </Card>
+      ))}
     </div>
   );
 }

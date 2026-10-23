@@ -7,6 +7,8 @@ const appOrigin = (import.meta.env.PUBLIC_APP_ORIGIN ?? "").replace(/\/$/, "");
 
 export const links = {
   signup: `${appOrigin}/registro`,
+  /** POST del formulario "Hablemos para tu club" (KAN-80): lo recibe la web y vuelve acá. */
+  leadForm: `${appOrigin}/api/form/leads`,
   workspaceLogin:
     import.meta.env.PUBLIC_WORKSPACE_URL_TEMPLATE ?? "https://{slug}.nutreitor.com/login",
 };

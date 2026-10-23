@@ -3,10 +3,13 @@ import { links } from "../config";
 interface Props {
   title?: string;
   body?: string;
+  /** Si viene, suma "Hablemos para tu club" (KAN-80) al lado del alta. */
+  contactHref?: string;
 }
 const {
   title = "Creá tu espacio en minutos.",
   body = "Para tu consultorio, tu club o tu gimnasio. Configurás todo mientras revisamos tu alta.",
+  contactHref,
 } = Astro.props;
 ---
 <section class="wrap cta-wrap" aria-labelledby="cta-title">
@@ -16,7 +19,10 @@ const {
       <h2 id="cta-title" class="h2">{title}</h2>
       <p>{body}</p>
     </div>
-    <a class="btn go" href={links.signup}>Creá tu espacio</a>
+    <div class="ctas">
+      <a class="btn go" href={links.signup}>Creá tu espacio</a>
+      {contactHref && <a class="btn talk" href={contactHref}>Hablemos para tu club</a>}
+    </div>
   </div>
 </section>
 
@@ -59,6 +65,20 @@ const {
     margin: 14px 0 0;
     font-size: 18px;
     max-width: 36rem;
+  }
+  .ctas {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .talk {
+    border: 2px solid var(--brand-fg);
+    color: var(--brand-fg);
+  }
+  .talk:hover {
+    background: var(--brand-fg);
+    color: var(--brand);
   }
   .go {
     position: relative;

@@ -21,6 +21,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `users` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Identidad de plataforma. Email único global, sin PHI. El acceso se gatea por `memberships`. `is_platform_admin` marca a los operadores de la consola (ADR 0025; se otorga a mano). |
 | `password_resets` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Pedidos de recuperación de contraseña (ADR 0029): sha256 del token, vence en 60 min, un solo uso. **Sin grants al rol app**. `users.password_changed_at` invalida la sesión de consola emitida antes del cambio. |
 | `org_signups` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Solicitudes de alta pendientes de verificar el email (token hasheado, vencen en 48 h, un solo uso). **Sin grants al rol app**: la opera sólo la conexión owner. |
+| `sales_leads` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Consultas comerciales de "Hablemos para tu club" (landing, KAN-80, ADR 0041): contacto y datos de la organización, estado `new`/`contacted`/`closed` y quién la marcó. Nunca datos de salud. **Sin grants al rol app**: la opera la conexión owner y la leen sólo operadores de plataforma. |
 | `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
@@ -113,14 +114,15 @@ sin join contra `organizations`.
 ## Diagrama entidad-relación
 
 Mermaid no permite agrupar visualmente por aislamiento; la clasificación RLS vs
-global está en la tabla de arriba. En el diagrama, `users`, `org_signups` y
-`password_resets` son las entidades de control plane — todas las demás son tenant-scoped.
+global está en la tabla de arriba. En el diagrama, `users`, `org_signups`,
+`sales_leads` y `password_resets` son las entidades de control plane — todas las demás son tenant-scoped.
 
 ```mermaid
 erDiagram
   organizations ||--o{ memberships            : "has"
   users         ||--o{ password_resets        : "requests"
   organizations |o--o| org_signups            : "created from"
+  users         |o--o{ sales_leads            : "handles"
   organizations ||--o{ contact_requests       : "scopes"
   patients      ||--o{ anthropometry_sessions : "measured in"
   organizations ||--o{ patient_groups         : "has"
@@ -330,6 +332,20 @@ erDiagram
     timestamptz expires_at
     timestamptz completed_at "un solo uso"
     uuid organization_id FK "al confirmar"
+  }
+
+  sales_leads {
+    uuid id PK
+    text full_name
+    text email
+    text org_name
+    text org_kind "club|gimnasio|consultorio|otro"
+    text role
+    text athletes "rango"
+    text message "opcional, sin datos de salud"
+    text status "new|contacted|closed"
+    timestamptz consent_at
+    uuid handled_by FK "operador"
   }
 
   memberships {
