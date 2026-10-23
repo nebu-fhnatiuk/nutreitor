@@ -16,9 +16,11 @@ const path = Astro.url.pathname.replace(/\/$/, "");
     {nav.map((i) => (
       <a href={i.href} aria-current={path === i.href ? "page" : undefined}>{i.label}</a>
     ))}
-    <a href="/ingresar">Ingresar</a>
   </nav>
-  <a class="btn btn-primary cta" href={links.signup}>Creá tu espacio</a>
+  <div class="actions">
+    <a class="btn btn-ghost login" href="/ingresar" aria-label="Ingresar a tu espacio" aria-current={path === "/ingresar" ? "page" : undefined}>Ingresar</a>
+    <a class="btn btn-primary cta" href={links.signup}>Creá tu espacio</a>
+  </div>
 </header>
 
 <style>
@@ -51,12 +53,30 @@ const path = Astro.url.pathname.replace(/\/$/, "");
   .nav {
     margin-left: auto;
   }
-  .cta {
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .cta,
+  .login {
     min-height: 44px;
     padding: 0 18px;
     font-size: 17px;
   }
+  /* El de ingresar va con borde: la acción de quien ya tiene espacio, sin competir
+     con "Creá tu espacio" (KAN-86). */
+  .login {
+    border-width: 2px;
+  }
   /* En el celular: logo y CTA arriba; los links, abajo en una fila que scrollea. */
+  /* En un celular angosto no entran el logo y los dos botones: queda "Ingresar"
+     (para volver a tu espacio) y "Creá tu espacio" está en el hero. */
+  @media (max-width: 560px) {
+    .cta {
+      display: none;
+    }
+  }
   @media (max-width: 720px) {
     .nav {
       order: 3;

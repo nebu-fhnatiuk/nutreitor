@@ -47,6 +47,7 @@ const faq = [
         <a class="btn btn-primary" href={links.signup}>Creá tu espacio</a>
         <a class="btn btn-ghost" href="#como">Ver cómo funciona</a>
       </div>
+      <p class="have">¿Ya tenés tu espacio? <a href="/ingresar">Ingresá →</a></p>
       <div class="try"><ClubSwitch /></div>
     </div>
     <div class="visual">
@@ -112,8 +113,20 @@ const faq = [
     gap: 12px;
     align-items: center;
   }
+  .have {
+    margin: 18px 0 0;
+    font-size: 16px;
+    color: var(--ink-2);
+  }
+  .have a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-weight: 700;
+    color: var(--brand-ink);
+  }
   .try {
-    margin-top: 36px;
+    margin-top: 24px;
   }
   .visual {
     flex: 1 1 360px;
