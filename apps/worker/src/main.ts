@@ -43,7 +43,7 @@ async function runScan(): Promise<number> {
   let total = 0;
   for (const tenantId of await tenantIds(db)) {
     try {
-      total += (await scanTenant(db, tenantId, now, { webUrlTemplate: cfg.WEB_URL_TEMPLATE, enqueue })).length;
+      total += (await scanTenant(db, tenantId, now, { webUrlTemplate: cfg.WEB_URL_TEMPLATE, enqueue, inviteTtlDays: cfg.INVITE_TTL_DAYS })).length;
     } catch (err) {
       // Un consultorio con problemas no frena a los demás; el próximo escaneo reintenta.
       console.error(`[worker] scan tenant=${tenantId} falló: ${String(err)}`);
@@ -66,7 +66,8 @@ const worker = new Worker(
     }
     throw new Error(`job desconocido: ${job.name}`);
   },
-  { connection, concurrency: 4 },
+  // Limitador de la cola: nunca más de SEND_PER_SECOND jobs por segundo (rate de SES).
+  { connection, concurrency: 4, limiter: { max: cfg.SEND_PER_SECOND, duration: 1000 } },
 );
 worker.on("failed", (job, err) => console.warn(`[worker] ${job?.name} ${job?.id} falló: ${err.message}`));
 

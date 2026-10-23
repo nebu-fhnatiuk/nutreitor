@@ -84,3 +84,15 @@ export function contactRequestReceived(p: { recipientName: string; orgName: stri
       `leelo y respondé en ${p.link}\n`,
   };
 }
+
+export function portalInvitation(p: { patientName: string; orgName: string; link: string; ttlDays: number }): Rendered {
+  return {
+    subject: `${p.orgName} te invita a tu portal de nutrición`,
+    text:
+      `Hola ${firstName(p.patientName)}:\n\n` +
+      `${p.orgName} te sumó a su espacio en Nutreitor. Desde el portal vas a ver tu plan, tus mediciones ` +
+      `y hablar con tu nutricionista.\n\n` +
+      `Creá tu cuenta en ${p.link}\n\n` +
+      `El link es personal y vence en ${p.ttlDays} días. Si no esperabas este mail, ignoralo.\n`,
+  };
+}

@@ -32,10 +32,13 @@ import { PatientsController } from "./patients.controller.js";
 import { PatientsService } from "./patients.service.js";
 import { PlanTemplatesController } from "./plan-templates.controller.js";
 import { PlanTemplatesService } from "./plan-templates.service.js";
+import { PatientImportController } from "./patient-import.controller.js";
+import { PatientImportService } from "./patient-import.service.js";
 
 @Module({
   imports: [AuthModule],
   controllers: [
+    PatientImportController,
     PatientsController,
     MetricsController,
     MealPlansController,
@@ -54,6 +57,7 @@ import { PlanTemplatesService } from "./plan-templates.service.js";
   ],
   providers: [
     PatientsService,
+    PatientImportService,
     CareAssignmentsService,
     PatientNotesService,
     MetricsService,

@@ -46,6 +46,11 @@ sequenceDiagram
 - **Reporte publicado** (al paciente): cuando su profesional publica el reporte del
   mes (últimas 48 h). Sólo el link, sin datos. Llave: id del reporte.
 
+- **Invitación al portal del import** (KAN-43, ADR 0043): las invitaciones que deja
+  el import en lote (`queued_at`). El worker las toma con `FOR UPDATE SKIP LOCKED`,
+  genera el token (en la base sólo queda su hash), renueva el vencimiento desde el
+  envío y encola el mail. Llave: id de la invitación.
+
 ## Preferencias
 
 `GET/PUT /portal/me/notification-preferences` (`portal:read` / `portal:self_report`)
@@ -55,6 +60,8 @@ sequenceDiagram
 
 - Env: `DATABASE_WORKER_URL`, `REDIS_URL`, `WEB_URL_TEMPLATE`
   (`https://{slug}.nutreitor.com`), `MAIL_PROVIDER` (`console` | `ses`),
-  `MAIL_FROM`, `AWS_REGION`, `SCAN_EVERY_MS`.
+  `MAIL_FROM`, `AWS_REGION`, `SCAN_EVERY_MS`, `SEND_PER_SECOND` (tope de envíos por
+  segundo, default 10: por debajo del límite de SES) e `INVITE_TTL_DAYS` (igual que
+  la API).
 - `notifications` queda como registro de lo enviado (sin contenido), legible por la
   app para una futura vista de avisos.

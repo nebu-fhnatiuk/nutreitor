@@ -7,10 +7,11 @@ import { adherenceReminders } from "./scans/adherence-reminders.js";
 import { appointmentReminders } from "./scans/appointment-reminders.js";
 import type { Scan } from "./scans/types.js";
 import { contactRequests } from "./scans/contact-requests.js";
+import { portalInvitations } from "./scans/portal-invitations.js";
 import { reportsPublished } from "./scans/report-published.js";
 import { unreadMessages } from "./scans/unread-messages.js";
 
-export const SCANS: Scan[] = [appointmentReminders, unreadMessages, adherenceReminders, reportsPublished, contactRequests];
+export const SCANS: Scan[] = [appointmentReminders, unreadMessages, adherenceReminders, reportsPublished, contactRequests, portalInvitations];
 
 /** Lo que viaja en el job de entrega (se borra de Redis al completarse). */
 export interface Delivery {
@@ -38,14 +39,14 @@ export async function scanTenant(
   db: Database,
   tenantId: string,
   now: Date,
-  opts: { webUrlTemplate: string; enqueue: (d: Delivery[]) => Promise<void>; scans?: Scan[] },
+  opts: { webUrlTemplate: string; enqueue: (d: Delivery[]) => Promise<void>; scans?: Scan[]; inviteTtlDays?: number },
 ): Promise<Delivery[]> {
   return withTenant(db, tenantId, async (tx) => {
     const [org] = (
       await tx.execute(sql`select slug, coalesce(display_name, name) as name, region from organizations limit 1`)
     ).rows as { slug: string; name: string; region: string }[];
     if (!org) return [];
-    const ctx = { tx, now, org, link: (path: string) => webUrl(opts.webUrlTemplate, org.slug, path) };
+    const ctx = { tx, now, org, link: (path: string) => webUrl(opts.webUrlTemplate, org.slug, path), inviteTtlDays: opts.inviteTtlDays ?? 7 };
     const deliveries: Delivery[] = [];
     for (const scan of opts.scans ?? SCANS) {
       for (const c of await scan(ctx)) {
