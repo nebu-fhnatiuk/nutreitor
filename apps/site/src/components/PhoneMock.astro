@@ -1,0 +1,163 @@
+---
+/**
+ * El portal del deportista en el celular, día de partido (ilustración con datos de
+ * ejemplo, no una captura). Toma los colores del club de la página.
+ */
+const week = [
+  ["L", "Ent."], ["M", "Ent."], ["M", "Libre"], ["J", "Ent."], ["V", "Ent."], ["S", "Part."], ["D", "Libre"],
+];
+---
+<figure class="phone" aria-label="Ejemplo: el portal del deportista el día de partido. Hoy sábado, partido: 3.416 kcal y 8 g/kg de hidratos.">
+  <div class="screen" aria-hidden="true">
+    <div class="today">
+      <span class="stripe"></span>
+      <p class="when">Sábado · Hoy</p>
+      <p class="kind">Partido</p>
+      <p class="hi">Hola, Juan. Así comés hoy.</p>
+    </div>
+    <div class="stats">
+      <div><p class="k">Energía</p><p class="num v">3.416</p><p class="u">kcal</p></div>
+      <div><p class="k">Hidratos</p><p class="num v">8</p><p class="u">g/kg</p></div>
+    </div>
+    <ol class="week">
+      {week.map(([d, s], i) => (
+        <li class={i === 5 ? "on" : undefined}><b>{d}</b><span>{s}</span></li>
+      ))}
+    </ol>
+    <ul class="meals">
+      <li><span>Desayuno · 3 h antes</span><span class="done">Hecho</span></li>
+      <li><span>Pre partido</span><span>Pendiente</span></li>
+      <li><span>Recuperación</span><span>Pendiente</span></li>
+    </ul>
+  </div>
+  <figcaption class="sr-only">Ilustración con datos de ejemplo.</figcaption>
+</figure>
+
+<style>
+  .phone {
+    margin: 0 auto;
+    width: min(300px, 100%);
+    border-radius: 40px;
+    background: var(--night-2);
+    padding: 12px;
+    box-shadow: 0 30px 70px rgb(20 24 31 / 0.25);
+  }
+  .screen {
+    border-radius: 30px;
+    overflow: hidden;
+    background: var(--night-2);
+    color: #f3f4f6;
+  }
+  .today {
+    position: relative;
+    overflow: hidden;
+    padding: 22px 18px 18px;
+    background: var(--brand);
+    color: var(--brand-fg);
+  }
+  .stripe {
+    position: absolute;
+    inset: 0;
+    background: var(--accent2);
+    clip-path: polygon(84% 0, 88% 0, 58% 100%, 54% 100%);
+  }
+  .today p {
+    position: relative;
+    margin: 0;
+  }
+  .when {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .kind {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 44px;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+  .hi {
+    margin-top: 6px !important;
+    font-size: 14px;
+  }
+  .stats {
+    display: flex;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+  .stats div {
+    flex: 1;
+  }
+  .stats p {
+    margin: 0;
+  }
+  .k {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9ca3af;
+  }
+  .v {
+    margin-top: 2px !important;
+    font-size: 38px;
+  }
+  .u {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .week {
+    list-style: none;
+    margin: 0;
+    padding: 0 18px 16px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    text-align: center;
+  }
+  .week li {
+    border-radius: 8px;
+    padding: 6px 0;
+    background: #121821;
+    color: #d1d5db;
+    display: flex;
+    flex-direction: column;
+  }
+  .week li.on {
+    background: var(--brand);
+    color: var(--brand-fg);
+  }
+  .week b {
+    font-family: var(--font-display);
+    font-size: 14px;
+  }
+  .week span {
+    font-size: 10px;
+  }
+  .meals {
+    list-style: none;
+    margin: 0;
+    padding: 0 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .meals li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #121821;
+  }
+  .meals li span:last-child {
+    color: #9ca3af;
+  }
+  .meals .done {
+    color: #4ade80 !important;
+  }
+</style>

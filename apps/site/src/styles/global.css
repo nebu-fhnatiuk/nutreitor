@@ -1,27 +1,48 @@
 /*
- * Dirección A "Clínica luminosa" (elegida 2026-10-19): Manrope, base fría y clara,
- * acento verde azulado. Tokens en :root; las páginas usan sólo estas variables.
+ * Dirección B "Día de partido" (KAN-78, elegida 2026-10-23): base clara, bandas
+ * oscuras y en el color del club, Barlow para texto y Barlow Condensed en
+ * mayúsculas para títulos y cifras (la misma familia que el workspace, ADR 0037).
+ * Tokens en :root; las páginas usan sólo estas variables. `--brand`/`--accent2` son
+ * los colores del club de ejemplo: el selector del hero los cambia en vivo.
  */
-@import "@fontsource-variable/manrope";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/barlow-condensed/800.css";
 
 :root {
-  --ink: #0e1f24;
-  --ink-2: #3b5157;
-  --ink-3: #52686e;
-  --ground: #f6f9f9;
+  --ink: #14181f;
+  --ink-2: #3f4652;
+  --ink-3: #555c69;
+  --ground: #f7f7f4;
   --surface: #ffffff;
-  --soft: #f2f8f7;
-  --line: #dce7e7;
-  --line-2: #e3ecec;
-  --accent: #0f766e;
-  --accent-ink: #0b5a54;
-  --accent-bright: #5eead4;
-  --warn: #9a5b00;
-  --night: #0e1f24;
-  --night-ink: #b9cbcb;
-  --radius: 18px;
-  --max: 1200px;
-  --font: "Manrope Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --soft: #efefea;
+  --line: #e4e4df;
+  --line-2: #e4e4df;
+  /* Club de ejemplo: verde y naranja (los colores por defecto de Nutreitor). */
+  --brand: #107a57;
+  --brand-fg: #ffffff;
+  --brand-ink: #107a57;
+  --accent2: #f28c28;
+  --accent2-ink: #a35208;
+  --accent: var(--brand-ink);
+  --accent-ink: #0b5a40;
+  --accent-bright: var(--accent2);
+  --warn: #92400e;
+  --night: #14181f;
+  --night-2: #0b0f14;
+  --night-ink: #d1d5db;
+  --night-line: #2a3240;
+  --zone-ok: #15803d;
+  --zone-warn: #b45309;
+  --zone-bad: #b91c1c;
+  --radius: 20px;
+  --max: 1240px;
+  --font: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", system-ui, sans-serif;
 }
 
 *,
@@ -58,7 +79,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 3px solid var(--brand-ink);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -71,27 +92,47 @@ a:hover {
 
 .eyebrow {
   margin: 0;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent2-ink);
 }
 
 .h1 {
   margin: 0;
-  font-size: clamp(40px, 6vw, 62px);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  font-size: clamp(52px, 8vw, 112px);
+  line-height: 0.92;
   font-weight: 800;
+  text-transform: uppercase;
 }
 
 .h2 {
   margin: 0;
-  font-size: clamp(30px, 4vw, 42px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.6vw, 72px);
+  line-height: 0.95;
   font-weight: 800;
+  text-transform: uppercase;
+}
+
+.h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 34px);
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Cifra de marcador: condensada, tabular. */
+.num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
 }
 
 .lead {
@@ -105,28 +146,33 @@ a:hover {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 14px 24px;
-  border-radius: 12px;
+  min-height: 54px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 16px;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   text-decoration: none;
-  transition: background-color 0.15s, transform 0.15s;
+  transition: filter 0.15s, background-color 0.15s, color 0.15s;
 }
 .btn-primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--brand);
+  color: var(--brand-fg);
 }
 .btn-primary:hover {
-  background: var(--accent-ink);
-  color: #fff;
+  filter: brightness(1.1);
+  color: var(--brand-fg);
 }
 .btn-ghost {
+  border: 2px solid var(--ink);
   color: var(--ink);
-  padding-inline: 8px;
+  padding-inline: 24px;
 }
 .btn-ghost:hover {
-  color: var(--accent);
+  background: var(--ink);
+  color: var(--ground);
 }
 
 .card {
@@ -169,7 +215,9 @@ a:hover {
   html {
     scroll-behavior: auto;
   }
-  .btn {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
   }
 }

@@ -9,8 +9,9 @@ const {
   body = "Para tu consultorio, tu club o tu gimnasio. Configurás todo mientras revisamos tu alta.",
 } = Astro.props;
 ---
-<section class="night" aria-labelledby="cta-title">
-  <div class="wrap row">
+<section class="wrap cta-wrap" aria-labelledby="cta-title">
+  <div class="cta">
+    <span class="circle" aria-hidden="true"></span>
     <div class="text">
       <h2 id="cta-title" class="h2">{title}</h2>
       <p>{body}</p>
@@ -20,36 +21,52 @@ const {
 </section>
 
 <style>
-  .night {
-    background: var(--night);
-    color: var(--ground);
+  .cta-wrap {
+    padding-block: 0 clamp(56px, 8vw, 80px);
   }
-  .row {
-    padding-block: clamp(56px, 8vw, 80px);
+  .cta {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    background: var(--brand);
+    color: var(--brand-fg);
+    padding: clamp(40px, 6vw, 56px) clamp(24px, 4vw, 40px);
     display: flex;
     flex-wrap: wrap;
     gap: 24px;
     align-items: center;
     justify-content: space-between;
   }
+  .circle {
+    position: absolute;
+    right: -60px;
+    top: 50%;
+    width: 260px;
+    height: 260px;
+    margin-top: -130px;
+    border: 3px solid rgb(255 255 255 / 0.4);
+    border-radius: 999px;
+  }
   .text {
+    position: relative;
     flex: 1 1 420px;
     min-width: 0;
   }
+  .h2 {
+    max-width: 16ch;
+  }
   p {
-    margin: 12px 0 0;
-    font-size: 17px;
-    color: var(--night-ink);
+    margin: 14px 0 0;
+    font-size: 18px;
+    max-width: 36rem;
   }
   .go {
-    background: var(--accent-bright);
+    position: relative;
+    background: #ffffff;
     color: var(--night);
-    font-weight: 800;
-    font-size: 17px;
-    padding: 18px 28px;
   }
   .go:hover {
-    background: #99f6e4;
-    color: var(--night);
+    background: var(--night);
+    color: #ffffff;
   }
 </style>

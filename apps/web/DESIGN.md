@@ -34,7 +34,9 @@ cifras y rótulos en **Barlow Condensed** (`font-display`, `tabular-nums`).
   forma de zona). Escudo = logo del club o `clubInitials`; franjas diagonales con
   `brand` + `accent2`. En el celular las franjas terminan arriba del título.
 
-Las superficies públicas (landing, vidriera) siguen con la identidad de abajo.
+La landing (`apps/site`, KAN-78) usa la dirección "Día de partido": claro, Barlow
+Condensed en mayúsculas y bandas con los colores del club (ADR 0028). La vidriera
+sigue con la identidad de abajo.
 
 ## Tokens (superficies públicas)
 

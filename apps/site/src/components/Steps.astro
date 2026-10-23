@@ -1,9 +1,9 @@
 ---
 /** Cómo se empieza: refleja el alta real (ADR 0025). */
 const steps = [
-  { n: "1", title: "Creá tu espacio", body: "Elegís si trabajás solo/a o con equipo, tu dirección y cargás tu matrícula." },
-  { n: "2", title: "Configurá mientras revisamos", body: "Armá tu perfil, tus horarios y tu marca. Revisamos el alta y la matrícula." },
-  { n: "3", title: "Sumá a tus deportistas", body: "Te encuentran en tu vidriera o los invitás vos al portal desde su ficha." },
+  { n: "01", title: "Creá tu espacio", body: "Elegís si trabajás solo/a o con equipo, tu dirección y cargás tu matrícula." },
+  { n: "02", title: "Configurá mientras revisamos", body: "Armá tu perfil, tus horarios y tu marca. Revisamos el alta y la matrícula." },
+  { n: "03", title: "Sumá a tus deportistas", body: "Te encuentran en tu vidriera o los invitás vos al portal desde su ficha." },
 ];
 ---
 <section class="wrap section">
@@ -29,19 +29,19 @@ const steps = [
     gap: 28px;
   }
   .n {
-    display: inline-grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: var(--soft);
-    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 64px;
+    line-height: 1;
     font-weight: 800;
+    color: var(--brand-ink);
   }
   h3 {
-    margin: 14px 0 0;
-    font-size: 20px;
-    font-weight: 700;
+    margin: 8px 0 0;
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    text-transform: uppercase;
   }
   p {
     margin: 8px 0 0;

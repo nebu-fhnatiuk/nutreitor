@@ -17,8 +17,8 @@ const path = Astro.url.pathname.replace(/\/$/, "");
       <a href={i.href} aria-current={path === i.href ? "page" : undefined}>{i.label}</a>
     ))}
     <a href="/ingresar">Ingresar</a>
-    <a class="btn btn-primary cta" href={links.signup}>Creá tu espacio</a>
   </nav>
+  <a class="btn btn-primary cta" href={links.signup}>Creá tu espacio</a>
 </header>
 
 <style>
@@ -37,25 +37,30 @@ const path = Astro.url.pathname.replace(/\/$/, "");
     align-items: center;
     font-size: 15px;
   }
-  .nav a:not(.cta) {
+  .nav a {
     color: var(--ink-2);
     text-decoration: none;
     min-height: 44px;
     display: inline-flex;
     align-items: center;
   }
-  .nav a:not(.cta):hover,
+  .nav a:hover,
   .nav a[aria-current="page"] {
     color: var(--accent);
   }
+  .nav {
+    margin-left: auto;
+  }
   .cta {
     min-height: 44px;
-    padding: 10px 18px;
-    font-size: 15px;
+    padding: 0 18px;
+    font-size: 17px;
   }
-  /* En el celular: el CTA queda y los links pasan a una fila que scrollea. */
+  /* En el celular: logo y CTA arriba; los links, abajo en una fila que scrollea. */
   @media (max-width: 720px) {
     .nav {
+      order: 3;
+      margin-left: 0;
       width: 100%;
       flex-wrap: nowrap;
       overflow-x: auto;
@@ -63,9 +68,6 @@ const path = Astro.url.pathname.replace(/\/$/, "");
     }
     .nav a {
       white-space: nowrap;
-    }
-    .cta {
-      margin-left: auto;
     }
   }
 </style>

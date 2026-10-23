@@ -1,0 +1,132 @@
+---
+/**
+ * Los cuatro momentos de trabajo (los mismos que la ficha del deportista, KAN-68).
+ * Sólo lo que el producto hace hoy; las cifras son de ejemplo.
+ */
+---
+<section id="como" class="wrap section">
+  <p class="eyebrow">Tu semana de trabajo</p>
+  <h2 class="h2 title">Evaluar, prescribir, seguir. Y también en la cancha.</h2>
+  <div class="grid">
+    <article class="card m">
+      <p class="tag">01 · Evaluar</p>
+      <h3 class="h3">Antropometría ISAK completa</h3>
+      <p class="body">Pliegues con la tercera toma cuando hace falta, somatocarta, cinco componentes (Kerr) y prueba de sudoración.</p>
+      <p class="num big">48<span> mm Σ6 pliegues</span></p>
+    </article>
+    <article class="card m">
+      <p class="tag">02 · Prescribir</p>
+      <h3 class="h3">Requerimiento periodizado</h3>
+      <p class="body">Un plan por día de la semana según partido, entreno o descanso, con macros calculados desde la base de alimentos, recetas e intercambios.</p>
+      <p class="num big">3.416<span> kcal el día de partido</span></p>
+    </article>
+    <article class="card m">
+      <p class="tag">03 · Seguir</p>
+      <h3 class="h3">La pizarra del plantel</h3>
+      <p class="body">Quién se va de rango y por qué, la adherencia de cada uno y su mes en números para compartir.</p>
+      <ul class="zones">
+        <li><span class="z ok" aria-hidden="true"></span>14 en rango</li>
+        <li><span class="z warn" aria-hidden="true"></span>6 en el límite</li>
+        <li><span class="z bad" aria-hidden="true"></span>2 fuera de rango</li>
+      </ul>
+    </article>
+    <article class="card m dark">
+      <p class="tag">04 · En la cancha</p>
+      <h3 class="h3">Modo cancha con dictado</h3>
+      <p class="body">Un sitio por vez, números enormes y modo sol. Decís “tríceps doce coma cinco” y queda cargado.</p>
+      <p class="num big">12,5<span> mm tríceps</span></p>
+    </article>
+  </div>
+  <p class="note">Cifras de ejemplo.</p>
+</section>
+
+<style>
+  .title {
+    margin-top: 8px;
+    max-width: 18ch;
+  }
+  .grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    gap: 20px;
+  }
+  .m {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tag {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+  }
+  .body {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .big {
+    margin: 8px 0 0;
+    font-size: 64px;
+  }
+  .big span {
+    font-size: 22px;
+    color: var(--ink-3);
+    font-weight: 700;
+  }
+  .zones {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    font-size: 16px;
+  }
+  .zones li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .z {
+    width: 10px;
+    height: 10px;
+  }
+  .z.ok {
+    background: var(--zone-ok);
+    transform: rotate(45deg);
+  }
+  .z.warn {
+    background: var(--zone-warn);
+  }
+  .z.bad {
+    background: var(--zone-bad);
+    border-radius: 999px;
+  }
+  .dark {
+    background: var(--night);
+    border-color: var(--night);
+    color: #f3f4f6;
+  }
+  .dark .tag {
+    color: var(--accent2);
+  }
+  .dark .body {
+    color: var(--night-ink);
+  }
+  .dark .big span {
+    color: #9ca3af;
+  }
+  .note {
+    margin: 16px 0 0;
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+</style>

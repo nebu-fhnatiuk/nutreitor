@@ -14,8 +14,11 @@ cambio al deploy de la app clínica.
 ## Decisión
 
 - **`apps/site`**: una app propia del monorepo, en **Astro 5, 100% estática**. Usa los
-  tokens de la dirección visual elegida: "Clínica luminosa", Manrope self-hosted y
-  acento verde azulado. Páginas: `/`, `/clubes`, `/gimnasios`, `/ingresar`, `404`,
+  tokens de la dirección visual elegida. Desde KAN-78 (2026-10-23) es la dirección
+  **"Día de partido"**: base clara con bandas oscuras y en el color del club, Barlow y
+  Barlow Condensed self-hosted (`@fontsource`), la misma familia que el workspace
+  (ADR 0037). El hero deja probar los colores de un club de ejemplo en vivo (un
+  script chico que cambia `--brand`/`--accent2`). Antes: "Clínica luminosa", Manrope. Páginas: `/`, `/clubes`, `/gimnasios`, `/ingresar`, `404`,
   `robots.txt`, `sitemap.xml`, con JSON-LD (`SoftwareApplication` + `FAQPage`).
 - **En AWS** (objetivo, sin IaC todavía): S3 (privado, Origin Access Control) +
   **CloudFront** delante de `nutreitor.com`, que decide por ruta:
