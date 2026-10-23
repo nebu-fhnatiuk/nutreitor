@@ -206,6 +206,22 @@ export interface DayTypeResult {
   warnings: string[];
 }
 
+/** Tipo de día para la tira de la semana (KAN-73): define el color, no el cálculo. */
+export type DayKind = "match" | "training" | "rest";
+
+const MATCH_RE = /partido|competencia|competición|torneo|carrera|match|juego/i;
+const REST_RE = /descanso|libre|off|recuperaci[oó]n/i;
+
+/**
+ * Clasifica un tipo de día por su nombre (lo escribe el profesional) y, si se sabe,
+ * por sus sesiones: sin sesiones es descanso. "Partido sábado" → partido.
+ */
+export function dayKind(name: string, sessions?: number): DayKind {
+  if (MATCH_RE.test(name)) return "match";
+  if (REST_RE.test(name) || sessions === 0) return "rest";
+  return "training";
+}
+
 export interface EnergyResults {
   ree: Calc<number>;
   /** Todas las fórmulas, para comparar. */

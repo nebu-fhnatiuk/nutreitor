@@ -1,4 +1,5 @@
 import {
+  dayKind,
   energyResults,
   faoWho,
   harrisBenedict,
@@ -94,5 +95,22 @@ describe("validación", () => {
     expect(saveEnergySchema.safeParse({ ...base, ffmKg: 80 }).success).toBe(false);
     expect(saveEnergySchema.safeParse({ ...base, dayTypes: [{ ...base.dayTypes[0]!, sessions: [{ activity: "custom", minutes: 30 }] }], week: {} }).success).toBe(false);
     expect(saveEnergySchema.safeParse({ ...base, dayTypes: [base.dayTypes[0]!, base.dayTypes[0]!], week: {} }).success).toBe(false);
+  });
+});
+
+describe("tipo de día para la tira de la semana", () => {
+  it("por nombre: partido, descanso; si no, entrenamiento", () => {
+    expect(dayKind("Partido")).toBe("match");
+    expect(dayKind("Día de competencia")).toBe("match");
+    expect(dayKind("Carrera 10K")).toBe("match");
+    expect(dayKind("Descanso activo")).toBe("rest");
+    expect(dayKind("Recuperación")).toBe("rest");
+    expect(dayKind("Doble turno")).toBe("training");
+  });
+
+  it("sin sesiones es descanso, salvo que el nombre diga partido", () => {
+    expect(dayKind("Liviano", 0)).toBe("rest");
+    expect(dayKind("Liviano", 1)).toBe("training");
+    expect(dayKind("Partido", 0)).toBe("match");
   });
 });

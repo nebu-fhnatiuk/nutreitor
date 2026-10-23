@@ -84,4 +84,22 @@ describe("savePlanSchema", () => {
     });
     expect(r.success).toBe(true);
   });
+
+  it("semana periodizada: acepta el nombre de cada día y rechaza nombres vacíos o largos", () => {
+    const body = (dayLabels: Record<string, string>) => ({
+      title: "Semana de partido",
+      body: {
+        layout: "week",
+        days: { sat: { meals: [] } },
+        dayTargets: { sat: { kcal: 3200, carbs_g: 520 } },
+        dayLabels,
+      },
+    });
+    const ok = savePlanSchema.safeParse(body({ sat: " Partido " }));
+    expect(ok.success).toBe(true);
+    if (ok.success && ok.data.body.layout === "week") expect(ok.data.body.dayLabels).toEqual({ sat: "Partido" });
+    expect(savePlanSchema.safeParse(body({ sat: "  " })).success).toBe(false);
+    expect(savePlanSchema.safeParse(body({ sat: "x".repeat(41) })).success).toBe(false);
+    expect(savePlanSchema.safeParse(body({ holiday: "Partido" })).success).toBe(false);
+  });
 });
