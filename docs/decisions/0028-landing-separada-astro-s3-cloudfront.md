@@ -51,3 +51,20 @@ cambio al deploy de la app clínica.
 - Los tokens visuales se duplican entre `apps/site` (CSS) y las páginas de la app en el
   dominio raíz (Tailwind). Si crecen, conviene un paquete de tokens compartido.
 - En dev hay un servicio más en compose (`site`, :4321).
+
+## Rendimiento y accesibilidad (KAN-79, 2026-10-23)
+
+Lighthouse sobre el build estático (`tools/screenshots/lh.sh`), celular / escritorio:
+
+| Página | Rendimiento | Accesibilidad | SEO |
+|---|---|---|---|
+| `/` | 98 / 100 | 100 / 100 | 100 |
+| `/clubes` | 99 / 100 | 100 / 100 | 100 |
+| `/gimnasios` | 99 / 100 | 100 / 100 | 100 |
+| `/ingresar` | 99 / 100 | 100 / 100 | 66 (noindex a propósito) |
+
+- El CSS va inline en cada página (`inlineStylesheets: "always"`) y las tres fuentes del
+  primer pantallazo se precargan: sin eso el título condensado se re-acomodaba al
+  llegar la fuente (CLS 0,22 → 0).
+- "Buenas prácticas" da 79 en local por HTTP sin TLS; en producción lo resuelve
+  CloudFront (HTTPS y HTTP/2). Hay que volver a medir sobre el dominio real.

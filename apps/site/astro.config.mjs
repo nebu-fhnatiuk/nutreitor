@@ -12,7 +12,8 @@ export default defineConfig({
   site: process.env.SITE_URL ?? "https://nutreitor.com",
   output: "static",
   trailingSlash: "never",
-  build: { format: "directory" },
+  // CSS chico: va inline en cada página y no bloquea el primer pintado (KAN-79).
+  build: { format: "directory", inlineStylesheets: "always" },
   server: { host: true, port: 4321 },
   // Sólo dev: `site` es el hostname del servicio en la red de compose (capturas).
   vite: { server: { allowedHosts: ["localhost", "site"] } },
