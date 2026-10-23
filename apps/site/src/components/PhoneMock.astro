@@ -55,15 +55,21 @@ const week = [
     background: var(--brand);
     color: var(--brand-fg);
   }
+  /* La franja va en una columna propia a la derecha: los textos (blanco) nunca
+     quedan sobre el segundo color, que no da contraste (KAN-79). */
   .stripe {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 22%;
     background: var(--accent2);
-    clip-path: polygon(84% 0, 88% 0, 58% 100%, 54% 100%);
+    clip-path: polygon(60% 0, 80% 0, 30% 100%, 10% 100%);
   }
   .today p {
     position: relative;
     margin: 0;
+    max-width: 74%;
   }
   .when {
     font-family: var(--font-display);
