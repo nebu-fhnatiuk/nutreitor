@@ -1,10 +1,10 @@
 "use client";
 
-import { MailCheck } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
 
-import { Alert, Button, Input, Label } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
+import { AuthButton, AuthField, AuthHeading, AuthLink, AuthNotice, authButtonClass } from "./auth-shell";
 
 /**
  * Pedir el link de recuperación (ADR 0029). La respuesta es la misma exista o no la
@@ -34,43 +34,49 @@ export function ForgotPassword({ backHref, backLabel }: { backHref: string; back
     }
   }
 
+  const back = (
+    <AuthLink href={backHref} className="-ml-1 mb-6">
+      <ChevronLeft className="h-4 w-4" aria-hidden /> {backLabel}
+    </AuthLink>
+  );
+
   if (sent) {
     return (
-      <div className="text-center" role="status">
-        <MailCheck className="mx-auto h-10 w-10 text-brand" aria-hidden />
-        <h1 className="mt-4 text-2xl font-bold tracking-tight">Revisá tu email</h1>
-        <p className="mt-2 text-sm text-stone-600">
-          Si <span className="font-medium text-stone-900">{email.trim()}</span> tiene una cuenta en
-          Nutreitor, te mandamos un link para elegir una contraseña nueva. Vence en una hora.
-        </p>
-        <a href={backHref} className="mt-6 inline-block text-sm font-medium text-brand underline-offset-4 hover:underline">
-          {backLabel}
-        </a>
+      <div role="status">
+        {back}
+        <span aria-hidden className="mb-5 ml-1 block h-5 w-5 rotate-45 rounded-[2px] bg-zone-ok" />
+        <AuthHeading title="Revisá tu email">
+          Si <strong className="font-semibold text-stone-900">{email.trim()}</strong> tiene una cuenta en Nutreitor, ya te
+          mandamos el link para elegir una contraseña nueva. Vence en una hora.
+        </AuthHeading>
+        <p className="mt-3 text-[15px] text-stone-500">¿No aparece? Mirá en spam o pedí otro (hasta 3 por hora).</p>
+        <a href={backHref} className={`${authButtonClass} mt-7`}>{backLabel}</a>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">¿Olvidaste tu contraseña?</h1>
-        <p className="mt-1 text-sm text-stone-600">
-          Escribí tu email y te mandamos un link para elegir una nueva. Es la misma contraseña para
-          todos tus espacios en Nutreitor.
-        </p>
+    <form onSubmit={submit} className="space-y-4">
+      {back}
+      <AuthHeading kicker="Recuperar el acceso" title="¿Olvidaste tu contraseña?">
+        Te mandamos un link para elegir una nueva. Es la misma contraseña para todos tus espacios en Nutreitor.
+      </AuthHeading>
+      <div className="space-y-4 pt-3">
+        {err && <AuthNotice zone="bad" title={err} />}
+        <AuthField
+          label="Email"
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          placeholder="vos@club.com"
+        />
+        <AuthButton type="submit" disabled={busy} className="!mt-6">
+          {busy ? "Enviando…" : "Mandame el link"}
+        </AuthButton>
       </div>
-      <Label label="Email">
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-      </Label>
-      {err && <Alert>{err}</Alert>}
-      <Button type="submit" disabled={busy} className="w-full">
-        {busy ? "Enviando…" : "Mandame el link"}
-      </Button>
-      <p className="text-center text-sm">
-        <a href={backHref} className="text-stone-600 underline-offset-4 hover:text-brand hover:underline">
-          {backLabel}
-        </a>
-      </p>
     </form>
   );
 }

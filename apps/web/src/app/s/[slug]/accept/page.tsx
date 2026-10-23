@@ -1,19 +1,23 @@
 import { AcceptInvite } from "@/components/accept-invite";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { authBrand } from "@/lib/auth-brand";
+import { fetchTenant } from "@/lib/server/api";
 
 /**
- * Página pública de aceptación de invitación. El branding del tenant lo aplica el
- * layout de `s/[slug]`. El token llega por query (?token=).
+ * Página pública de aceptación de invitación, con la marca del club (KAN-77). Los
+ * colores los aplica el layout de `s/[slug]`. El token llega por query (?token=).
  */
 export default async function AcceptPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ slug: string }>;
   searchParams: Promise<{ token?: string }>;
 }) {
-  const { token } = await searchParams;
-
+  const [{ slug }, { token }] = await Promise.all([params, searchParams]);
   return (
-    <main className="grid min-h-screen place-items-center px-6">
+    <AuthShell brand={authBrand(await fetchTenant(slug), slug)}>
       <AcceptInvite token={token ?? ""} />
-    </main>
+    </AuthShell>
   );
 }

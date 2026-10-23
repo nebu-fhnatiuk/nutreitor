@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { ConfirmSignup } from "@/components/onboarding/confirm-signup";
-import { RootFrame } from "@/components/onboarding/root-frame";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 export const metadata: Metadata = {
   title: "Confirmá tu alta — Nutreitor",
@@ -15,8 +15,8 @@ export default async function ConfirmSignupPage({
 }) {
   const { token = "" } = await searchParams;
   return (
-    <RootFrame>
+    <AuthShell>
       <ConfirmSignup token={token} />
-    </RootFrame>
+    </AuthShell>
   );
 }

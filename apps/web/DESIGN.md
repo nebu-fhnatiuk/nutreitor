@@ -29,7 +29,12 @@ cifras y rótulos en **Barlow Condensed** (`font-display`, `tabular-nums`).
   (`--brand-rgb`, `--accent2-on-dark-rgb`…) y las fuentes por su `font-family`
   computada. Sólo hábitos, nunca medidas corporales.
 
-Las superficies públicas (landing, vidriera, login) siguen con la identidad de abajo.
+- **Acceso** (KAN-77): `AuthShell` y sus piezas (`AuthHeading`, `AuthField`,
+  `PasswordField` con botón para mostrarla, `AuthButton` de 54 px, `AuthNotice` con
+  forma de zona). Escudo = logo del club o `clubInitials`; franjas diagonales con
+  `brand` + `accent2`. En el celular las franjas terminan arriba del título.
+
+Las superficies públicas (landing, vidriera) siguen con la identidad de abajo.
 
 ## Tokens (superficies públicas)
 
@@ -62,4 +67,4 @@ Las superficies públicas (landing, vidriera, login) siguen con la identidad de 
 - `tailwind.config.ts` — `colors.brand`, `fontFamily.serif/sans`.
 - `app/layout.tsx` — carga de fuentes + inyección de marca.
 - Público: `components/public/*` (claro/editorial). Workspace: `components/*` +
-  `workspace-shell.tsx` (mismo sistema claro).
+  `workspace-shell.tsx` (Estadio). Acceso: `components/auth/auth-shell.tsx` (Estadio).

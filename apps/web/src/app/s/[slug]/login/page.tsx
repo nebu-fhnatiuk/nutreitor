@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 
+import { AuthHeading, AuthNotice, AuthShell } from "@/components/auth/auth-shell";
+import { authBrand } from "@/lib/auth-brand";
 import { fetchMe, fetchTenant } from "@/lib/server/api";
 import { workspaceHome } from "@nutreitor/shared";
 import { LoginForm } from "./login-form";
 
 /**
- * Login brandeado por organización. Si ya hay sesión válida, redirige al
- * dashboard del rol. El branding (nombre/colores) sale de la config del tenant
- * (placeholder de colores por ahora).
+ * Login con la identidad del club (KAN-77): escudo, nombre y colores del tenant.
+ * Si ya hay sesión válida, redirige al dashboard del rol.
  */
 export default async function LoginPage({
   params,
@@ -21,34 +22,24 @@ export default async function LoginPage({
   const me = await fetchMe(slug);
   if (me) redirect(workspaceHome(me.role, me.org.kind));
 
-  const org = await fetchTenant(slug);
-  const orgName = org?.name ?? slug;
+  const brand = authBrand(await fetchTenant(slug), slug);
 
   return (
-    <main className="grid min-h-screen place-items-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_12px_rgb(var(--brand-rgb))]" />
-          <span className="text-lg font-semibold tracking-tight">{orgName}</span>
-        </div>
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">Ingresá a tu cuenta</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Workspace de <span className="text-stone-700">{orgName}</span>
-        </p>
+    <AuthShell brand={brand}>
+      <AuthHeading kicker="Tu espacio del club" title="Ingresá" />
+      <div className="mt-7 space-y-4">
         {nueva === "1" && (
-          <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-            ¡Listo! Creamos {orgName}. Ingresá para configurarla mientras revisamos el alta.
-          </p>
+          <AuthNotice zone="ok" title={`¡Listo! Creamos ${brand.name}.`} live="status">
+            Ingresá para configurarlo mientras revisamos el alta.
+          </AuthNotice>
         )}
         {restablecida === "1" && (
-          <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">
-            Listo: guardamos tu contraseña nueva. Ingresá con ella.
-          </p>
+          <AuthNotice zone="ok" title="Guardamos tu contraseña nueva." live="status">
+            Ingresá con ella.
+          </AuthNotice>
         )}
-        <div className="mt-8">
-          <LoginForm initialEmail={email} />
-        </div>
+        <LoginForm initialEmail={email} />
       </div>
-    </main>
+    </AuthShell>
   );
 }

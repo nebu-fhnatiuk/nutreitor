@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
-import { RootFrame } from "@/components/onboarding/root-frame";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupForm } from "@/components/onboarding/signup-form";
 
 export const metadata: Metadata = {
@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 export default async function SignupPage() {
   const host = (await headers()).get("host") ?? "nutreitor.com";
   return (
-    <RootFrame>
+    <AuthShell>
       <SignupForm rootHost={host} />
-    </RootFrame>
+    </AuthShell>
   );
 }

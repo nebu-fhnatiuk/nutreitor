@@ -9,7 +9,7 @@ const KEY = "nutreitor-mode";
  * Claro/oscuro del workspace. Oscuro es el default del tema Estadio; la
  * preferencia vive en localStorage y app/layout.tsx la aplica antes de pintar.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({ className, menuItem = true }: { className?: string; menuItem?: boolean }) {
   const [light, setLight] = useState(false);
   useEffect(() => setLight(document.documentElement.dataset.mode === "light"), []);
 
@@ -28,7 +28,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const Icon = light ? Moon : Sun;
   return (
-    <button type="button" role="menuitem" onClick={toggle} className={className}>
+    <button type="button" role={menuItem ? "menuitem" : undefined} onClick={toggle} className={className}>
       <Icon className="h-4 w-4" aria-hidden />
       {light ? "Modo oscuro" : "Modo claro"}
     </button>

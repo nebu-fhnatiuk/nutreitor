@@ -3,8 +3,22 @@
 import { useEffect, useState } from "react";
 import type { PasswordResetPreview } from "@nutreitor/shared";
 
-import { Alert, Button, Input, Label, Loading } from "@/components/ui";
+import { Loading, ZoneMark } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
+import { AuthButton, AuthHeading, AuthNotice, PasswordField, authButtonClass } from "./auth-shell";
+
+const MIN = 8;
+
+/** Regla de la contraseña con forma: rombo cumplida, círculo vacío pendiente. */
+function Rule({ ok, children }: { ok: boolean; children: string }) {
+  return (
+    <li className="flex items-center gap-2.5">
+      {ok ? <ZoneMark zone="ok" className="mx-0.5" /> : <span aria-hidden className="h-3 w-3 rounded-full border-2 border-stone-400" />}
+      <span className={ok ? "text-stone-900" : "text-stone-600"}>{children}</span>
+      <span className="sr-only">{ok ? "(cumplido)" : "(pendiente)"}</span>
+    </li>
+  );
+}
 
 /**
  * Elegir la contraseña nueva desde el link (ADR 0029). Al guardarla se cierran todas
@@ -37,9 +51,12 @@ export function ResetPassword({
       .catch(() => setState("invalid"));
   }, [token]);
 
+  const longEnough = password.length >= MIN;
+  const matches = password.length > 0 && password === password2;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (password !== password2) {
+    if (!matches) {
       setErr("Las contraseñas no coinciden.");
       return;
     }
@@ -64,37 +81,34 @@ export function ResetPassword({
   if (state === "loading") return <Loading label="Verificando el link…" />;
   if (state === "invalid" || !preview) {
     return (
-      <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight">El link no es válido</h1>
-        <p className="mt-2 text-sm text-stone-600">Venció o ya se usó. Pedí uno nuevo.</p>
-        <a href={forgotHref} className="mt-6 inline-block text-sm font-medium text-brand underline-offset-4 hover:underline">
-          Pedir otro link
-        </a>
+      <div role="alert">
+        <span aria-hidden className="mb-5 block h-5 w-5 rounded-full bg-zone-bad" />
+        <AuthHeading title="Este link ya no sirve">Venció (dura una hora) o ya lo usaste. Pedí uno nuevo con tu email.</AuthHeading>
+        <a href={forgotHref} className={`${authButtonClass} mt-7`}>Pedir un link nuevo</a>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Elegí tu contraseña nueva</h1>
-        <p className="mt-1 text-sm text-stone-600">
-          Para <span className="font-medium text-stone-900">{preview.email}</span>. Vale para todos tus
-          espacios; vamos a cerrar las sesiones abiertas.
-        </p>
-      </div>
+    <form onSubmit={submit} className="space-y-4">
+      <AuthHeading kicker="Recuperar el acceso" title="Elegí tu contraseña nueva">
+        Para <strong className="font-semibold text-stone-900">{preview.email}</strong>. Vale para todos tus espacios; vamos a
+        cerrar las sesiones abiertas.
+      </AuthHeading>
       {/* Para los gestores de contraseñas: a qué cuenta corresponde. */}
       <input type="email" value={preview.email} autoComplete="username" readOnly hidden />
-      <Label label="Contraseña nueva" hint="Mínimo 8 caracteres.">
-        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required autoComplete="new-password" />
-      </Label>
-      <Label label="Repetila">
-        <Input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} minLength={8} required autoComplete="new-password" />
-      </Label>
-      {err && <Alert>{err}</Alert>}
-      <Button type="submit" disabled={busy} className="w-full">
-        {busy ? "Guardando…" : "Guardar y entrar"}
-      </Button>
+      <div className="space-y-4 pt-3">
+        {err && <AuthNotice zone="bad" title={err} />}
+        <PasswordField label="Contraseña nueva" value={password} onChange={(e) => setPassword(e.target.value)} minLength={MIN} required autoComplete="new-password" />
+        <PasswordField label="Repetila" value={password2} onChange={(e) => setPassword2(e.target.value)} minLength={MIN} required autoComplete="new-password" />
+        <ul className="space-y-2 text-[15px]" aria-label="Requisitos">
+          <Rule ok={longEnough}>{`${MIN} caracteres o más`}</Rule>
+          <Rule ok={matches}>Las dos coinciden</Rule>
+        </ul>
+        <AuthButton type="submit" disabled={busy} className="!mt-6">
+          {busy ? "Guardando…" : "Guardar y entrar"}
+        </AuthButton>
+      </div>
     </form>
   );
 }

@@ -1,20 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { AuthButton, AuthField, AuthLink, AuthNotice, PasswordField } from "@/components/auth/auth-shell";
+
+/** "4:32" */
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /**
  * Formulario de login (client). POST /api/auth/login vía el proxy → la API valida
  * dentro del tenant (slug del subdominio) y setea las cookies httpOnly. En éxito,
- * navega al destino por rol que devuelve la API.
+ * navega al destino por rol que devuelve la API. Con 429 muestra cuánto falta
+ * (`Retry-After`) y no deja reintentar hasta entonces.
  */
 export function LoginForm({ initialEmail }: { initialEmail?: string }) {
   const [email, setEmail] = useState(initialEmail ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title: string; detail?: string } | null>(null);
+  const [waitUntil, setWaitUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  const left = waitUntil ? Math.max(0, Math.ceil((waitUntil - now) / 1000)) : 0;
+  const showError = !!error && left === 0;
+  useEffect(() => {
+    if (!waitUntil) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [waitUntil]);
+  useEffect(() => {
+    if (waitUntil && left === 0) setWaitUntil(null);
+  }, [waitUntil, left]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (left > 0) return;
     setLoading(true);
     setError(null);
     try {
@@ -27,23 +47,28 @@ export function LoginForm({ initialEmail }: { initialEmail?: string }) {
       if (r.status === 403) {
         // Org rechazada o suspendida: el motivo viene de la API.
         const d = (await r.json().catch(() => ({}))) as { message?: string };
-        setError(d.message ?? "Esta organización no está habilitada.");
+        setError({ title: d.message ?? "Esta organización no está habilitada." });
+        return;
+      }
+      if (r.status === 429) {
+        const sec = Number(r.headers.get("retry-after")) || 60;
+        setNow(Date.now());
+        setWaitUntil(Date.now() + sec * 1000);
+        setError(null);
         return;
       }
       if (!r.ok) {
         setError(
           r.status === 401
-            ? "Credenciales inválidas."
-            : r.status === 429
-              ? "Demasiados intentos. Esperá unos minutos y volvé a probar."
-              : `Error (${r.status})`,
+            ? { title: "El email o la contraseña no coinciden.", detail: "Revisá que el email sea el que usás en este espacio." }
+            : { title: `No pudimos ingresar (error ${r.status}).`, detail: "Probá de nuevo en un rato." },
         );
         return;
       }
       const data = (await r.json()) as { redirect: string };
       window.location.assign(data.redirect);
     } catch {
-      setError("No se pudo conectar.");
+      setError({ title: "No se pudo conectar.", detail: "Revisá la señal y probá de nuevo." });
     } finally {
       setLoading(false);
     }
@@ -51,50 +76,41 @@ export function LoginForm({ initialEmail }: { initialEmail?: string }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="login-email" className="mb-1 block text-sm text-stone-600">Email</label>
-        <input
-          id="login-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="username"
-          required
-          className="w-full rounded-lg border border-stone-200 bg-surface px-4 py-2.5 text-sm outline-none transition placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
-          placeholder="vos@organizacion.com"
-        />
-      </div>
-      <div>
-        <label htmlFor="login-password" className="mb-1 block text-sm text-stone-600">Contraseña</label>
-        <input
-          id="login-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-          className="w-full rounded-lg border border-stone-200 bg-surface px-4 py-2.5 text-sm outline-none transition placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
-          placeholder="••••••••"
-        />
-      </div>
-
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </div>
+      {left > 0 && (
+        <AuthNotice zone="warn" title="Demasiados intentos.">
+          Probá de nuevo en{" "}
+          <span className="font-display text-[17px] font-bold tabular-nums text-stone-900" aria-live="off">
+            {clock(left)}
+          </span>
+          . <AuthLink href="/olvide" className="min-h-0">Restablecer la contraseña</AuthLink>
+        </AuthNotice>
       )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-brand-fg transition hover:brightness-110 disabled:opacity-50"
-      >
-        {loading ? "Ingresando…" : "Ingresar"}
-      </button>
-      <p className="text-center text-sm">
-        <a href="/olvide" className="text-stone-600 underline-offset-4 hover:text-brand hover:underline">
-          ¿Olvidaste tu contraseña?
-        </a>
+      {showError && <AuthNotice zone="bad" title={error!.title}>{error!.detail}</AuthNotice>}
+      <AuthField
+        label="Email"
+        type="email"
+        inputMode="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        autoComplete="username"
+        required
+        placeholder="vos@club.com"
+        aria-invalid={showError ? true : undefined}
+      />
+      <PasswordField
+        label="Contraseña"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        autoComplete="current-password"
+        required
+        placeholder="Tu contraseña"
+        aria-invalid={showError ? true : undefined}
+      />
+      <AuthButton type="submit" disabled={loading || left > 0} className="!mt-6">
+        {loading ? "Ingresando…" : left > 0 ? "Esperá un momento" : "Ingresar"}
+      </AuthButton>
+      <p className="text-center">
+        <AuthLink href="/olvide">¿Olvidaste tu contraseña?</AuthLink>
       </p>
     </form>
   );
