@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { GROUP_SWEAT_MAX, sweatTestResults, type GroupDetailDto } from "@nutreitor/shared";
 
+import { FieldMode, type FieldStep } from "@/components/field/field-mode";
 import { fmt, parseDecimal } from "@/components/patients/anthro-format";
 import { Alert, Button, Input, Loading, PageHeader, cn, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
@@ -44,6 +45,8 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
   const [restored, setRestored] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  // Modo cancha (KAN-74): antes de la sesión se pesa a todos; después, el resto.
+  const [field, setField] = useState<"antes" | "despues" | null>(null);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -147,6 +150,36 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
   if (!group) return <Loading />;
   const members = group.members;
 
+  const FIELD_LIMITS: Record<keyof RowDraft, [number, number]> = { pre: [25, 250], post: [25, 250], intake: [0, 6000], urine: [0, 3000] };
+  function fieldSteps(moment: "antes" | "despues"): FieldStep[] {
+    const keys: (keyof RowDraft)[] = moment === "antes" ? ["pre"] : ["post", "intake", "urine"];
+    return members.flatMap((m) =>
+      keys.map((k) => {
+        const col = COLS.find((c) => c.key === k)!;
+        const r = resultFor(s.rows[m.patientId]);
+        return {
+          id: `${m.patientId}:${k}`,
+          who: m.fullName,
+          key: k,
+          label: col.label,
+          unit: col.unit,
+          sub: moment === "antes" ? "Antes de la sesión" : "Después de la sesión",
+          value: s.rows[m.patientId]?.[k] ?? "",
+          min: FIELD_LIMITS[k][0],
+          max: FIELD_LIMITS[k][1],
+          hint:
+            k !== "pre" && r ? (
+              <span className="font-display font-semibold tabular-nums">
+                Perdió {fmt(r.dehydrationPct)} % · {fmt(r.sweatRateLh, 2)} L/h
+              </span>
+            ) : k === "post" && s.rows[m.patientId]?.pre ? (
+              <span className="font-display font-semibold tabular-nums">Antes {s.rows[m.patientId]!.pre} kg</span>
+            ) : null,
+        };
+      }),
+    );
+  }
+
   return (
     <div className="space-y-5">
       <Link href={`${basePath}/${id}`} className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-brand">
@@ -165,6 +198,15 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
           </button>
         </Alert>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => setField("antes")} disabled={members.length === 0}>
+          <Smartphone className="h-4 w-4" aria-hidden /> Modo cancha: antes
+        </Button>
+        <Button variant="secondary" onClick={() => setField("despues")} disabled={members.length === 0}>
+          <Smartphone className="h-4 w-4" aria-hidden /> Modo cancha: después
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Field label="Fecha">
@@ -245,6 +287,24 @@ export function GroupHydrationSheet({ id, basePath }: { id: string; basePath: st
           </Button>
         </div>
       </div>
+
+      {field && (
+        <FieldMode
+          title={`${group.name} · ${field === "antes" ? "Antes" : "Después"}`}
+          steps={fieldSteps(field)}
+          targets={[
+            { key: "pre", label: "Peso antes", aliases: ["antes"] },
+            { key: "post", label: "Peso después", aliases: ["despues", "peso"] },
+            { key: "intake", label: "Tomó", aliases: ["tomo", "bebio", "liquido"] },
+            { key: "urine", label: "Orinó", aliases: ["orino", "orina"] },
+          ]}
+          onChange={(stepId, v) => {
+            const [pid, k] = stepId.split(":") as [string, keyof RowDraft];
+            setRow(pid, k, v);
+          }}
+          onClose={() => setField(null)}
+        />
+      )}
     </div>
   );
 }

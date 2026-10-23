@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, FlaskConical } from "lucide-react";
+import { ArrowLeft, FlaskConical, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
@@ -16,6 +16,8 @@ import {
   type GroupMemberDto,
 } from "@nutreitor/shared";
 
+import { anthroStep } from "@/components/field/anthro-steps";
+import { FieldMode, type FieldStep } from "@/components/field/field-mode";
 import { fmt, parseDecimal, val } from "@/components/patients/anthro-format";
 import { Alert, Button, Input, Loading, PageHeader, cn, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
@@ -73,6 +75,8 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
   const [restored, setRestored] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
+  // Modo cancha (KAN-74): índice donde quedó, para retomar.
+  const [field, setField] = useState<number | null>(null);
   const loaded = useRef(false);
   const cells = useRef(new Map<string, HTMLInputElement>());
 
@@ -154,6 +158,18 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
         return;
       }
     }
+  }
+
+  /** Celdas de la pasada actual, deportista por deportista (como se mide en el campo). */
+  function fieldSteps(): FieldStep[] {
+    const out: FieldStep[] = [];
+    for (const m of members) {
+      for (const s of sites) {
+        if (!editable(m.patientId, s.key)) continue;
+        out.push(anthroStep(`${m.patientId}:${s.key}`, m.fullName, s.key, draft[m.patientId]?.[s.key], pass));
+      }
+    }
+    return out;
   }
 
   async function discard() {
@@ -247,6 +263,9 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
       )}
 
       <div className="flex flex-wrap items-end gap-4">
+        <Button variant="secondary" onClick={() => setField(0)} disabled={members.length === 0}>
+          <Smartphone className="h-4 w-4" aria-hidden /> Modo cancha
+        </Button>
         <label className="text-sm text-stone-700">
           <span className="mb-1 block text-xs text-stone-500">Fecha de la medición</span>
           <Input type="date" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)} className="w-auto" />
@@ -362,6 +381,20 @@ export function GroupAnthropometrySheet({ id, basePath }: { id: string; basePath
           </Button>
         </div>
       </div>
+      {field !== null && (
+        <FieldMode
+          title={`${group.name} · Pasada ${pass + 1}`}
+          steps={fieldSteps()}
+          targets={sites.map((s) => ({ key: s.key, label: s.label }))}
+          start={field}
+          onChange={(stepId, v) => {
+            const [pid, key] = stepId.split(":") as [string, AnthroSiteKey];
+            set(pid, key, pass, v);
+          }}
+          onClose={() => setField(null)}
+        />
+      )}
     </div>
   );
 }
+

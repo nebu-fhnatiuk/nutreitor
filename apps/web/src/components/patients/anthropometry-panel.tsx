@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, Pencil, Plus, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ANTHROPOMETRY_VALIDATED,
@@ -21,6 +21,8 @@ import {
 } from "@nutreitor/shared";
 
 import { Alert, Button, Card, EmptyState, Input, Label, Loading, Modal, SectionHeading, Select, Textarea, Toggle, cn, useFeedback } from "@/components/ui";
+import { anthroStep, takeApplies, type Take } from "@/components/field/anthro-steps";
+import { FieldMode } from "@/components/field/field-mode";
 import { api, errorMessage } from "@/lib/api";
 
 import { fmt, fmtMeasured, parseDecimal, val } from "./anthro-format";
@@ -454,6 +456,7 @@ function SessionForm({
   const [note, setNote] = useState(initial?.note ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [field, setField] = useState(false);
 
   const takes = useMemo(() => draftTakes(draft), [draft]);
   const preview = useMemo(
@@ -509,6 +512,9 @@ function SessionForm({
             <input type="checkbox" checked={kerrBlock} onChange={(e) => setKerrBlock(e.target.checked)} />
             Incluir el bloque de Kerr (fraccionamiento en 5 componentes)
           </label>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setField(true)}>
+            <Smartphone className="h-4 w-4" aria-hidden /> Modo cancha
+          </Button>
         </div>
         <p className="text-xs text-stone-500">
           Dos tomas por sitio. Si difieren más de 5% (pliegues) o 1% (el resto), se pide la tercera y se usa la mediana.
@@ -585,6 +591,22 @@ function SessionForm({
           </Button>
         </div>
       </form>
+    {field && (
+        <FieldMode
+          title={`Medición ${measuredAt.split("-").reverse().join("/")}`}
+          steps={([0, 1, 2] as Take[]).flatMap((t) =>
+            sites
+              .filter((x) => takeApplies(x.key, draft[x.key], t))
+              .map((x) => ({ ...anthroStep(`${x.key}:${t}`, `Toma ${t + 1}`, x.key, draft[x.key], t), sub: undefined })),
+          )}
+          targets={sites.map((x) => ({ key: x.key, label: x.label }))}
+          onChange={(stepId, v) => {
+            const [key, t] = stepId.split(":") as [AnthroSiteKey, string];
+            set(key, Number(t) as Take, v);
+          }}
+          onClose={() => setField(false)}
+        />
+      )}
     </Modal>
   );
 }

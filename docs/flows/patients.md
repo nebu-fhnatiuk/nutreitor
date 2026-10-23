@@ -292,6 +292,11 @@ flowchart LR
 - El borrador de la planilla vive en el navegador (`localStorage`, por grupo) hasta
   guardar o descartar.
 - Hasta 60 deportistas por carga; los que quedan vacíos no se envían.
+- **Modo cancha** ([ADR 0039](../decisions/0039-modo-cancha.md)): desde la planilla
+  (antropometría del plantel o individual, e hidratación antes y después) se abre una
+  vista de pantalla completa para el celular: un sitio por vez, teclado grande y
+  dictado por voz ("tríceps doce coma cinco"). Escribe en el mismo borrador de la
+  planilla; se guarda desde la planilla, como siempre.
 
 **Pizarra del plantel** (KAN-70): el grupo abre en una grilla de tarjetas, una por
 deportista visible, con un semáforo y ordenada por quién necesita atención.
