@@ -12,6 +12,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { ReportsService } from "./reports.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Reportes mensuales de un paciente (equipo con acceso a la ficha). */
 @Controller("patients/:patientId/reports")
@@ -20,6 +21,7 @@ export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
   @Get()
+  @LogsAccess("reports", { patientParam: "patientId" })
   @RequireCapability("patient:read")
   list(@Param("patientId", new ParseUUIDPipe()) patientId: string): Promise<PatientReportDto[]> {
     return this.reports.list(patientId);
@@ -35,6 +37,7 @@ export class ReportsController {
   }
 
   @Get(":id")
+  @LogsAccess("report", { patientParam: "patientId", targetParam: "id" })
   @RequireCapability("patient:read")
   get(
     @Param("patientId", new ParseUUIDPipe()) patientId: string,

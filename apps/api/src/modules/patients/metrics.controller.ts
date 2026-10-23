@@ -21,6 +21,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { MetricsService } from "./metrics.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /**
  * Mediciones (serie temporal) de un paciente. Ruta anidada bajo el paciente; el
@@ -32,6 +33,7 @@ export class MetricsController {
   constructor(private readonly metrics: MetricsService) {}
 
   @Get()
+  @LogsAccess("metrics", { patientParam: "patientId" })
   @RequireCapability("metric:read")
   list(@Param("patientId") patientId: string): Promise<PatientMetricDto[]> {
     return this.metrics.list(patientId);

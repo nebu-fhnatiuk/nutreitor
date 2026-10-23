@@ -6,6 +6,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { RecallsService } from "./recalls.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Recordatorios de 24 h de un paciente (ADR 0033). */
 @Controller("patients/:patientId/recalls")
@@ -14,6 +15,7 @@ export class RecallsController {
   constructor(private readonly recalls: RecallsService) {}
 
   @Get()
+  @LogsAccess("recalls", { patientParam: "patientId" })
   @RequireCapability("plan:read")
   list(@Param("patientId", ParseUUIDPipe) patientId: string): Promise<RecallDto[]> {
     return this.recalls.list(patientId);

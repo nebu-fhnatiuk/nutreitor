@@ -32,6 +32,7 @@ export default async function AdminPatientPage({
           canUseAgent={me.modules.includes("agents")}
           canAssign
           canInvite
+          canSeeAccessLog
         />
       </Suspense>
     </WorkspaceShell>

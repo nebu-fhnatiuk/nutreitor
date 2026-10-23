@@ -42,6 +42,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. Matrícula (`license_number`, `license_jurisdiction`, `license_status`, `license_note`): sólo `reviewed` es pública. El rol app no puede escribir `license_status`/`license_note` (GRANT por columna); el trigger `professional_profiles_license_reset` la devuelve a `declared` si cambia la matrícula. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
+| `data_access_log` | Tenant-scoped (RLS) | `tenant_id` | Lecturas de datos de salud por el staff (ADR 0042): quién (`actor_user_id`, `actor_role`), qué (`resource`, CHECK), de qué deportista (`patient_id`, **sin FK**: el rastro sobrevive al borrado) y qué objeto (`target_id`: informe, conversación, grupo). Una fila por ventana de 15 min (`window_start`, índice único `NULLS NOT DISTINCT` + `ON CONFLICT DO NOTHING`). Append-only. El deportista viendo lo suyo no se registra. |
 | `availability_rules` | Tenant-scoped (RLS) | `tenant_id` | Disponibilidad semanal por `membership`, con huso IANA. |
 | `appointments` | Tenant-scoped (RLS) | `tenant_id` | Citas; `starts_at`/`ends_at` UTC. No-overlap por profesional vía `EXCLUDE gist`. Sin DELETE (se cancela). |
 | `agent_conversations` | Tenant-scoped (RLS) | `tenant_id` | Hilo de un agente (NUTRI/CHEF/PSICO), opcionalmente sobre un paciente. |
@@ -87,7 +88,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 `nutreitor_app` recibe:
 
-- `audit_log`, `patient_notes`, `messages`: **sólo `SELECT` + `INSERT`** → append-only, el
+- `audit_log`, `data_access_log`, `patient_notes`, `messages`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
@@ -147,6 +148,7 @@ erDiagram
   organizations ||--o{ availability_rules      : "scopes"
   organizations ||--o{ appointments            : "scopes"
   organizations ||--o{ audit_log              : "scopes (RESTRICT)"
+  organizations ||--o{ data_access_log        : "scopes (RESTRICT)"
   organizations ||--o{ agent_conversations    : "scopes"
   organizations ||--o{ agent_messages         : "scopes"
   organizations ||--o{ agent_runs             : "scopes"
@@ -166,6 +168,7 @@ erDiagram
   users |o--o{ patients        : "portal account (SET NULL)"
   users |o--o{ invitations     : "invited_by (SET NULL)"
   users |o--o{ audit_log       : "actor (SET NULL)"
+  users |o--o{ data_access_log : "reader (SET NULL)"
 
   memberships ||--|| professional_profiles : "public profile (1:1)"
   memberships ||--o{ care_assignments       : "assigned as"
@@ -518,6 +521,19 @@ erDiagram
     text target_type
     uuid target_id
     jsonb metadata
+    timestamptz created_at "append-only"
+  }
+
+  data_access_log {
+    uuid id PK
+    uuid tenant_id FK "RESTRICT"
+    region region
+    uuid actor_user_id FK "SET NULL"
+    membership_role actor_role
+    text resource "patient|metrics|plan|report|conversation|group_board|..."
+    uuid patient_id "sin FK"
+    uuid target_id "informe, conversación o grupo"
+    timestamptz window_start "ventana de 15 min (único)"
     timestamptz created_at "append-only"
   }
 

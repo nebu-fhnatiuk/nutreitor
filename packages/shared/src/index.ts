@@ -35,6 +35,7 @@ export * from "./dtos/module.dto.js";
 export * from "./dtos/portal.dto.js";
 export * from "./dtos/auth.dto.js";
 export * from "./dtos/audit.dto.js";
+export * from "./dtos/access-log.dto.js";
 export * from "./dtos/invitation.dto.js";
 export * from "./dtos/member.dto.js";
 export * from "./dtos/branding.dto.js";

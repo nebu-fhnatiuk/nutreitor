@@ -6,6 +6,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { FoodFrequencyService } from "./food-frequency.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Cuestionarios de frecuencia de consumo de un paciente (ADR 0034). */
 @Controller("patients/:patientId/food-frequency")
@@ -14,6 +15,7 @@ export class FoodFrequencyController {
   constructor(private readonly ffq: FoodFrequencyService) {}
 
   @Get()
+  @LogsAccess("food_frequency", { patientParam: "patientId" })
   @RequireCapability("plan:read")
   list(@Param("patientId", ParseUUIDPipe) patientId: string): Promise<FoodFrequencyDto[]> {
     return this.ffq.list(patientId);

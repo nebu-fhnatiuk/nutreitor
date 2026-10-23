@@ -27,6 +27,7 @@ import { HydrationPanel } from "./hydration-panel";
 import { IntakeTab } from "./intake-tab";
 import { AnthropometryPanel } from "./anthropometry-panel";
 import { AthleteScoreboard } from "./athlete-scoreboard";
+import { AccessLogPanel } from "./access-log-panel";
 import { MOMENTS, resolveTab, tabHref, type Moment, type Section } from "./moments";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -84,6 +85,7 @@ export function PatientDetail({
   canRecord,
   canWritePlan,
   canInvite,
+  canSeeAccessLog = false,
   canEditVisibility,
   canUseAgent,
   canMessage = false,
@@ -96,6 +98,8 @@ export function PatientDetail({
   canRecord: boolean;
   canWritePlan: boolean;
   canInvite: boolean;
+  /** Admin: quién vio los datos del deportista (KAN-23). */
+  canSeeAccessLog?: boolean;
   canEditVisibility: boolean;
   canUseAgent: boolean;
   /** Conversación privada con el paciente: sólo el profesional (ADR 0024), nunca la admin. */
@@ -352,6 +356,7 @@ export function PatientDetail({
             />
           )}
           {!editing && <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />}
+          {!editing && canSeeAccessLog && <AccessLogPanel patientId={p.id} />}
         </div>
       </SlideOver>
 

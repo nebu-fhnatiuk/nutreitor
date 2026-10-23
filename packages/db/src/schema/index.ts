@@ -11,6 +11,7 @@ export * from "./patient-notes.js";
 export * from "./patient-metrics.js";
 export * from "./meal-plans.js";
 export * from "./audit-log.js";
+export * from "./data-access-log.js";
 export * from "./professional-profiles.js";
 export * from "./scheduling.js";
 export * from "./agents.js";
@@ -45,6 +46,7 @@ import { patientNotes } from "./patient-notes.js";
 import { patientMetrics } from "./patient-metrics.js";
 import { mealPlans } from "./meal-plans.js";
 import { auditLog } from "./audit-log.js";
+import { dataAccessLog } from "./data-access-log.js";
 import { professionalProfiles } from "./professional-profiles.js";
 import { availabilityRules, appointments } from "./scheduling.js";
 import { agentConversations, agentMessages, agentRuns, agentConsents } from "./agents.js";
@@ -81,6 +83,7 @@ export const schema = {
   patientMetrics,
   mealPlans,
   auditLog,
+  dataAccessLog,
   professionalProfiles,
   availabilityRules,
   appointments,

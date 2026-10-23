@@ -394,3 +394,32 @@ El portal se puede **instalar como app** (PWA white-label: nombre, color e ícon
 consultorio; arranca en `/app`). El portal invita a instalarla (Android: diálogo
 nativo; iPhone: "Compartir → Agregar a inicio"). Sin conexión muestra un aviso: no
 se guardan datos en el dispositivo ([ADR 0021](../decisions/0021-pwa-white-label-sin-cache.md)).
+
+## Registro de lecturas (quién vio la ficha)
+
+Cada GET del staff que devuelve datos de un deportista deja una fila en
+`data_access_log` (KAN-23, ADR [`0042`](../decisions/0042-registro-de-lecturas-de-datos-de-salud.md)).
+El portal del deportista no se registra.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant W as Web (staff)
+  participant C as Controller (@LogsAccess)
+  participant I as AccessLogInterceptor
+  participant DB as Postgres (RLS)
+  W->>C: GET /patients/{id}/metrics
+  C->>DB: lectura bajo el tenant
+  DB-->>C: filas
+  C-->>I: respuesta
+  I->>DB: INSERT data_access_log ... ON CONFLICT DO NOTHING (ventana 15 min)
+  alt el registro falla
+    I-->>W: error (fail-closed)
+  else ok
+    I-->>W: respuesta
+  end
+```
+
+La admin lo consulta en la ficha clínica ("Quién vio esta ficha"), que usa
+`GET /access-log?patientId=` con la capacidad `audit:read`.
+

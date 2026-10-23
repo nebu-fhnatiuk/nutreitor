@@ -10,6 +10,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AnthropometryService } from "./anthropometry.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Sesiones de antropometría ISAK de un paciente (ADR 0030). */
 @Controller("patients/:patientId/anthropometry")
@@ -18,6 +19,7 @@ export class AnthropometryController {
   constructor(private readonly anthro: AnthropometryService) {}
 
   @Get()
+  @LogsAccess("anthropometry", { patientParam: "patientId" })
   @RequireCapability("metric:read")
   list(@Param("patientId", ParseUUIDPipe) patientId: string): Promise<AnthropometrySessionDto[]> {
     return this.anthro.list(patientId);
