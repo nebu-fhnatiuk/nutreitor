@@ -219,6 +219,14 @@ flowchart LR
   G --> H["Editor del plan: objetivo diario o un objetivo por día"]
 ```
 
+- **Tira de la semana** (KAN-73, `components/patients/week-strip.tsx`): los 7 días
+  como un gráfico de carga. La altura es la energía del día; el color, el tipo de día
+  (partido = segundo color del club, entrenamiento = marca, descanso = neutro), con
+  el nombre escrito. Muestra kcal y g de CHO. El mismo componente aparece en el
+  requerimiento (semana tipo), en el editor del plan semanal (tocar un día lo
+  edita) y en el plan, con hoy marcado. En el portal suma la línea "Hoy: partido ·
+  3.416 kcal · 501 g de carbohidratos".
+
 **Recordatorio de 24 h** ([ADR 0033](../decisions/0033-recordatorio-de-24-horas.md)) —
 sección "Ingesta" (momento Evaluar) de la ficha. `GET/POST /patients/{id}/recalls`, `PUT/DELETE
 …/{recallId}` (`plan:read` / `plan:write`, profesional → asignados).

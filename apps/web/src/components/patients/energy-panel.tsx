@@ -18,12 +18,14 @@ import {
   type SaveEnergyDto,
   type SourcedValue,
   type Weekday,
+  dayKind,
 } from "@nutreitor/shared";
 
 import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, Select, Textarea, cn } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 
 import { fmt, fmtMeasured, parseDecimal } from "./anthro-format";
+import { WeekStrip } from "./week-strip";
 
 const WEEKDAY_SHORT: Record<Weekday, string> = { mon: "Lun", tue: "Mar", wed: "Mié", thu: "Jue", fri: "Vie", sat: "Sáb", sun: "Dom" };
 
@@ -240,17 +242,24 @@ function ResultsView({ inputs, results }: { inputs: Omit<SaveEnergyDto, "note">;
             </table>
           </div>
           {Object.keys(inputs.week).length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-stone-100 px-5 py-3 text-xs text-stone-600">
-              <span className="text-stone-500">Semana tipo:</span>
-              {weekdays.map((wd) => {
-                const d = days.find((x) => x.id === inputs.week[wd]);
-                return (
-                  <span key={wd} className="rounded-full bg-stone-100 px-2 py-0.5">
-                    {WEEKDAY_SHORT[wd]} {d ? d.name : "—"}
-                  </span>
-                );
-              })}
-              {results.weekAvgKcal !== null && <span className="ml-auto font-medium text-stone-800">Promedio {results.weekAvgKcal} kcal/día</span>}
+            <div className="border-t border-stone-100 px-5 py-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-display text-sm font-semibold uppercase tracking-wider text-stone-500">Semana tipo</p>
+                {results.weekAvgKcal !== null && (
+                  <p className="text-sm text-stone-600">
+                    Promedio <span className="font-display text-lg font-bold tabular-nums text-stone-900">{results.weekAvgKcal.toLocaleString("es-AR")}</span> kcal/día
+                  </p>
+                )}
+              </div>
+              <WeekStrip
+                days={weekdays.flatMap((wd) => {
+                  const d = days.find((x) => x.id === inputs.week[wd]);
+                  const def = inputs.dayTypes.find((x) => x.id === inputs.week[wd]);
+                  return d
+                    ? [{ weekday: wd, label: d.name, kind: dayKind(d.name, def?.sessions.length), kcal: d.targetKcal, choG: d.choG }]
+                    : [];
+                })}
+              />
             </div>
           )}
         </Card>

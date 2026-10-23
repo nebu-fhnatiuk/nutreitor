@@ -117,6 +117,11 @@ const weekLayoutSchema = z.object({
    * El día que no tiene usa `targets`.
    */
   dayTargets: z.record(z.enum(weekdays), macrosSchema).optional(),
+  /**
+   * Nombre del tipo de día ("Partido", "Descanso"), copiado del requerimiento al
+   * aplicar la semana tipo (KAN-73). Lo usan la tira de la semana y el portal.
+   */
+  dayLabels: z.record(z.enum(weekdays), z.string().trim().min(1).max(40)).optional(),
   generalNotes: z.string().max(4000).optional(),
 });
 

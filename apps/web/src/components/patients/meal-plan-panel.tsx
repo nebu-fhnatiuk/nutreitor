@@ -26,11 +26,13 @@ import {
   type PlanDraftedFrom,
   type PlanTemplateDto,
   type Weekday,
+  dayKind,
 } from "@nutreitor/shared";
 
 import { api, errorMessage } from "@/lib/api";
 import { FoodPicker } from "./food-picker";
 import { ShoppingListView } from "./shopping-list";
+import { WeekStrip, todayWeekday } from "./week-strip";
 import { Alert, Button, Input, Label, Modal, useFeedback } from "@/components/ui";
 
 const inputCls =
@@ -228,6 +230,44 @@ export function MealPlanPanel({
   );
 }
 
+/**
+ * Periodización visible en el plan (KAN-73): la tira de la semana con hoy marcado.
+ * En el portal, además, una línea que dice qué día es hoy ("Hoy: partido").
+ */
+function PlanWeekStrip({
+  body,
+  forPatient,
+  compact,
+}: {
+  body: Extract<MealPlanBody, { layout: "week" }>;
+  forPatient: boolean;
+  compact?: boolean;
+}) {
+  const today = todayWeekday();
+  const t = body.dayTargets?.[today];
+  const label = body.dayLabels?.[today];
+  const days = weekdays.flatMap((wd) => {
+    const m = body.dayTargets?.[wd];
+    if (!m) return [];
+    const l = body.dayLabels?.[wd];
+    return [{ weekday: wd, label: l, kind: l ? dayKind(l) : undefined, kcal: m.kcal ?? null, choG: m.carbs_g ?? null }];
+  });
+  return (
+    <div className="mt-4 space-y-3">
+      {forPatient && t && (
+        <p className="rounded-xl border border-accent2/40 bg-accent2/10 px-4 py-3 text-sm text-stone-700">
+          <span className="font-display text-base font-bold uppercase tracking-wide text-stone-900">
+            Hoy{label ? `: ${label.toLowerCase()}` : ""}
+          </span>
+          {t.kcal != null && <> · {t.kcal.toLocaleString("es-AR")} kcal</>}
+          {t.carbs_g != null && <> · {Math.round(t.carbs_g)} g de carbohidratos</>}
+        </p>
+      )}
+      {!compact && <WeekStrip days={days} today={today} />}
+    </div>
+  );
+}
+
 export function PlanView({
   plan,
   compact,
@@ -274,6 +314,10 @@ export function PlanView({
           <span className="uppercase tracking-widest text-stone-500">Objetivo</span>{" "}
           {macroLine(body.targets)}
         </p>
+      )}
+
+      {body.layout === "week" && body.dayTargets && Object.keys(body.dayTargets).length > 0 && (
+        <PlanWeekStrip body={body} forPatient={forPatient} compact={compact} />
       )}
 
       <div className="mt-3 space-y-4">
@@ -608,6 +652,10 @@ function PlanEditor({
   const [dayTargets, setDayTargets] = useState<Partial<Record<Weekday, Macros>>>(
     initial?.body.layout === "week" ? (initial.body.dayTargets ?? {}) : {},
   );
+  // Nombre del tipo de día ("Partido"), del requerimiento (KAN-73).
+  const [dayLabels, setDayLabels] = useState<Partial<Record<Weekday, string>>>(
+    initial?.body.layout === "week" ? (initial.body.dayLabels ?? {}) : {},
+  );
   const { confirm, toast } = useFeedback();
   const [templates, setTemplates] = useState<PlanTemplateDto[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -661,11 +709,16 @@ function PlanEditor({
     const dayTargetsClean = Object.fromEntries(
       weekdays.flatMap((d) => (dayTargets[d] && hasMacros(dayTargets[d]!) ? [[d, cleanMacros(dayTargets[d]!)!]] : [])),
     ) as Partial<Record<Weekday, Macros>>;
+    // El nombre sólo viaja con un objetivo para ese día.
+    const dayLabelsClean = Object.fromEntries(
+      weekdays.flatMap((d) => (dayTargetsClean[d] && dayLabels[d]?.trim() ? [[d, dayLabels[d]!.trim()]] : [])),
+    ) as Partial<Record<Weekday, string>>;
     return {
       layout: "week",
       days,
       ...targetsClean,
       ...(Object.keys(dayTargetsClean).length ? { dayTargets: dayTargetsClean } : {}),
+      ...(Object.keys(dayLabelsClean).length ? { dayLabels: dayLabelsClean } : {}),
       ...notesClean,
     };
   }
@@ -681,6 +734,7 @@ function PlanEditor({
     setActiveDay("mon");
     if (body.targets) setTargets(body.targets);
     setDayTargets(body.layout === "week" ? (body.dayTargets ?? {}) : {});
+    setDayLabels(body.layout === "week" ? (body.dayLabels ?? {}) : {});
     if (body.generalNotes) setGeneralNotes(body.generalNotes);
   }
 
@@ -829,8 +883,9 @@ function PlanEditor({
           patientId={patientId}
           weekLayout={layout === "week"}
           onDay={(m) => setTargets(m)}
-          onWeek={(byDay) => {
+          onWeek={(byDay, labels) => {
             setDayTargets(byDay);
+            setDayLabels(labels);
             toast("Objetivos por día cargados desde la semana tipo");
           }}
         />
@@ -861,6 +916,18 @@ function PlanEditor({
         </div>
       ) : (
         <div className="space-y-3">
+          {Object.keys(dayTargets).length > 0 && (
+            <WeekStrip
+              days={weekdays.flatMap((wd) => {
+                const t = dayTargets[wd];
+                if (!t) return [];
+                const label = dayLabels[wd];
+                return [{ weekday: wd, label, kind: label ? dayKind(label) : undefined, kcal: t.kcal ?? null, choG: t.carbs_g ?? null }];
+              })}
+              selected={activeDay}
+              onSelect={setActiveDay}
+            />
+          )}
           <WeekdayTabs active={activeDay} week={week} onSelect={setActiveDay} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-stone-500">
@@ -882,13 +949,18 @@ function PlanEditor({
             day={activeDay}
             value={dayTargets[activeDay]}
             onChange={(m) => setDayTargets((t) => ({ ...t, [activeDay]: m }))}
-            onClear={() =>
+            onClear={() => {
               setDayTargets((t) => {
                 const next = { ...t };
                 delete next[activeDay];
                 return next;
-              })
-            }
+              });
+              setDayLabels((l) => {
+                const next = { ...l };
+                delete next[activeDay];
+                return next;
+              });
+            }}
           />
           <DayTotals meals={week[activeDay] ?? []} targets={cleanMacros(dayTargets[activeDay] ?? targets)} />
         </div>
@@ -1468,7 +1540,7 @@ function EnergyTargetsPicker({
   patientId: string;
   weekLayout: boolean;
   onDay: (m: Macros) => void;
-  onWeek: (byDay: Partial<Record<Weekday, Macros>>) => void;
+  onWeek: (byDay: Partial<Record<Weekday, Macros>>, labels: Partial<Record<Weekday, string>>) => void;
 }) {
   const [req, setReq] = useState<EnergyRequirementDto | null | undefined>(undefined);
   useEffect(() => {
@@ -1499,7 +1571,10 @@ function EnergyTargetsPicker({
         <button
           type="button"
           onClick={() =>
-            onWeek(Object.fromEntries(weekdays.map((wd) => [wd, dayTypeTargets(byId.get(req.week[wd]!)!)])) as Partial<Record<Weekday, Macros>>)
+            onWeek(
+              Object.fromEntries(weekdays.map((wd) => [wd, dayTypeTargets(byId.get(req.week[wd]!)!)])) as Partial<Record<Weekday, Macros>>,
+              Object.fromEntries(weekdays.map((wd) => [wd, byId.get(req.week[wd]!)!.name])) as Partial<Record<Weekday, string>>,
+            )
           }
           className="rounded-full bg-brand/10 px-2.5 py-1 font-medium text-brand transition hover:bg-brand/15"
         >

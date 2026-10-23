@@ -39,6 +39,11 @@ carbohidratos.
   objetivo diario. En un plan semanal, "Aplicar la semana tipo" carga un **objetivo por
   día** (`dayTargets`, campo nuevo y opcional del layout `week`). El día sin objetivo
   propio usa el diario.
+  *Actualización (KAN-73):* también copia el **nombre del tipo de día**
+  (`dayLabels`, opcional, sólo para días con objetivo). Sin él, el plan no sabe qué día
+  es de partido. Con él, el portal muestra "Hoy: partido". El tipo (partido,
+  entrenamiento, descanso) se deriva del nombre y de las sesiones (`dayKind`); no se
+  guarda.
 - **Permisos y scoping**: los del plan (`plan:read`, `plan:write`; profesional →
   asignados).
 
