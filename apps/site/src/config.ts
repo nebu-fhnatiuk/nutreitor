@@ -15,5 +15,5 @@ export const site = {
   name: "Nutreitor",
   tagline: "La plataforma del nutricionista deportivo",
   description:
-    "Planes por día de entrenamiento, composición corporal y seguimiento de cada deportista en un solo lugar. Para nutricionistas deportivos, clubes y gimnasios.",
+    "Antropometría ISAK, planes por día de partido, entreno o descanso, la pizarra del plantel y el portal de cada deportista con los colores de su club. Para nutricionistas deportivos, clubes y gimnasios.",
 };

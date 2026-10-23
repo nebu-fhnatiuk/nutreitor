@@ -1,9 +1,9 @@
 ---
-/** Marca: cuadrado de acento + nombre en minúsculas. */
+/** Marca: círculo con los dos colores (el del club de ejemplo) + nombre condensado. */
 ---
 <a href="/" class="logo" aria-label="Nutreitor, inicio">
   <span class="mark" aria-hidden="true"></span>
-  <span class="name">nutreitor</span>
+  <span class="name">NUTREITOR</span>
 </a>
 
 <style>
@@ -16,14 +16,16 @@
     min-height: 44px;
   }
   .mark {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--accent);
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--brand);
+    box-shadow: 0 0 0 3px var(--accent2);
   }
   .name {
+    font-family: var(--font-display);
     font-weight: 800;
-    font-size: 20px;
-    letter-spacing: -0.02em;
+    font-size: 24px;
+    letter-spacing: 0.08em;
   }
 </style>

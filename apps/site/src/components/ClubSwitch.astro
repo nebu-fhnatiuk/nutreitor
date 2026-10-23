@@ -1,0 +1,94 @@
+---
+/**
+ * "Probalo con tus colores" (KAN-78): cambia en vivo los colores del club de
+ * ejemplo en toda la página (las variables `--brand*` y `--accent2*` de :root),
+ * como hace la marca del club en la app (KAN-69). Los tonos de texto ya vienen
+ * ajustados a AA sobre el fondo claro.
+ */
+const clubs = [
+  { name: "Verde y naranja", brand: "#107a57", fg: "#ffffff", ink: "#107a57", a: "#f28c28", aInk: "#a35208" },
+  { name: "Azul y oro", brand: "#1d4ed8", fg: "#ffffff", ink: "#1d4ed8", a: "#facc15", aInk: "#7a5b00" },
+  { name: "Rojo y blanco", brand: "#c8102e", fg: "#ffffff", ink: "#b00d27", a: "#f3f4f6", aInk: "#b00d27" },
+];
+---
+<div class="switch">
+  <span class="label" id="club-switch-label">Probalo con tus colores</span>
+  <div class="swatches" role="group" aria-labelledby="club-switch-label">
+    {clubs.map((c, i) => (
+      <button
+        type="button"
+        class="sw"
+        aria-pressed={i === 0 ? "true" : "false"}
+        aria-label={`Colores ${c.name}`}
+        data-brand={c.brand}
+        data-fg={c.fg}
+        data-ink={c.ink}
+        data-a={c.a}
+        data-a-ink={c.aInk}
+        style={`--sw:${c.brand};--sw2:${c.a}`}
+      >
+        <span aria-hidden="true"></span>
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".switch .sw");
+  buttons.forEach((b) =>
+    b.addEventListener("click", () => {
+      const d = b.dataset;
+      root.style.setProperty("--brand", d.brand!);
+      root.style.setProperty("--brand-fg", d.fg!);
+      root.style.setProperty("--brand-ink", d.ink!);
+      root.style.setProperty("--accent2", d.a!);
+      root.style.setProperty("--accent2-ink", d.aInk!);
+      buttons.forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    }),
+  );
+</script>
+
+<style>
+  .switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: center;
+  }
+  .label {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .swatches {
+    display: flex;
+    gap: 12px;
+  }
+  .sw {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    background: var(--sw);
+    box-shadow: 0 0 0 2px var(--line);
+    transition: box-shadow 0.15s;
+  }
+  .sw[aria-pressed="true"] {
+    box-shadow: 0 0 0 4px var(--ink);
+  }
+  .sw span {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--sw2);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+  }
+</style>

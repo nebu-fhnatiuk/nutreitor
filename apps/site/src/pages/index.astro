@@ -1,7 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
-import PlanMock from "../components/PlanMock.astro";
-import Feature from "../components/Feature.astro";
+import PhoneMock from "../components/PhoneMock.astro";
+import ClubSwitch from "../components/ClubSwitch.astro";
+import PitchBand from "../components/PitchBand.astro";
+import Moments from "../components/Moments.astro";
 import Trust from "../components/Trust.astro";
 import Steps from "../components/Steps.astro";
 import Faq from "../components/Faq.astro";
@@ -36,67 +38,52 @@ const faq = [
   <section class="wrap hero">
     <div class="copy">
       <p class="eyebrow">Nutrición deportiva</p>
-      <h1 class="h1">La plataforma del nutricionista deportivo.</h1>
+      <h1 class="h1">Cada deportista sabe qué le toca hoy.</h1>
       <p class="lead">
-        Planes para el día de partido y el de descanso, seguimiento de la composición corporal y un
-        portal donde cada deportista ve lo que le toca hoy. Para tu consultorio, tu club o tu gimnasio.
+        El plan cambia si hay partido, entreno o descanso. Vos medís y prescribís; el deportista lo ve en su
+        celular, con los colores de su club. Para tu consultorio, tu club o tu gimnasio.
       </p>
       <div class="actions">
         <a class="btn btn-primary" href={links.signup}>Creá tu espacio</a>
-        <a class="btn btn-ghost" href="#como">Ver cómo funciona →</a>
+        <a class="btn btn-ghost" href="#como">Ver cómo funciona</a>
       </div>
-      <p class="note">Independiente o con equipo. Revisamos cada alta y cada matrícula.</p>
+      <div class="try"><ClubSwitch /></div>
     </div>
     <div class="visual">
-      <PlanMock />
+      <PhoneMock />
     </div>
   </section>
 
-  <section id="como" class="band section">
-    <div class="wrap">
-      <h2 class="h2 narrow">Del primer contacto a la competencia, todo el seguimiento en un lugar.</h2>
-      <div class="grid-auto features">
-        <Feature eyebrow="01 · Captar" title="Que los deportistas te encuentren">
-          Tu vidriera con tu especialidad y tu matrícula, turnos online y consultas que te llegan sólo a vos.
-        </Feature>
-        <Feature eyebrow="02 · Planificar" title="Planes según la semana de entrenamiento">
-          Un plan distinto para cada día, con macros calculados desde la base de alimentos, recetas,
-          plantillas, intercambios y la lista de compras.
-        </Feature>
-        <Feature eyebrow="03 · Seguir" title="Medir, no intuir">
-          Peso, % graso, masa muscular y medidas en gráficos, el registro de cada comida, chat privado y un
-          reporte mensual para el deportista.
-        </Feature>
+  <PitchBand />
+  <Moments />
+
+  <section id="para-quien" class="night">
+    <div class="wrap section">
+      <p class="eyebrow on-night">Para quién</p>
+      <h2 class="h2 title">Tu club, tu gimnasio o tu consultorio.</h2>
+      <div class="audiences">
+        <a class="aud" href="/clubes">
+          <h3 class="h3">Clubes</h3>
+          <p>Varios nutricionistas, cada deportista con su profesional y la coordinación viendo los números del plantel. Con el escudo y los colores del club.</p>
+          <span class="more">Ver clubes →</span>
+        </a>
+        <a class="aud" href="/gimnasios">
+          <h3 class="h3">Gimnasios</h3>
+          <p>Tus socios reservan con el nutricionista del gimnasio y siguen su plan desde el celular, con tu marca.</p>
+          <span class="more">Ver gimnasios →</span>
+        </a>
+        <div class="aud">
+          <h3 class="h3">Independientes</h3>
+          <p>Corredores, ciclistas, crossfiteros, amateurs y alto rendimiento: tu vidriera con tu matrícula, turnos, planes y el portal de cada deportista.</p>
+        </div>
       </div>
-    </div>
-  </section>
-
-  <section id="para-quien" class="wrap section">
-    <h2 class="h2">Hecho para quienes trabajan con deportistas.</h2>
-    <div class="grid-auto audiences">
-      <Feature eyebrow="Nutricionista deportivo" title="Tu consultorio, sin planillas">
-        Corredores, ciclistas, crossfiteros, deportistas amateurs y de alto rendimiento: cada uno con su
-        plan, su evolución y su portal.
-      </Feature>
-      <a class="audience-link" href="/clubes">
-        <Feature eyebrow="Clubes" title="Todo el plantel, con su equipo de nutrición">
-          Varios nutricionistas, cada deportista con su profesional y la coordinación viendo los números
-          del equipo. Con los colores del club. <span class="more">Ver clubes →</span>
-        </Feature>
-      </a>
-      <a class="audience-link" href="/gimnasios">
-        <Feature eyebrow="Gimnasios" title="Sumá nutrición a tu propuesta">
-          Tus socios reservan con el nutricionista del gimnasio y siguen su plan desde el celular, con tu
-          marca. <span class="more">Ver gimnasios →</span>
-        </Feature>
-      </a>
     </div>
   </section>
 
   <Trust />
   <Steps />
   <Faq items={faq} />
-  <CtaBand />
+  <CtaBand title="El partido empieza en la semana." />
 </Base>
 
 <style>
@@ -105,17 +92,17 @@ const faq = [
     flex-wrap: wrap;
     gap: 48px;
     align-items: center;
-    padding-block: clamp(32px, 6vw, 64px) clamp(56px, 8vw, 80px);
+    padding-block: clamp(32px, 5vw, 56px) clamp(48px, 6vw, 64px);
   }
   .copy {
-    flex: 1 1 460px;
+    flex: 1 1 480px;
     min-width: 0;
   }
-  .copy .eyebrow {
-    margin-bottom: 16px;
+  .copy .h1 {
+    margin-top: 10px;
   }
   .copy .lead {
-    margin: 22px 0 0;
+    margin: 24px 0 0;
     max-width: 34rem;
   }
   .actions {
@@ -125,38 +112,58 @@ const faq = [
     gap: 12px;
     align-items: center;
   }
-  .note {
-    margin: 16px 0 0;
-    font-size: 14px;
-    color: var(--ink-3);
+  .try {
+    margin-top: 36px;
   }
   .visual {
-    flex: 1 1 400px;
+    flex: 1 1 360px;
     min-width: 0;
   }
-  .narrow {
-    max-width: 44rem;
+  .night {
+    background: var(--night);
+    color: #f3f4f6;
   }
-  .features,
+  .on-night {
+    color: var(--accent2);
+  }
+  .title {
+    margin-top: 8px;
+  }
   .audiences {
     margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 20px;
   }
-  .audience-link {
+  .aud {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--night-line);
     color: inherit;
     text-decoration: none;
-    display: flex;
-  }
-  .audience-link > :global(*) {
-    flex: 1;
     transition: border-color 0.15s;
   }
-  .audience-link:hover > :global(*) {
-    border-color: var(--accent);
+  a.aud:hover {
+    border-color: var(--accent2);
+    color: inherit;
+  }
+  .aud p {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--night-ink);
   }
   .more {
-    display: block;
-    margin-top: 10px;
-    color: var(--accent);
+    margin-top: auto;
+    padding-top: 6px;
+    font-family: var(--font-display);
     font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent2);
   }
 </style>

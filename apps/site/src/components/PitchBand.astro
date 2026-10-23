@@ -1,0 +1,52 @@
+---
+/** Banda decorativa con las líneas de la cancha, en el color del club. */
+---
+<div class="pitch" aria-hidden="true">
+  <span class="mid"></span>
+  <span class="circle"></span>
+  <span class="box l"></span>
+  <span class="box r"></span>
+</div>
+
+<style>
+  .pitch {
+    position: relative;
+    height: 120px;
+    overflow: hidden;
+    background: var(--brand);
+    --line-c: rgb(255 255 255 / 0.55);
+  }
+  .mid {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--line-c);
+  }
+  .circle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 150px;
+    height: 150px;
+    margin: -75px 0 0 -75px;
+    border: 3px solid var(--line-c);
+    border-radius: 999px;
+  }
+  .box {
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    width: 90px;
+    border: 3px solid var(--line-c);
+  }
+  .box.l {
+    left: 0;
+    border-left: 0;
+  }
+  .box.r {
+    right: 0;
+    border-right: 0;
+  }
+</style>
