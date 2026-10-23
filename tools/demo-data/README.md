@@ -14,3 +14,27 @@ ADR 0043). Los nombres son inventados, los emails usan el dominio reservado
 
 En la organización `demo` los grupos tienen que existir antes de importar; el seed
 sólo crea `Primera división`. Los otros se crean desde **Grupos**.
+
+## Datos de salud de la demo
+
+`seed-salud.mjs` carga datos **ficticios** a los deportistas del plantel ya
+importado, con los servicios de la API (mismas reglas y auditoría que la pantalla):
+
+- antropometría ISAK completa (con el bloque de Kerr): 3 sesiones en 5 meses, de
+  pretemporada a hoy;
+- peso y cintura cada 2 semanas;
+- a los adultos, además: una prueba de sudoración, el requerimiento con semana tipo
+  (entrenamiento, partido el sábado, descanso), un plan activo, la frecuencia de
+  consumo y 55 días de adherencia con perfiles distintos (cumplidor, intermedio,
+  flojo);
+- el reporte de septiembre publicado para Primera división.
+
+La adherencia la marca el deportista desde el portal; como estos no tienen cuenta,
+el script la escribe directo en la base. Los Sub-17 se asignan al Profesional Demo.
+
+```sh
+docker compose exec -T api sh -c "cd /app && pnpm --filter @nutreitor/api build"
+docker compose exec -T api sh -c "cd /app/apps/api && node --input-type=module < /app/tools/demo-data/seed-salud.mjs"
+```
+
+Es idempotente: saltea a quien ya tiene antropometría.
