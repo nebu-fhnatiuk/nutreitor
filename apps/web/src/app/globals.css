@@ -14,6 +14,14 @@
   --brand-rgb: 16 122 87; /* emerald profundo: buen contraste sobre superficies claras */
   --brand-fg-rgb: 255 255 255; /* texto sobre relleno de marca */
   --accent2-rgb: 242 140 40; /* segundo color del club (naranja por defecto) */
+  /* Paleta del club (KAN-69, clubPalette en shared): texto sobre cada color y el
+   * color ajustado a AA para usarlo como texto sobre claro / oscuro. El layout del
+   * tenant las sobrescribe; estos son los valores de los colores por defecto. */
+  --accent2-fg-rgb: 17 24 39;
+  --brand-on-light-rgb: 16 122 87;
+  --brand-on-dark-rgb: 64 149 121;
+  --accent2-on-light-rgb: 163 99 40;
+  --accent2-on-dark-rgb: 242 140 40;
   --surface-rgb: 255 255 255;
   --zone-ok-rgb: 4 120 87;
   --zone-warn-rgb: 180 83 9;
@@ -82,11 +90,29 @@ html:not([data-mode="light"]) [data-theme="estadio"] {
 html:not([data-mode="light"]) body:has([data-theme="estadio"]) {
   background-color: rgb(11 15 20);
 }
-/* El color de marca del tenant suele ser oscuro: como TEXTO sobre grafito se
- * aclara para llegar a 4.5:1 (los rellenos `bg-brand` quedan intactos). */
+/* Los colores del club como TEXTO usan el tono ajustado a AA sobre grafito
+ * (los rellenos `bg-brand` / `bg-accent2` quedan intactos). */
 html:not([data-mode="light"]) [data-theme="estadio"] :is(.text-brand, .hover\:text-brand:hover) {
-  color: color-mix(in srgb, rgb(var(--brand-rgb)) 55%, white);
+  color: rgb(var(--brand-on-dark-rgb));
 }
+html:not([data-mode="light"]) [data-theme="estadio"] .text-accent2 {
+  color: rgb(var(--accent2-on-dark-rgb));
+}
+/* Líneas y puntos de gráficos: también tienen que leerse (azul marino sobre grafito no). */
+html:not([data-mode="light"]) [data-theme="estadio"] .stroke-brand { stroke: rgb(var(--brand-on-dark-rgb)); }
+html:not([data-mode="light"]) [data-theme="estadio"] .fill-brand { fill: rgb(var(--brand-on-dark-rgb)); }
+}
+/* En claro (o impreso), el mismo ajuste contra blanco: un amarillo de camiseta no se
+ * lee como texto sobre blanco. */
+html[data-mode="light"] [data-theme="estadio"] :is(.text-brand, .hover\:text-brand:hover) {
+  color: rgb(var(--brand-on-light-rgb));
+}
+html[data-mode="light"] [data-theme="estadio"] .text-accent2 {
+  color: rgb(var(--accent2-on-light-rgb));
+}
+@media print {
+  [data-theme="estadio"] :is(.text-brand, .hover\:text-brand:hover) { color: rgb(var(--brand-on-light-rgb)); }
+  [data-theme="estadio"] .text-accent2 { color: rgb(var(--accent2-on-light-rgb)); }
 }
 /* Títulos de página en condensada mayúscula, como un zócalo de TV. */
 [data-theme="estadio"] h1.font-serif {
