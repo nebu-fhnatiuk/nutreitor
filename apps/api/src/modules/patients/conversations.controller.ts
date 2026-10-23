@@ -16,6 +16,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { ConversationsService } from "./conversations.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /**
  * Conversaciones del equipo (ADR 0024). Profesional: con sus pacientes y con la
@@ -56,6 +57,7 @@ export class ConversationsController {
   }
 
   @Get(":id/messages")
+  @LogsAccess("conversation", { targetParam: "id", patientFromConversation: true })
   thread(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Query(new ZodValidationPipe(messagesQuerySchema)) q: MessagesQueryDto,

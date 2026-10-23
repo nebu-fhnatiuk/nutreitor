@@ -20,6 +20,7 @@ import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AnthropometryService } from "./anthropometry.service.js";
 import { GroupBoardService } from "./group-board.service.js";
 import { GroupsService } from "./groups.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /**
  * Grupos de deportistas (ADR 0031): plantel, división o turno. Armar y editar es del
@@ -37,6 +38,7 @@ export class GroupsController {
 
   /** Pizarra del plantel: semáforo por deportista, ordenada por quién necesita atención. */
   @Get(":id/board")
+  @LogsAccess("group_board", { targetParam: "id" })
   @RequireCapability("metric:read")
   board(@Param("id", ParseUUIDPipe) id: string): Promise<GroupBoardDto> {
     return this.boardSvc.board(id);
@@ -97,6 +99,7 @@ export class GroupsController {
 
   /** Resumen del plantel: última antropometría de cada deportista. */
   @Get(":id/anthropometry")
+  @LogsAccess("anthropometry", { targetParam: "id" })
   @RequireCapability("metric:read")
   anthropometry(@Param("id", ParseUUIDPipe) id: string): Promise<GroupAnthropometrySummaryDto> {
     return this.anthro.groupSummary(id);

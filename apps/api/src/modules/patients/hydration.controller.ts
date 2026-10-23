@@ -13,6 +13,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { HydrationService } from "./hydration.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Pruebas de sudoración de un deportista (ADR 0036). */
 @Controller("patients/:patientId/sweat-tests")
@@ -21,6 +22,7 @@ export class HydrationController {
   constructor(private readonly hydration: HydrationService) {}
 
   @Get()
+  @LogsAccess("sweat_tests", { patientParam: "patientId" })
   @RequireCapability("metric:read")
   list(@Param("patientId", ParseUUIDPipe) patientId: string): Promise<SweatTestDto[]> {
     return this.hydration.list(patientId);
@@ -60,6 +62,7 @@ export class GroupHydrationController {
   constructor(private readonly hydration: HydrationService) {}
 
   @Get()
+  @LogsAccess("sweat_tests", { targetParam: "groupId" })
   @RequireCapability("metric:read")
   summary(@Param("groupId", ParseUUIDPipe) groupId: string): Promise<GroupSweatRowDto[]> {
     return this.hydration.groupSummary(groupId);

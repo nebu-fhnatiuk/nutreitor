@@ -32,6 +32,7 @@ import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { CareAssignmentsService } from "./care-assignments.service.js";
 import { PatientNotesService } from "./patient-notes.service.js";
 import { PatientsService } from "./patients.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -66,6 +67,7 @@ export class PatientsController {
   }
 
   @Get(":id")
+  @LogsAccess("patient", { patientParam: "id" })
   @RequireCapability("patient:read")
   getOne(@Param("id") id: string): Promise<PatientDetailDto> {
     return this.patients.getOne(id);
@@ -100,6 +102,7 @@ export class PatientsController {
   // ── Asignaciones (admin) ───────────────────────────────────────────────────
 
   @Get(":id/assignments")
+  @LogsAccess("assignments", { patientParam: "id" })
   @RequireCapability("patient:read")
   listAssignments(@Param("id") id: string): Promise<CareAssignmentDto[]> {
     return this.assignments.listAssignments(id);
@@ -127,6 +130,7 @@ export class PatientsController {
   // ── Notas clínicas ─────────────────────────────────────────────────────────
 
   @Get(":id/notes")
+  @LogsAccess("patient_notes", { patientParam: "id" })
   @RequireCapability("patient:read")
   listNotes(@Param("id") id: string): Promise<PatientNoteDto[]> {
     return this.notes.list(id);

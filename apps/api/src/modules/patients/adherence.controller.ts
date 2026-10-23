@@ -6,6 +6,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AdherenceService } from "./adherence.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /** Adherencia de un paciente (lectura del profesional; el scoping lo hace el service). */
 @Controller("patients/:patientId/adherence")
@@ -14,6 +15,7 @@ export class AdherenceController {
   constructor(private readonly adherence: AdherenceService) {}
 
   @Get()
+  @LogsAccess("adherence", { patientParam: "patientId" })
   @RequireCapability("metric:read")
   list(
     @Param("patientId", new ParseUUIDPipe()) patientId: string,

@@ -464,7 +464,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (365 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (393 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (7 tests)
 ```
 

@@ -17,6 +17,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { MealPlansService } from "./meal-plans.service.js";
+import { LogsAccess } from "../../core/audit/access-log.decorator.js";
 
 /**
  * Planes alimentarios de un paciente (versionados). Ruta anidada; scoping fino
@@ -28,6 +29,7 @@ export class MealPlansController {
   constructor(private readonly plans: MealPlansService) {}
 
   @Get()
+  @LogsAccess("plan", { patientParam: "patientId" })
   @RequireCapability("plan:read")
   list(@Param("patientId") patientId: string): Promise<MealPlanDto[]> {
     return this.plans.list(patientId);
