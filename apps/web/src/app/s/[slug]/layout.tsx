@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 
 import { PwaRegister } from "@/components/pwa/pwa-register";
-import { hexToRgbTriplet } from "@/lib/brand";
 import { appName, DEFAULT_BRAND_HEX } from "@/lib/pwa";
+import { clubPalette, paletteVars } from "@nutreitor/shared";
 import { fetchTenant } from "@/lib/server/api";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -26,8 +26,8 @@ export async function generateViewport({ params }: Params): Promise<Viewport> {
 
 /**
  * Layout del workspace de un tenant. Resuelve la org del slug (subdominio) y
- * aplica el branding white-label: el color primario sobrescribe `--brand-rgb` en
- * runtime (las utilidades `brand` de Tailwind lo consumen), sin recompilar.
+ * aplica el branding white-label: los dos colores del club generan la paleta del
+ * tema (`--brand-*`, `--accent2-*`) en runtime, sin recompilar.
  */
 export default async function TenantLayout({
   children,
@@ -40,8 +40,8 @@ export default async function TenantLayout({
   const org = await fetchTenant(slug);
   if (!org) notFound();
 
-  const brandRgb = hexToRgbTriplet(org.brandPrimaryColor);
-  const style = brandRgb ? ({ "--brand-rgb": brandRgb } as CSSProperties) : undefined;
+  // Paleta del club (KAN-69): los dos colores + texto encima + tonos ajustados a AA.
+  const style = paletteVars(clubPalette(org.brandPrimaryColor, org.brandSecondaryColor)) as CSSProperties;
 
   return (
     <div data-tenant={org.slug} style={style}>

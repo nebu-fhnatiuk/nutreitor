@@ -11,7 +11,7 @@ type Key = "muscle" | "adipose" | "bone" | "residual" | "skin";
  * marca y segundo color del club para músculo y adiposo, y neutros para el resto.
  */
 const PARTS: { key: Key; label: string; kg: keyof PortalKerr; stroke: string; dot: string }[] = [
-  { key: "muscle", label: "Muscular", kg: "muscleKg", stroke: "stroke-brand", dot: "bg-brand" },
+  { key: "muscle", label: "Muscular", kg: "muscleKg", stroke: "stroke-[rgb(var(--brand-rgb))]", dot: "bg-brand" },
   { key: "adipose", label: "Adiposa", kg: "adiposeKg", stroke: "stroke-accent2", dot: "bg-accent2" },
   { key: "bone", label: "Ósea", kg: "boneKg", stroke: "stroke-stone-400", dot: "bg-stone-400" },
   { key: "residual", label: "Residual", kg: "residualKg", stroke: "stroke-sky-500", dot: "bg-sky-500" },

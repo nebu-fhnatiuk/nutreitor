@@ -17,6 +17,7 @@ export * from "./dtos/food-frequency.dto.js";
 export * from "./hydration.js";
 export * from "./dtos/hydration.dto.js";
 export * from "./squad-board.js";
+export * from "./club-palette.js";
 export * from "./dtos/meal-plan.dto.js";
 export * from "./dtos/plan-draft.dto.js";
 export * from "./dtos/adherence.dto.js";

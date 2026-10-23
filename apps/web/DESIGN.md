@@ -18,7 +18,11 @@ cifras y rótulos en **Barlow Condensed** (`font-display`, `tabular-nums`).
 - **Zonas:** `ZoneBadge`, `ZoneMark`, `zoneText`, `zoneFill` y `zoneSoft` (de
   `components/ui`). Nunca color solo: siempre forma + texto.
 - **Cifras:** `Stat` (rótulo condensado + número grande + unidad chica).
-- **Club:** `brand` (color principal del tenant) + `accent2` (segundo color).
+- **Club:** `brand` (color principal) + `accent2` (segundo color), cargados en
+  Configuración → Marca. La paleta sale de `clubPalette` (ADR 0038): rellenos con el
+  color real y `text-*-fg` encima; como texto o línea de gráfico, el tema usa el tono
+  ajustado a AA del modo (`--brand-on-dark-rgb`…). No pintes texto con `style` y el
+  color crudo.
 - **Scrims:** `bg-black/30..40` (no `stone-900`, que en oscuro es claro).
 
 Las superficies públicas (landing, vidriera, login) siguen con la identidad de abajo.

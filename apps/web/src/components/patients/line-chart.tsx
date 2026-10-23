@@ -70,7 +70,7 @@ export function LineChart({
         <polyline
           points={points}
           fill="none"
-          stroke="rgb(var(--brand-rgb))"
+          className="stroke-brand"
           strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -82,7 +82,7 @@ export function LineChart({
             cx={x(i)}
             cy={y(d.value)}
             r={2.5}
-            fill="rgb(var(--brand-rgb))"
+            className="fill-brand"
           />
         ))}
       </svg>

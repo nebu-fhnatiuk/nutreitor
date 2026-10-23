@@ -25,7 +25,10 @@ const config: Config = {
           fg: "rgb(var(--brand-fg-rgb) / <alpha-value>)",
         },
         // Segundo color del club (camiseta alterna): acentos de transmisión.
-        accent2: "rgb(var(--accent2-rgb) / <alpha-value>)",
+        accent2: {
+          DEFAULT: "rgb(var(--accent2-rgb) / <alpha-value>)",
+          fg: "rgb(var(--accent2-fg-rgb) / <alpha-value>)",
+        },
         // Superficie de tarjetas/paneles (blanco en claro, grafito en oscuro).
         surface: "rgb(var(--surface-rgb) / <alpha-value>)",
         // Zonas: dentro del rango, en el límite, fuera. Siempre con texto/forma al lado.
