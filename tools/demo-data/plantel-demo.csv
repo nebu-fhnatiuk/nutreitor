@@ -1,0 +1,55 @@
+﻿Nombre y apellido;Email;DNI;Fecha de nacimiento;Sexo;Teléfono;Grupo;Profesional
+Santiago Ramírez;santiago.ramirez@ejemplo.test;45.627.630;04/05/2001;M;+54 9 11 6450-6370;Primera división;pro@demo.test
+Bruno Romero;bruno.romero@ejemplo.test;46.466.242;01/05/1998;M;+54 9 11 2733-9138;Primera división;pro@demo.test
+Mateo Correa;mateo.correa@ejemplo.test;43.371.293;03/11/2004;M;+54 9 11 4051-4071;Primera división;pro@demo.test
+Bruno Domínguez;bruno.dominguez@ejemplo.test;39.461.690;10/01/1994;M;+54 9 11 4283-7857;Primera división;pro@demo.test
+Ezequiel Núñez;ezequiel.nunez@ejemplo.test;47.563.885;21/12/1998;M;+54 9 11 3694-6686;Primera división;pro@demo.test
+Nicolás Ledesma;nicolas.ledesma@ejemplo.test;49.708.144;16/10/2003;M;+54 9 11 4417-1583;Primera división;pro@demo.test
+Thiago Pérez;thiago.perez@ejemplo.test;40.262.478;27/06/1997;M;+54 9 11 6774-5319;Primera división;pro@demo.test
+Bautista Ledesma;bautista.ledesma@ejemplo.test;38.243.183;02/09/1993;M;+54 9 11 2499-6029;Primera división;pro@demo.test
+Bautista Ramírez;bautista.ramirez@ejemplo.test;40.302.827;14/05/2003;M;+54 9 11 6538-6211;Primera división;pro@demo.test
+Emiliano Sosa;emiliano.sosa@ejemplo.test;46.538.700;10/05/1999;M;+54 9 11 3917-4776;Primera división;pro@demo.test
+Valentín Acosta;valentin.acosta@ejemplo.test;41.895.971;11/04/2003;M;+54 9 11 2349-5165;Primera división;pro@demo.test
+Thiago Molina;thiago.molina@ejemplo.test;38.892.185;08/09/1996;M;+54 9 11 4496-3498;Primera división;pro@demo.test
+Gonzalo Ferreyra;gonzalo.ferreyra@ejemplo.test;38.689.417;20/10/1996;M;+54 9 11 2311-4420;Primera división;pro@demo.test
+Valentín Torres;valentin.torres@ejemplo.test;38.027.652;20/10/1993;M;+54 9 11 3048-9524;Primera división;pro@demo.test
+Matías Fernández;matias.fernandez@ejemplo.test;45.211.989;07/06/2000;M;+54 9 11 3829-9915;Primera división;pro@demo.test
+Valentín Quiroga;valentin.quiroga@ejemplo.test;38.693.293;12/07/1993;M;+54 9 11 2445-4061;Primera división;pro@demo.test
+Ezequiel Giménez;ezequiel.gimenez@ejemplo.test;43.302.788;06/07/2003;M;+54 9 11 5468-5886;Primera división;pro@demo.test
+Valentín Cabrera;valentin.cabrera@ejemplo.test;38.605.924;24/03/1995;M;+54 9 11 5278-5441;Primera división;pro@demo.test
+Leandro Ramírez;leandro.ramirez@ejemplo.test;42.959.285;09/12/2007;M;+54 9 11 2954-5587;Reserva;pro@demo.test
+Lautaro Domínguez;lautaro.dominguez@ejemplo.test;45.773.482;03/10/2007;M;+54 9 11 5527-2673;Reserva;pro@demo.test
+Maximiliano Herrera;maximiliano.herrera@ejemplo.test;47.833.107;03/08/2004;M;+54 9 11 4438-1181;Reserva|Primera división;pro@demo.test
+Emiliano Romero;emiliano.romero@ejemplo.test;43.231.032;08/03/2005;M;+54 9 11 2794-6821;Reserva;pro@demo.test
+Leandro Rodríguez;leandro.rodriguez@ejemplo.test;50.396.453;10/03/2007;M;+54 9 11 2221-8109;Reserva;pro@demo.test
+Leandro Domínguez;leandro.dominguez@ejemplo.test;43.671.676;12/12/2004;M;+54 9 11 5392-7820;Reserva;pro@demo.test
+Federico Ledesma;federico.ledesma@ejemplo.test;40.362.115;18/12/2006;M;+54 9 11 6915-5210;Reserva;pro@demo.test
+Facundo Ferreyra;facundo.ferreyra@ejemplo.test;46.373.251;22/04/2004;M;+54 9 11 2939-4052;Reserva;pro@demo.test
+Joaquín Silva;joaquin.silva@ejemplo.test;40.531.373;21/06/2004;M;+54 9 11 3722-8940;Reserva;pro@demo.test
+Emiliano Martínez;emiliano.martinez@ejemplo.test;41.759.794;07/09/2006;M;+54 9 11 3810-5280;Reserva;pro@demo.test
+Gonzalo González;gonzalo.gonzalez@ejemplo.test;46.755.488;16/04/2005;M;+54 9 11 3563-2214;Reserva;pro@demo.test
+Julián Luna;julian.luna@ejemplo.test;42.007.472;17/08/2007;M;+54 9 11 4921-5102;Reserva;pro@demo.test
+Camila Castro;camila.castro@ejemplo.test;43.474.878;13/11/1999;F;+54 9 11 6322-1432;Femenino;pro@demo.test
+Paula Ferreyra;paula.ferreyra@ejemplo.test;39.326.559;15/05/1995;F;+54 9 11 4513-2775;Femenino;pro@demo.test
+Carolina García;carolina.garcia@ejemplo.test;50.177.074;01/06/1997;F;+54 9 11 3379-2706;Femenino;pro@demo.test
+Delfina Rodríguez;delfina.rodriguez@ejemplo.test;42.771.681;10/03/2003;F;+54 9 11 3779-3967;Femenino;pro@demo.test
+Camila Ramírez;camila.ramirez@ejemplo.test;41.625.353;18/08/2002;F;+54 9 11 5009-7903;Femenino;pro@demo.test
+Carolina Ríos;carolina.rios@ejemplo.test;42.720.758;16/12/1997;F;+54 9 11 3878-5546;Femenino;pro@demo.test
+Paula López;paula.lopez@ejemplo.test;47.150.104;28/08/2003;F;+54 9 11 2118-1862;Femenino;pro@demo.test
+Florencia Molina;florencia.molina@ejemplo.test;48.588.681;11/05/1999;F;+54 9 11 4390-8455;Femenino;pro@demo.test
+Catalina Giménez;catalina.gimenez@ejemplo.test;45.595.327;12/01/1997;F;+54 9 11 4498-3504;Femenino;pro@demo.test
+Julieta Morales;julieta.morales@ejemplo.test;49.293.679;19/08/2006;F;+54 9 11 2974-5121;Femenino;pro@demo.test
+Victoria Ferreyra;victoria.ferreyra@ejemplo.test;46.222.163;07/11/2007;F;+54 9 11 2867-6829;Femenino;pro@demo.test
+Martina Castro;martina.castro@ejemplo.test;46.896.810;26/07/2001;F;+54 9 11 2036-9159;Femenino;pro@demo.test
+Martina Ortiz;martina.ortiz@ejemplo.test;38.460.946;08/05/1996;F;+54 9 11 6147-8810;Femenino;pro@demo.test
+Camila Romero;camila.romero@ejemplo.test;38.649.188;10/12/1995;F;+54 9 11 2159-2994;Femenino;pro@demo.test
+Ezequiel González;;53.644.498;25/08/2010;M;;Sub-17;
+Tomás Gutiérrez;;53.265.934;23/12/2010;M;;Sub-17;
+Ezequiel Cabrera;;52.209.037;28/09/2009;M;;Sub-17;
+Lautaro Acosta;;51.749.163;03/01/2010;M;;Sub-17;
+Agustín Ferreyra;;52.782.646;28/07/2009;M;;Sub-17;
+Ezequiel Godoy;;51.744.501;10/10/2010;M;;Sub-17;
+Agustín Torres;;52.883.288;27/05/2009;M;;Sub-17;
+Joaquín Martínez;;53.992.105;26/10/2010;M;;Sub-17;
+Emiliano Juárez;;51.034.873;24/10/2010;M;;Sub-17;
+Julián Álvarez;;50.755.457;06/05/2009;M;;Sub-17;
