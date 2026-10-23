@@ -39,6 +39,9 @@ export interface ReportDataDto {
     logs: number;
     /** Días del mes con al menos una comida registrada. */
     daysLogged: number;
+    /** Días seguidos con registro, la racha más larga del mes (KAN-76). Falta en los
+     *  reportes publicados antes: se leen como 0. */
+    longestStreak?: number;
     byMeal: { meal: string; pct: number; logs: number }[];
   };
   checkins: { count: number; hunger: number | null; energy: number | null; mood: number | null };

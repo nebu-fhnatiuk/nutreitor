@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { memberships, patientReports, patients, users, type TenantTx } from "@nutreitor/db";
 import {
+  longestStreak,
   measureChange,
   monthRange,
   type PatientReportDto,
@@ -244,6 +245,12 @@ export async function computeReportData(tx: TenantTx, patientId: string, month: 
       group by meal_name order by min(created_at), meal_name`)
   ).rows as { meal: string; logs: number; pct: number }[];
 
+  const logDays = (
+    await tx.execute(sql`
+      select distinct to_char(date, 'YYYY-MM-DD') as d
+      from adherence_meal_logs where patient_id = ${patientId} and date between ${from}::date and ${to}::date`)
+  ).rows as { d: string }[];
+
   const c = await one<Record<string, unknown>>(sql`
     select count(*)::int as count, round(avg(hunger), 1) as hunger, round(avg(energy), 1) as energy, round(avg(mood), 1) as mood
     from adherence_checkins where patient_id = ${patientId} and date between ${from}::date and ${to}::date`);
@@ -279,6 +286,7 @@ export async function computeReportData(tx: TenantTx, patientId: string, month: 
       pct: num(a.pct),
       logs: Number(a.logs),
       daysLogged: Number(a.days),
+      longestStreak: longestStreak(logDays.map((r) => r.d)),
       byMeal: byMeal.map((b) => ({ meal: b.meal, pct: Number(b.pct), logs: Number(b.logs) })),
     },
     checkins: { count: Number(c.count), hunger: num(c.hunger), energy: num(c.energy), mood: num(c.mood) },

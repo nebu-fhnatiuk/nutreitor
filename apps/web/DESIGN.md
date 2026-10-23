@@ -24,6 +24,10 @@ cifras y rótulos en **Barlow Condensed** (`font-display`, `tabular-nums`).
   ajustado a AA del modo (`--brand-on-dark-rgb`…). No pintes texto con `style` y el
   color crudo.
 - **Scrims:** `bg-black/30..40` (no `stone-900`, que en oscuro es claro).
+- **Imágenes para compartir** ("Tu mes en números", ADR 0040): canvas 1080×1920,
+  siempre en oscuro, con los colores del club leídos de las variables del tenant
+  (`--brand-rgb`, `--accent2-on-dark-rgb`…) y las fuentes por su `font-family`
+  computada. Sólo hábitos, nunca medidas corporales.
 
 Las superficies públicas (landing, vidriera, login) siguen con la identidad de abajo.
 
