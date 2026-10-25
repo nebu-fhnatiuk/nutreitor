@@ -50,6 +50,8 @@ export function SquadBoard({ board, patientsPath }: { board: GroupBoardDto; pati
         </Kpi>
       </div>
 
+      <Coverage c={board.coverage} today={board.today} />
+
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 className="font-display text-base font-semibold uppercase tracking-wider text-stone-700">
           La pizarra · quién necesita atención
@@ -108,6 +110,9 @@ function BoardCard({ row: r, href }: { row: GroupBoardRowDto; href: string }) {
             )}
           </div>
         </div>
+        <p className={cn("truncate text-sm", r.activePlan ? "text-stone-600" : "text-stone-500")}>
+          {r.activePlan ? `Plan: ${r.activePlan.title} · v${r.activePlan.version}` : "Sin plan vigente"}
+        </p>
         <dl className="mt-auto grid grid-cols-3 gap-2 border-t border-stone-200 pt-3">
           <Mini label="Σ6" value={r.sum6 === null ? "—" : fmt(r.sum6)} />
           <Mini label="L/h" value={r.sweatRateLh === null ? "—" : fmt(r.sweatRateLh, 2)} />
@@ -116,6 +121,44 @@ function BoardCard({ row: r, href }: { row: GroupBoardRowDto; href: string }) {
       </div>
     </Link>
   );
+}
+
+/**
+ * Cobertura del grupo (KAN-34): cuánto del plantel tiene plan, medición reciente y
+ * registro de comidas. Una línea debajo de los KPIs, sin competirles.
+ */
+function Coverage({ c, today }: { c: GroupBoardDto["coverage"]; today: string }) {
+  const since = c.lastMeasuredOn ? daysSince(c.lastMeasuredOn, today) : null;
+  const items: [string, React.ReactNode][] = [
+    ["Con plan vigente", <>{c.withPlan}<Of n={c.members} /></>],
+    ["Medidos en 30 días", <>{c.measured30}<Of n={c.members} /></>],
+    [
+      "Última antropometría",
+      since === null ? "—" : since === 0 ? "Hoy" : <>{since} <span className="text-base font-semibold text-stone-500">{since === 1 ? "día" : "días"}</span></>,
+    ],
+    [
+      "Adherencia 30 días",
+      c.adherence30 === null ? "—" : <>{c.adherence30}<span className="text-base font-semibold text-stone-500"> % · {c.logging30} registran</span></>,
+    ],
+  ];
+  return (
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-2xl border border-stone-200 px-5 py-4 lg:grid-cols-4" aria-label="Cobertura del grupo">
+      {items.map(([label, value]) => (
+        <div key={label}>
+          <dt className="font-display text-xs font-semibold uppercase tracking-wider text-stone-500">{label}</dt>
+          <dd className="font-display text-2xl font-bold tabular-nums text-stone-900">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Of({ n }: { n: number }) {
+  return <span className="text-base font-semibold text-stone-500"> / {n}</span>;
+}
+
+function daysSince(date: string, today: string): number {
+  return Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / 86_400_000);
 }
 
 function Kpi({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {

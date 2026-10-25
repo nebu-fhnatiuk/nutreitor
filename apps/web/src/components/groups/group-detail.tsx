@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, FlaskConical, LayoutGrid, Pencil, Ruler, Table2, Trash2, UserPlus, X } from "lucide-react";
+import { ClipboardList, Droplets, FlaskConical, LayoutGrid, Pencil, Ruler, Table2, Trash2, UserCheck, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { fmt, fmtMeasured, val } from "@/components/patients/anthro-format";
 import { Alert, Button, Card, EmptyState, Input, Loading, Modal, PageHeader, SectionHeading, Select, buttonClass, cn, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 
+import { ApplyGroupPlan, AssignGroupProfessional } from "./group-actions";
 import { GroupForm } from "./groups-view";
 import { SquadBoard } from "./squad-board";
 import { SquadSomatochart } from "./squad-somatochart";
@@ -46,6 +47,8 @@ export function GroupDetail({
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [eq, setEq] = useState<FatEq>("durninWomersley");
 
   const load = useCallback(async () => {
@@ -120,6 +123,16 @@ export function GroupDetail({
                 <Droplets className="h-4 w-4" aria-hidden /> Medir hidratación
               </Link>
             )}
+            {canRecord && group.members.length > 0 && (
+              <Button variant="secondary" onClick={() => setApplying(true)}>
+                <ClipboardList className="h-4 w-4" aria-hidden /> Aplicar plan
+              </Button>
+            )}
+            {canManage && group.members.length > 0 && (
+              <Button variant="secondary" onClick={() => setAssigning(true)}>
+                <UserCheck className="h-4 w-4" aria-hidden /> Asignar profesional
+              </Button>
+            )}
             {canManage && (
               <>
                 <Button variant="secondary" onClick={() => setAdding(true)}>
@@ -135,6 +148,22 @@ export function GroupDetail({
             )}
           </>
         }
+      />
+
+      <AssignGroupProfessional
+        groupId={id}
+        members={group.members.length}
+        open={assigning}
+        onClose={() => setAssigning(false)}
+        onDone={load}
+      />
+      <ApplyGroupPlan
+        groupId={id}
+        members={board?.coverage.members ?? group.members.length}
+        withPlan={board?.coverage.withPlan ?? 0}
+        open={applying}
+        onClose={() => setApplying(false)}
+        onDone={load}
       />
 
       {board && group.members.length > 0 && (

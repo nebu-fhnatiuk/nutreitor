@@ -338,6 +338,21 @@ flowchart LR
   plan de hidratación) y, para la admin, sacar deportistas del grupo.
 - Los umbrales están en `BOARD_THRESHOLDS` y se validan en
   [`../validation/pizarra-plantel.md`](../validation/pizarra-plantel.md).
+- **Cobertura del grupo** (KAN-34): debajo de los KPIs, con plan vigente, medidos en
+  30 días, días desde la última antropometría y adherencia de 30 días (sobre todo lo
+  registrado, y cuántos registran). Cada tarjeta dice el plan vigente o "Sin plan".
+  Mismo endpoint (`GET /groups/{id}/board`) y mismo scoping.
+
+**Acciones por grupo** ([ADR 0044](../decisions/0044-acciones-por-grupo.md)), todo o
+nada en una transacción y repitiendo la operación de a uno:
+
+- **Asignar un profesional** (`POST /groups/{id}/assign`, `patient:assign`, admin):
+  `assignInTx` para cada deportista que todavía no lo tiene. Se suma; no le saca a
+  nadie el profesional que ya tenía.
+- **Aplicar un plan** (`POST /groups/{id}/plan`, `plan:write`): cada deportista visible
+  (al profesional, sus asignados) recibe una versión nueva de **su** plan, copiada de
+  la plantilla (`MealPlansService.saveInTx`). El vigente pasa al historial, salvo con
+  `onlyWithoutPlan`. Después se ajusta de a uno sin tocar a los demás.
 
 **Mensajes** — conversaciones **privadas por par** ([ADR 0024](../decisions/0024-conversaciones-privadas.md);
 append-only y polling de [ADR 0022](../decisions/0022-chat-profesional-paciente-polling.md)):

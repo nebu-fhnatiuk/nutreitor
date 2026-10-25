@@ -19,6 +19,45 @@ export const addGroupMembersSchema = z.object({
 });
 export type AddGroupMembersDto = z.infer<typeof addGroupMembersSchema>;
 
+/** Asignar un profesional a todo el grupo (KAN-32). */
+export const assignGroupProfessionalSchema = z.object({
+  membershipId: z.string().uuid(),
+});
+export type AssignGroupProfessionalDto = z.infer<typeof assignGroupProfessionalSchema>;
+
+export interface AssignGroupProfessionalResultDto {
+  /** Asignaciones nuevas. */
+  assigned: number;
+  /** Ya tenían a ese profesional: no se tocan. */
+  alreadyAssigned: number;
+}
+
+/**
+ * Aplicar una plantilla a todo el grupo (KAN-33): cada deportista visible recibe una
+ * versión nueva de SU plan con una copia de la plantilla (después se ajusta de a uno).
+ */
+export const applyGroupPlanSchema = z.object({
+  templateId: z.string().uuid(),
+  /** Título del plan; por defecto, el nombre de la plantilla. */
+  title: z.string().trim().min(1).max(200).nullish(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "fecha esperada YYYY-MM-DD")
+    .nullish(),
+  /** Sólo a quienes no tienen un plan vigente (no reemplaza ninguno). */
+  onlyWithoutPlan: z.boolean().default(false),
+});
+export type ApplyGroupPlanDto = z.infer<typeof applyGroupPlanSchema>;
+
+export interface ApplyGroupPlanResultDto {
+  /** Recibieron el plan (versión nueva). */
+  applied: number;
+  /** De esos, cuántos tenían un plan vigente que pasó al historial. */
+  replaced: number;
+  /** No lo recibieron porque ya tenían plan (`onlyWithoutPlan`). */
+  skipped: number;
+}
+
 /** Referencia liviana para listados y la ficha. */
 export interface GroupRefDto {
   id: string;
@@ -102,11 +141,29 @@ export interface GroupBoardRowDto {
   lossPct: number | null;
   adherence7: number | null;
   adherencePrev7: number | null;
+  /** Plan vigente (KAN-34); null = sin plan. */
+  activePlan: { title: string; version: number } | null;
   status: BoardStatus;
+}
+
+/** Cobertura del grupo (KAN-34): cuánto del plantel tiene plan, medición y registro. */
+export interface GroupCoverageDto {
+  /** Deportistas visibles del grupo. */
+  members: number;
+  withPlan: number;
+  /** Medidos (antropometría) en los últimos 30 días. */
+  measured30: number;
+  /** Última antropometría de cualquier deportista del grupo (YYYY-MM-DD). */
+  lastMeasuredOn: string | null;
+  /** Adherencia de 30 días sobre todo lo registrado por el grupo (%). */
+  adherence30: number | null;
+  /** Deportistas que registraron al menos una comida en 30 días. */
+  logging30: number;
 }
 
 export interface GroupBoardDto {
   /** Fecha de referencia (YYYY-MM-DD) de los días sin medir y la adherencia. */
   today: string;
   rows: GroupBoardRowDto[];
+  coverage: GroupCoverageDto;
 }

@@ -74,7 +74,9 @@ export type AuditAction =
   | "sweat_test.deleted"
   | "anthropometry.updated"
   | "anthropometry.deleted"
-  | "patients.imported";
+  | "patients.imported"
+  | "group.professional_assigned"
+  | "group.plan_applied";
 
 export interface AuditEvent {
   organizationId: string;
