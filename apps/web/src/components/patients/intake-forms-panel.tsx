@@ -49,6 +49,7 @@ export function IntakeFormsPanel({
   const [asking, setAsking] = useState<IntakeKind | null>(null);
   const [message, setMessage] = useState("");
   const [reviewing, setReviewing] = useState<IntakeRequestDto | null>(null);
+  const [viewing, setViewing] = useState<IntakeRequestDto | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -146,20 +147,23 @@ export function IntakeFormsPanel({
                     {r.status === "reviewed" && r.kind === "anamnesis" && ` · ${r.applied?.fields?.length ?? 0} dato(s) a la ficha`}
                   </p>
                 </div>
-                {canEdit && (
-                  <div className="flex gap-2">
-                    {r.status === "submitted" && (
-                      <Button size="sm" onClick={() => setReviewing(r)}>
-                        Revisar
-                      </Button>
-                    )}
-                    {(r.status === "requested" || r.status === "submitted") && (
-                      <Button size="sm" variant="ghost" onClick={() => cancel(r)}>
-                        Cancelar
-                      </Button>
-                    )}
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  {canEdit && r.status === "submitted" && (
+                    <Button size="sm" onClick={() => setReviewing(r)}>
+                      Revisar
+                    </Button>
+                  )}
+                  {r.answers && (r.status === "reviewed" || r.status === "cancelled") && (
+                    <Button size="sm" variant="secondary" onClick={() => setViewing(r)}>
+                      Ver respuestas
+                    </Button>
+                  )}
+                  {canEdit && (r.status === "requested" || r.status === "submitted") && (
+                    <Button size="sm" variant="ghost" onClick={() => cancel(r)}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
               </li>
             );
           })}
@@ -204,6 +208,7 @@ export function IntakeFormsPanel({
           }}
         />
       )}
+      {viewing && <ViewModal request={viewing} onClose={() => setViewing(null)} />}
     </Card>
   );
 }
@@ -337,6 +342,60 @@ function ReviewModal({
             </div>
           </>
         )}
+      </div>
+    </Modal>
+  );
+}
+
+/** Vista de sólo lectura de las respuestas de un formulario ya revisado o cancelado. */
+function ViewModal({ request: r, onClose }: { request: IntakeRequestDto; onClose: () => void }) {
+  const answers = r.answers ?? {};
+  return (
+    <Modal open onClose={onClose} title={`Respuestas — ${INTAKE_KIND_LABEL[r.kind]}`} className="sm:max-w-2xl">
+      <div className="space-y-4">
+        {r.kind === "anamnesis" ? (
+          <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-stone-200">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-surface font-display text-xs uppercase tracking-wider text-stone-500">
+                <tr className="border-b border-stone-200">
+                  <th scope="col" className="px-3 py-2 font-semibold">Dato</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">Respondió</th>
+                  {r.applied?.fields && <th scope="col" className="w-10 px-3 py-2 font-semibold">A la ficha</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {anamnesisKeys.filter((k) => k in answers).map((k) => (
+                  <tr key={k} className="border-b border-stone-100 align-top">
+                    <td className="px-3 py-2 font-medium">{ANAMNESIS_FIELDS[k].label}</td>
+                    <td className="whitespace-pre-line px-3 py-2 text-stone-800">{anamnesisValue(k, answers[k])}</td>
+                    {r.applied?.fields && (
+                      <td className="px-3 py-2 text-center text-stone-500">
+                        {r.applied.fields.includes(k) ? "✓" : "—"}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <ul className="max-h-[60vh] space-y-1 overflow-y-auto text-sm">
+            {FFQ_ITEMS.filter((i) => i.key in answers).map((i) => {
+              const a = answers[i.key] as { frequency: string; portions: number };
+              return (
+                <li key={i.key} className="flex justify-between gap-3 border-b border-stone-100 py-1.5">
+                  <span>{i.label}</span>
+                  <span className="text-stone-600">
+                    {FFQ_FREQUENCIES.find((f) => f.key === a.frequency)?.label} · {String(a.portions).replace(".", ",")} porción(es)
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="flex justify-end">
+          <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+        </div>
       </div>
     </Modal>
   );

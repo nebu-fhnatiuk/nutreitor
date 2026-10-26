@@ -227,7 +227,8 @@ export class IntakeFormsService {
       .select()
       .from(intakeRequests)
       .where(and(eq(intakeRequests.id, id), eq(intakeRequests.patientId, patientId)))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!r) throw new NotFoundException("No existe ese formulario.");
     return r;
   }
