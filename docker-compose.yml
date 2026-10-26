@@ -209,10 +209,10 @@ services:
       # AGENTS_SHARED_SECRETS: dev-agents-shared-secret-change-me
       # `stub` = sin IA real ni PHI a la nube (default seguro). Para activar Claude por
       # AWS Bedrock: INFERENCE_PROVIDER=bedrock + credenciales AWS (cadena estándar:
-      # vars AWS_* o rol IAM) + BEDROCK_MODEL_ID/AWS_REGION. Ver ADR 0014.
+      # vars AWS_* o rol IAM) + BEDROCK_MODEL_ID/BEDROCK_REGION. Ver ADR 0014 y 0046.
       INFERENCE_PROVIDER: stub
       BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-20250514-v1:0
-      AWS_REGION: us-east-1
+      BEDROCK_REGION: us-east-1
       # Tope de uso por tenant (defensa en profundidad; mismos valores que la API).
       AGENTS_RATELIMIT_PER_MIN: 30
       AGENTS_MONTHLY_TOKEN_CAP: 0

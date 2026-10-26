@@ -88,10 +88,12 @@ flowchart TB
 
 **Límites de aislamiento marcados arriba:**
 
-- **Dominio raíz (CloudFront, objetivo)**: `nutreitor.com` lo sirve CloudFront. La
-  landing estática (`apps/site`) sale de S3; `/registro`, `/plataforma` y `/api` van al
-  ALB de la web. Los subdominios de cada organización van directo al ALB. Ver
-  [ADR 0028](../decisions/0028-landing-separada-astro-s3-cloudfront.md).
+- **Borde (CloudFront)**: todo entra por CloudFront. `nutreitor.com` sirve la landing
+  estática (`apps/site`) desde S3, y `/registro`, `/plataforma` y `/api` van al ALB de
+  la web. Los subdominios de cada organización pasan por una segunda distribución, sin
+  caché, al mismo ALB. El ALB sólo acepta tráfico de CloudFront. Ver
+  [ADR 0028](../decisions/0028-landing-separada-astro-s3-cloudfront.md) y
+  [ADR 0047](../decisions/0047-infraestructura-como-codigo-terraform.md).
 - **Borde de red (edge → API)**: en prod la API vive en subnet privada, alcanzable
   sólo vía el edge/ALB. El `x-internal-secret` (`EDGE_SHARED_SECRET`) es la segunda
   capa: la API rechaza todo request sin él, salvo `/health`.
@@ -121,11 +123,22 @@ flowchart TB
 
 - **Dev**: `docker compose up` levanta `db` (Postgres 17) + `redis` + `api` + `web`
   (+ `agents` + `worker`) con hot-reload. La API migra al arrancar (conveniencia de dev).
-- **Prod (objetivo)**: Fargate; API en subnet privada detrás del edge/ALB;
-  migraciones como job separado; ElastiCache (Redis 7) para el rate-limiting y la cola
-  del worker; el worker como tarea aparte (sin puertos); email por Amazon SES; secrets
-  desde AWS Secrets Manager / SSM. Ver las
-  "Notas para producción" del [README](../../README.md).
+- **Prod**: Terraform en [`infra/terraform/`](../../infra/terraform/README.md)
+  (ADR [0047](../decisions/0047-infraestructura-como-codigo-terraform.md)), con una
+  cuenta AWS por entorno. App y datos en **sa-east-1**; Bedrock, sólo desde agents, en
+  us-east-1 (ADR [0046](../decisions/0046-region-de-produccion.md)).
+  - **Red**: VPC en 2 AZ con subnets públicas (ALB y NAT), privadas (tareas) y de
+    datos (RDS y Redis, sin internet).
+  - **ECS Fargate**:
+    - web detrás del ALB;
+    - api y agents internos por Service Connect;
+    - worker sin puertos;
+    - la migración como tarea one-off, que además fija las contraseñas de los roles.
+  - **Datos**: RDS Postgres 17 (Multi-AZ en prod) con TLS verificado, y ElastiCache
+    Redis 7 con TLS.
+  - **Secretos**: en Secrets Manager, escritos con argumentos write-only (no quedan
+    en el state).
+  - **Email**: por Amazon SES.
 
 ## Evolución a servicios
 

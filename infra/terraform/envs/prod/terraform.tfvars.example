@@ -1,0 +1,4 @@
+# Copiar a terraform.tfvars (ignorado por git). Ninguno de estos valores es secreto.
+account_id = "000000000000"
+zone_id    = "Z0000000000000000000"
+image_tag  = "<sha del commit>"
