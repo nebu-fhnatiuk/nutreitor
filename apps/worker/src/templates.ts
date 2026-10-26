@@ -97,6 +97,29 @@ export function portalInvitation(p: { patientName: string; orgName: string; link
   };
 }
 
+/**
+ * Invitación con la anamnesis adentro (KAN-90): no tenía cuenta y tiene la primera
+ * consulta por delante. El link crea la cuenta y lleva directo al formulario.
+ */
+export function portalInvitationWithIntake(p: {
+  patientName: string;
+  orgName: string;
+  professionalName: string;
+  link: string;
+  ttlDays: number;
+}): Rendered {
+  return {
+    subject: `Antes de tu primera consulta: completá tu ficha`,
+    text:
+      `Hola ${firstName(p.patientName)}:\n\n` +
+      `${p.professionalName} (${p.orgName}) te pide que completes tu ficha antes de la primera consulta: ` +
+      `tu salud, tu entrenamiento y tus hábitos. Te lleva unos minutos y la consulta rinde más.\n\n` +
+      `Creá tu cuenta y completala en ${p.link}\n\n` +
+      `Con la misma cuenta vas a ver tu plan y hablar con tu nutricionista. ` +
+      `El link es personal y vence en ${p.ttlDays} días. Si no esperabas este mail, ignoralo.\n`,
+  };
+}
+
 export function intakeRequested(p: { patientName: string; professionalName: string; orgName: string; form: string; link: string }): Rendered {
   return {
     subject: `${p.professionalName} te pidió completar un formulario`,

@@ -63,6 +63,15 @@ flowchart TD
   (`metadata: { from, via }`). Mismos cortes: 404 (ajena), 400 (horario no disponible),
   409 (no `booked`, o carrera contra el `EXCLUDE`).
 
+## Anamnesis antes de la primera consulta
+
+Las tres reservas (profesional, portal y vidriera) piden la anamnesis automática si es
+la primera consulta del paciente con ese profesional (KAN-90, ADR
+[0045](../decisions/0045-formularios-previos-a-la-consulta.md)). Si no tiene cuenta, como
+el lead de la vidriera, el pedido viaja en una invitación al portal en cola. Corre en
+un savepoint: si falla, la cita queda reservada igual. Reprogramar no la vuelve a
+pedir. Detalle en [`patients.md`](patients.md#formularios-previos-a-la-consulta).
+
 ## Reserva pública (lead → cita)
 
 Desde la vidriera (`{slug}.nutreitor.com/{profileSlug}`), sin login: cierra el

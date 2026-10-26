@@ -21,7 +21,8 @@ export async function intakeRequests({ tx, now, org, link }: ScanContext): Promi
     join users u on u.id = p.user_id
     join memberships m on m.id = ir.requested_by_membership_id
     join users pu on pu.id = m.user_id
-    where ir.status = 'requested' and ir.created_at >= ${since}`);
+    -- Los que viajan en la invitación al portal ya los avisa ese mail (KAN-90).
+    where ir.status = 'requested' and ir.delivery = 'portal' and ir.created_at >= ${since}`);
   return (res.rows as Row[]).map((r) => ({
     kind: "intake_requested" as const,
     refKey: r.id,

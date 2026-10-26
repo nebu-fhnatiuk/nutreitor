@@ -8,6 +8,7 @@ import {
   FFQ_ITEMS,
   INTAKE_KIND_LABEL,
   INTAKE_STATUS_LABEL,
+  INTAKE_TRIGGER_LABEL,
   anamnesisKeys,
   type AnamnesisKey,
   type IntakeKind,
@@ -142,6 +143,7 @@ export function IntakeFormsPanel({
                   </p>
                   <p className="text-stone-500">
                     Pedido por {r.requestedByName} el {when(r.createdAt)}
+                    {r.trigger !== "manual" && ` (${INTAKE_TRIGGER_LABEL[r.trigger]}${r.viaInvitation ? ", con la invitación al portal" : ""})`}
                     {r.submittedAt && ` · enviado el ${when(r.submittedAt)}`}
                     {r.reviewedAt && ` · revisó ${r.reviewedByName} el ${when(r.reviewedAt)}`}
                     {r.status === "reviewed" && r.kind === "anamnesis" && ` · ${r.applied?.fields?.length ?? 0} dato(s) a la ficha`}
