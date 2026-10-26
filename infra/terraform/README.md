@@ -117,6 +117,6 @@ flowchart LR
 
 - **Verificar en staging que `nutreitor_owner` pueda leer el plano de control.** En
   RDS, el usuario maestro no es superusuario y las tablas tienen
-  `FORCE ROW LEVEL SECURITY`. Ver el ADR 0047.
+  `FORCE ROW LEVEL SECURITY` (KAN-88, ADR 0047).
 - Logs de acceso del ALB, flow logs, alarmas y WAF (KAN-18).
-- Pipeline de deploy desde GitHub Actions (KAN-85).
+- Pipeline de deploy desde GitHub Actions (KAN-89).

@@ -8,7 +8,7 @@
 
 La topología de producción estaba descrita en prosa (overview, ADR 0028, README), sin
 código. Hacía falta poder hacer `plan` y `apply` reproducibles por entorno, con el
-state remoto y sin secretos en el repo, antes del primer despliegue (KAN-85).
+state remoto y sin secretos en el repo, antes del primer despliegue (KAN-89).
 
 ## Decisión
 
@@ -84,7 +84,7 @@ state remoto y sin secretos en el repo, antes del primer despliegue (KAN-85).
   4. correr la tarea de migración;
   5. levantar los servicios.
 
-  El pipeline que hace todo esto es KAN-85. Esta infraestructura se entrega validada
+  El pipeline que hace todo esto es KAN-89. Esta infraestructura se entrega validada
   (`fmt` y `validate` en CI), sin `apply` real.
 - **Rotar las contraseñas de la base** tiene tres pasos: subir `credentials_version`
   y hacer `apply`, correr la migración y redeployar los servicios. Entre el `apply` y
@@ -94,7 +94,7 @@ state remoto y sin secretos en el repo, antes del primer despliegue (KAN-85).
   es superusuario. `nutreitor_owner` es dueño de las tablas con
   `FORCE ROW LEVEL SECURITY`, así que sin `BYPASSRLS` las lecturas del plano de
   control (alta, consola, resolución de login) verían cero filas. Queda registrado
-  para resolverlo antes de prod; la salida de fondo es KAN-16.
+  en KAN-88, para resolverlo antes de prod; la salida de fondo es KAN-16.
 - **Quedan para otros tickets:**
   - KAN-18: logs de acceso del ALB, flow logs, alarmas y WAF;
   - KAN-17: la identidad de SES.
