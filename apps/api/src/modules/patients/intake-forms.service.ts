@@ -119,8 +119,6 @@ export class IntakeFormsService {
       await assertCanAccessPatient(tx, patientId, access);
       const r = await this.load(tx, patientId, id);
       if (r.status !== "submitted") throw new ConflictException("Ese formulario todavía no fue enviado o ya se revisó.");
-      const [pat] = await tx.select({ archivedAt: patients.archivedAt }).from(patients).where(eq(patients.id, patientId)).limit(1);
-      if (pat?.archivedAt) throw new ConflictException("El deportista está archivado.");
       const { user } = getAuth();
       const [me] = await tx.select({ name: users.fullName }).from(users).where(eq(users.id, user.id)).limit(1);
       const now = new Date();
