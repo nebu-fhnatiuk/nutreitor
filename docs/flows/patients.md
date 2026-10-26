@@ -520,6 +520,6 @@ sequenceDiagram
   autorreportada o se archiva sin guardar.
 - **Clínicos**: quien no tiene `patient:read_clinical` no ve las respuestas clínicas
   del pedido ni su origen en la ficha.
-- **Web**: panel "Formularios para el deportista" en la ficha clínica, con un contador
+- **Web**: panel "Formularios para el deportista" arriba de todo en la ficha clínica, con un contador
   en el botón cuando hay formularios para revisar; en el portal, tarjeta arriba de
   "Hoy" y la página `/app/formularios/:id`.

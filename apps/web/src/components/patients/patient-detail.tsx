@@ -346,6 +346,17 @@ export function PatientDetail({
         }
       >
         <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain p-5">
+          {/* Arriba: es una acción (pedir o revisar formularios), no un dato de la ficha. */}
+          {!editing && (
+            <IntakeFormsPanel
+              patient={p}
+              canEdit={canEdit}
+              onApplied={() => {
+                void load();
+                loadIntake();
+              }}
+            />
+          )}
           {editing ? (
             <EditForm
               patient={p}
@@ -374,16 +385,6 @@ export function PatientDetail({
               visibility={p.clinicalVisibility}
               onChange={load}
               onError={setError}
-            />
-          )}
-          {!editing && (
-            <IntakeFormsPanel
-              patient={p}
-              canEdit={canEdit}
-              onApplied={() => {
-                void load();
-                loadIntake();
-              }}
             />
           )}
           {!editing && <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />}
