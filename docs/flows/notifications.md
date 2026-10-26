@@ -51,6 +51,10 @@ sequenceDiagram
   genera el token (en la base sólo queda su hash), renueva el vencimiento desde el
   envío y encola el mail. Llave: id de la invitación.
 
+- **Formulario pedido** (al deportista, ADR 0045): cuando su profesional le pide la
+  anamnesis o la frecuencia de consumo (últimas 48 h, sigue `requested`). Sólo el link
+  al formulario, sin el mensaje. Llave: id del pedido.
+
 ## Preferencias
 
 `GET/PUT /portal/me/notification-preferences` (`portal:read` / `portal:self_report`)

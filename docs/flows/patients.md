@@ -476,3 +476,50 @@ sequenceDiagram
   documento, también archivados), grupos o profesionales inexistentes y datos
   inválidos son errores de fila; con uno solo no se importa nada.
 
+
+## Formularios previos a la consulta
+
+El profesional le pide al deportista que complete la anamnesis o la frecuencia de
+consumo desde el portal, y después revisa qué pasa a la ficha (KAN-60, ADR
+[`0045`](../decisions/0045-formularios-previos-a-la-consulta.md)). Sólo a deportistas
+con cuenta en el portal.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant P as Web (profesional)
+  participant A as API
+  participant DB as Postgres (RLS)
+  participant K as Worker
+  participant D as Portal (deportista)
+  P->>A: POST /patients/:id/intake-requests {kind, message?}
+  A->>DB: intake_requests (requested) + audit
+  K->>DB: scan: pedidos de las últimas 48 h
+  K-->>D: mail con el link /app/formularios/:id
+  D->>A: GET /portal/me/intake-requests
+  D->>A: POST /portal/me/intake-requests/:id/submit {answers}
+  A->>DB: answers + status submitted + audit
+  P->>A: POST /patients/:id/intake-requests/:id/review {fields | accept}
+  alt anamnesis
+    A->>DB: campos elegidos → patients / sport_profile, field_sources
+  else frecuencia de consumo aceptada
+    A->>DB: food_frequency_surveys (source self_reported)
+  end
+  A->>DB: status reviewed + applied + audit
+```
+
+- **Permisos**: pedir, cancelar y revisar piden `patient:update` sobre un paciente
+  visible (el profesional, sólo sus asignados); listar, `patient:read`. El deportista
+  ve y contesta los suyos con `portal:read` / `portal:self_report`.
+- **Un pedido abierto por tipo**: otro pedido de lo mismo da 409 hasta que se revise o
+  se cancele. El deportista envía una sola vez; las respuestas vacías no se guardan.
+- **Revisión campo por campo**: la ficha muestra el valor actual al lado del
+  respondido, con tilde por campo (por defecto, los que estaban vacíos). Los campos
+  aplicados se muestran con el chip "autorreportado" hasta que el profesional los
+  cambie a mano. La frecuencia de consumo se guarda entera como encuesta
+  autorreportada o se archiva sin guardar.
+- **Clínicos**: quien no tiene `patient:read_clinical` no ve las respuestas clínicas
+  del pedido ni su origen en la ficha.
+- **Web**: panel "Formularios para el deportista" en la ficha clínica, con un contador
+  en el botón cuando hay formularios para revisar; en el portal, tarjeta arriba de
+  "Hoy" y la página `/app/formularios/:id`.

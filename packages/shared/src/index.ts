@@ -12,6 +12,7 @@ export * from "./dtos/group.dto.js";
 export * from "./energy.js";
 export * from "./dtos/energy.dto.js";
 export * from "./dtos/intake.dto.js";
+export * from "./dtos/intake-forms.dto.js";
 export * from "./food-frequency.js";
 export * from "./dtos/food-frequency.dto.js";
 export * from "./hydration.js";

@@ -20,6 +20,7 @@ import { LineChart } from "@/components/patients/line-chart";
 import { DailyReminder, DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
 import { PortalAnthropometry } from "./portal-anthropometry";
 import { PortalAppointments } from "./portal-appointments";
+import { PortalFormsCard } from "./portal-forms";
 import { PortalReportsCard } from "./portal-reports";
 import { PortalAssistant } from "./portal-assistant";
 
@@ -73,6 +74,8 @@ export function PortalView() {
           <span className="text-stone-800">{me.professionals.join(", ")}</span>
         </p>
       )}
+
+      <PortalFormsCard />
 
       <TodayMeals plan={me.plan} canSelfReport={me.canSelfReport} />
 

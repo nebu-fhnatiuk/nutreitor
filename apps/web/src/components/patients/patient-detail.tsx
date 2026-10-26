@@ -5,11 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
+  ANAMNESIS_FIELDS,
   activityLevels,
   clinicalFields,
   patientSexes,
+  sportProfileKeys,
   type ClinicalField,
   type ClinicalVisibility,
+  type FieldSource,
+  type IntakeRequestDto,
   type PatientDetailDto,
 } from "@nutreitor/shared";
 
@@ -28,6 +32,8 @@ import { IntakeTab } from "./intake-tab";
 import { AnthropometryPanel } from "./anthropometry-panel";
 import { AthleteScoreboard } from "./athlete-scoreboard";
 import { AccessLogPanel } from "./access-log-panel";
+import { anamnesisValue, sourceLabel } from "./intake-forms-format";
+import { IntakeFormsPanel } from "./intake-forms-panel";
 import { MOMENTS, resolveTab, tabHref, type Moment, type Section } from "./moments";
 import { MetricsPanel } from "./metrics-panel";
 
@@ -125,6 +131,16 @@ export function PatientDetail({
       .then((list) => setHasCrisis(list.some((c) => c.crisis)))
       .catch(() => setHasCrisis(false));
   }, [canUseAgent, id]);
+  // Formularios que el deportista ya mandó y esperan revisión (KAN-60).
+  const [toReview, setToReview] = useState(0);
+  const loadIntake = useCallback(() => {
+    api<IntakeRequestDto[]>(`patients/${id}/intake-requests`)
+      .then((list) => setToReview(list.filter((r) => r.status === "submitted").length))
+      .catch(() => setToReview(0));
+  }, [id]);
+  useEffect(() => {
+    loadIntake();
+  }, [loadIntake]);
   const go = (moment: Moment, section: Section) =>
     router.replace(tabHref(pathname, moment, section), { scroll: false });
 
@@ -219,6 +235,11 @@ export function PatientDetail({
           <Button variant="secondary" onClick={() => openClinical(false)}>
             <FileText className="h-4 w-4" aria-hidden />
             Ficha clínica
+            {toReview > 0 && (
+              <span className="ml-1 rounded-full bg-zone-warn px-1.5 font-display text-xs font-bold text-stone-950" aria-label={`${toReview} formulario(s) para revisar`}>
+                {toReview}
+              </span>
+            )}
           </Button>
         </div>
       </header>
@@ -353,6 +374,16 @@ export function PatientDetail({
               visibility={p.clinicalVisibility}
               onChange={load}
               onError={setError}
+            />
+          )}
+          {!editing && (
+            <IntakeFormsPanel
+              patient={p}
+              canEdit={canEdit}
+              onApplied={() => {
+                void load();
+                loadIntake();
+              }}
             />
           )}
           {!editing && <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />}
@@ -621,10 +652,25 @@ function ReadView({
         <Field
           label="Actividad física"
           value={p.activityLevel ? ACTIVITY_LABEL[p.activityLevel] : null}
+          src={p.fieldSources.activityLevel}
         />
-        <Field label="Objetivo" value={p.goal} />
-        <Field label="Preferencias / restricciones" value={p.dietaryPreferences} wide />
+        <Field label="Objetivo" value={p.goal} src={p.fieldSources.goal} />
+        <Field label="Preferencias / restricciones" value={p.dietaryPreferences} src={p.fieldSources.dietaryPreferences} wide />
       </Section>
+
+      {p.sportProfile && (
+        <Section title="Perfil deportivo">
+          {sportProfileKeys.map((k) => (
+            <Field
+              key={k}
+              label={ANAMNESIS_FIELDS[k].label}
+              value={anamnesisValue(k, p.sportProfile?.[k])}
+              src={p.fieldSources[k]}
+              wide={k === "injuries" || k === "supplements"}
+            />
+          ))}
+        </Section>
+      )}
 
       {p.clinical && (
         <Section title="Clínicos de base">
@@ -634,6 +680,7 @@ function ReadView({
               label={CLINICAL_LABELS[f]}
               value={p.clinical![f]}
               hint={p.clinicalVisibility?.[f] ? "visible al paciente" : undefined}
+              src={p.fieldSources[f]}
               wide
             />
           ))}
@@ -724,15 +771,25 @@ function Field({
   value,
   hint,
   wide,
+  src,
 }: {
   label: string;
   value: string | null;
   hint?: string | null;
   wide?: boolean;
+  /** El dato vino del deportista (formulario del portal, KAN-60). */
+  src?: FieldSource;
 }) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
-      <dt className="text-xs text-stone-500">{label}</dt>
+      <dt className="text-xs text-stone-500">
+        {label}
+        {src && (
+          <span className="ml-2 rounded-full bg-accent2/15 px-1.5 py-0.5 text-[11px] text-accent2" title={sourceLabel(src)}>
+            autorreportado
+          </span>
+        )}
+      </dt>
       <dd className="mt-0.5 whitespace-pre-line text-sm text-stone-800">
         {value || <span className="text-stone-300">—</span>}
         {value && hint ? <span className="ml-2 text-stone-500">({hint})</span> : null}

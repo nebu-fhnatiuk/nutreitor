@@ -76,7 +76,11 @@ export type AuditAction =
   | "anthropometry.deleted"
   | "patients.imported"
   | "group.professional_assigned"
-  | "group.plan_applied";
+  | "group.plan_applied"
+  | "intake.requested"
+  | "intake.cancelled"
+  | "intake.submitted"
+  | "intake.reviewed";
 
 export interface AuditEvent {
   organizationId: string;
