@@ -123,7 +123,8 @@ flowchart TB
 
 - **Dev**: `docker compose up` levanta `db` (Postgres 17) + `redis` + `api` + `web`
   (+ `agents` + `worker`) con hot-reload. La API migra al arrancar (conveniencia de dev).
-- **Prod**: Terraform en [`infra/terraform/`](../../infra/terraform/README.md)
+- **Prod**: Terraform en [`infra/terraform/`](../../infra/terraform/README.md),
+  explicado en [`infraestructura-aws.md`](infraestructura-aws.md)
   (ADR [0047](../decisions/0047-infraestructura-como-codigo-terraform.md)), con una
   cuenta AWS por entorno. App y datos en **sa-east-1**; Bedrock, sólo desde agents, en
   us-east-1 (ADR [0046](../decisions/0046-region-de-produccion.md)).

@@ -3,6 +3,8 @@
 Topología de producción de Nutreitor en AWS. Las decisiones están en los ADR
 [0046](../../docs/decisions/0046-region-de-produccion.md) (región) y
 [0047](../../docs/decisions/0047-infraestructura-como-codigo-terraform.md) (IaC).
+La explicación completa (qué hace cada módulo, seguridad, secretos y tamaños) está en
+[`docs/architecture/infraestructura-aws.md`](../../docs/architecture/infraestructura-aws.md).
 
 ```
 bootstrap/        bucket del state + rol de deploy por OIDC (una vez por cuenta)
