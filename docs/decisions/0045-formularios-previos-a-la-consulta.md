@@ -2,7 +2,7 @@
 
 - **Estado**: aceptada
 - **Fecha**: 2026-10-26
-- **Jira**: KAN-60
+- **Jira**: KAN-60; actualizado por KAN-90 (2026-10-26)
 
 ## Contexto
 
@@ -41,6 +41,24 @@ deportista se mezcle con lo validado por el profesional sin que se note.
   deportista y `applied` lo que pasó a la ficha, para poder auditar la diferencia.
   Las respuestas clínicas se ocultan a quien no tiene `patient:read_clinical`.
 - **Aviso por mail** (worker): al deportista, con el link al formulario. Sin datos.
+- **Anamnesis automática antes de la primera consulta** (KAN-90).
+  - **Cuándo se pide:** al asignarle un profesional al deportista y al reservar un
+    turno (lo reserve el profesional, el deportista o un visitante de la vidriera).
+    Se pide sola, en nombre de ese profesional, y queda marcada con su origen
+    (`trigger`).
+  - **Cuándo no:**
+    - el deportista ya tuvo un turno pasado con ese profesional;
+    - ya tiene una anamnesis pedida, enviada o revisada;
+    - la ficha ya tiene datos clínicos de anamnesis.
+  - **Sin cuenta:** se mantiene la regla de "sólo con cuenta". El pedido viaja dentro
+    de una invitación al portal en cola (`delivery = 'invitation'`), la misma que
+    usa el import. El mail dice "completá tu ficha antes de la primera consulta" y
+    el link crea la cuenta y lleva directo al formulario. Si ya tenía una invitación
+    pendiente, se reutiliza. Sin cuenta ni email, o con la organización en
+    revisión, no se pide.
+  - **Robustez:** corre en un savepoint; si falla, la asignación o la reserva siguen
+    igual.
+  - **Import sin "invitar":** el admin eligió no invitar, y se respeta. No se pide.
 
 ## Consecuencias
 

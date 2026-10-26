@@ -23,6 +23,10 @@ export const intakeRequests = pgTable(
     status: text("status").$type<"requested" | "submitted" | "reviewed" | "cancelled">().notNull().default("requested"),
     requestedByMembershipId: uuid("requested_by_membership_id").notNull(),
     message: text("message"),
+    /** Quién lo originó: el profesional a mano, o automático al asignar o reservar (0052). */
+    trigger: text("trigger").$type<"manual" | "assignment" | "booking">().notNull().default("manual"),
+    /** Cómo le llega: aviso del portal, o dentro de la invitación si no tenía cuenta (0052). */
+    delivery: text("delivery").$type<"portal" | "invitation">().notNull().default("portal"),
     answers: jsonb("answers"),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
     reviewedByMembershipId: uuid("reviewed_by_membership_id"),

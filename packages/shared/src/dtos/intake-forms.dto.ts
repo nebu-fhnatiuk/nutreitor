@@ -175,11 +175,23 @@ export interface FieldSource {
 }
 export type FieldSources = Partial<Record<AnamnesisKey, FieldSource>>;
 
+/** Origen del pedido (KAN-90): a mano, o automático antes de la primera consulta. */
+export const intakeTriggers = ["manual", "assignment", "booking"] as const;
+export type IntakeTrigger = (typeof intakeTriggers)[number];
+export const INTAKE_TRIGGER_LABEL: Record<IntakeTrigger, string> = {
+  manual: "pedido a mano",
+  assignment: "automático al asignar",
+  booking: "automático al reservar turno",
+};
+
 export interface IntakeRequestDto {
   id: string;
   patientId: string;
   kind: IntakeKind;
   status: IntakeStatus;
+  trigger: IntakeTrigger;
+  /** Le llegó dentro de la invitación al portal (no tenía cuenta). */
+  viaInvitation: boolean;
   message: string | null;
   /** Respuestas tal como las mandó (null hasta que las mande). */
   answers: Record<string, unknown> | null;

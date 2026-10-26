@@ -8,6 +8,7 @@ import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { deliver, scanTenant, type Delivery } from "../src/pipeline.js";
+import { intakeRequests } from "../src/scans/intake-requests.js";
 import { portalInvitations } from "../src/scans/portal-invitations.js";
 import type { EmailChannel, EmailMessage } from "../src/channels/email.js";
 
@@ -58,7 +59,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await owner?.execute(sql`delete from notifications where recipient_email like ${`inv-${RUN}%`}`);
   await owner?.execute(sql`delete from invitations where email like ${`inv-${RUN}%`}`);
-  await owner?.execute(sql`delete from patients where id = ${patientId}`);
+  await owner?.execute(sql`delete from patients where id = ${patientId} or email like ${`inv-${RUN}%`}`);
   await workerPool?.end();
   await ownerPool?.end();
 });
@@ -109,5 +110,34 @@ describe("Worker — invitaciones en lote", () => {
     expect(await hash()).toEqual(before);
     const ds = (await scanTenant(worker, TENANT, now, opts())).filter((d) => d.to === `inv-${RUN}-c@club.test`);
     expect(ds).toHaveLength(1);
+  });
+});
+
+describe("Worker — invitación con la anamnesis adentro (KAN-90)", () => {
+  it("el mail pide completar la ficha y el link lleva directo al formulario; el aviso del portal no sale", async () => {
+    const email = `inv-${RUN}-anamnesis@club.test`;
+    const p = await owner.execute(sql`
+      insert into patients (tenant_id, region, full_name, email)
+      values (${TENANT}, ${SEED.orgDemo.region}::region, ${`Bruno Primera ${RUN}`}, ${email}) returning id`);
+    const pid = (p.rows[0] as { id: string }).id;
+    const m = await owner.execute(sql`
+      select id from memberships where organization_id = ${TENANT} and user_id = '00000000-0000-0000-0000-0000000000f2'`);
+    const r = await owner.execute(sql`
+      insert into intake_requests (tenant_id, region, patient_id, kind, status, requested_by_membership_id, trigger, delivery)
+      values (${TENANT}, ${SEED.orgDemo.region}::region, ${pid}, 'anamnesis', 'requested', ${(m.rows[0] as { id: string }).id}, 'booking', 'invitation')
+      returning id`);
+    const requestId = (r.rows[0] as { id: string }).id;
+    await owner.execute(sql`
+      insert into invitations (organization_id, region, email, role, token_hash, status, expires_at, patient_id, queued_at)
+      values (${TENANT}, ${SEED.orgDemo.region}::region, ${email}, 'patient', ${`placeholder-${email}`}, 'pending',
+              ${new Date(now.getTime() + 86_400_000).toISOString()}, ${pid}, ${now.toISOString()})`);
+
+    const ds = (await scanTenant(worker, TENANT, now, { ...opts(), scans: [portalInvitations, intakeRequests] })).filter(
+      (d) => d.to === email,
+    );
+    expect(ds).toHaveLength(1);
+    expect(ds[0]!.subject).toBe("Antes de tu primera consulta: completá tu ficha");
+    expect(ds[0]!.text).toContain("Profesional Demo");
+    expect(ds[0]!.text).toContain(`&next=${encodeURIComponent(`/app/formularios/${requestId}`)}`);
   });
 });

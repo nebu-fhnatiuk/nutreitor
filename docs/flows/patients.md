@@ -520,6 +520,21 @@ sequenceDiagram
   autorreportada o se archiva sin guardar.
 - **Clínicos**: quien no tiene `patient:read_clinical` no ve las respuestas clínicas
   del pedido ni su origen en la ficha.
+- **Automática antes de la primera consulta** (KAN-90): `autoRequestAnamnesis`
+  (`intake-auto.ts`) pide la anamnesis sola desde `assignInTx` (toda asignación:
+  alta, ficha, grupo, import, consultas de la vidriera) y desde las tres reservas de
+  turno.
+  - **Se omite si:**
+    - ya hubo un turno pasado con ese profesional;
+    - ya hay una anamnesis pedida, enviada o revisada;
+    - la ficha ya tiene datos clínicos de anamnesis;
+    - no hay cómo llegarle (sin cuenta ni email);
+    - la organización está en revisión.
+  - **Sin cuenta:** deja una invitación al portal en cola y el pedido viaja en ese
+    mail (`delivery = 'invitation'`). Al aceptarla, `/accept?next=/app/formularios/:id`
+    lleva directo al formulario; `next` sólo acepta esa ruta.
+  - **En el panel:** el pedido figura como "automático al asignar" o "automático al
+    reservar turno".
 - **Web**: panel "Formularios para el deportista" arriba de todo en la ficha clínica, con un contador
   en el botón cuando hay formularios para revisar; en el portal, tarjeta arriba de
   "Hoy" y la página `/app/formularios/:id`.

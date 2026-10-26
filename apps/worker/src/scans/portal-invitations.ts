@@ -2,13 +2,13 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { sql } from "drizzle-orm";
 
-import { portalInvitation } from "../templates.js";
+import { portalInvitation, portalInvitationWithIntake } from "../templates.js";
 import type { Candidate, ScanContext } from "./types.js";
 
 /** Tope por escaneo y consultorio: el resto sale en el próximo (SES va limitado igual). */
 const BATCH = 500;
 
-type Row = { id: string; email: string; patient_name: string | null };
+type Row = { id: string; email: string; patient_name: string | null; intake_id: string | null; pro_name: string | null };
 
 /**
  * Invitaciones al portal del import en lote (KAN-43, ADR 0043). La API las deja
@@ -19,9 +19,17 @@ type Row = { id: string; email: string; patient_name: string | null };
  */
 export async function portalInvitations({ tx, now, org, link, inviteTtlDays }: ScanContext): Promise<Candidate[]> {
   const res = await tx.execute(sql`
-    select i.id, i.email, p.full_name as patient_name
+    select i.id, i.email, p.full_name as patient_name, ir.id as intake_id, pu.full_name as pro_name
     from invitations i
     left join patients p on p.id = i.patient_id
+    -- Anamnesis automática antes de la primera consulta (KAN-90): viaja en este mail.
+    left join lateral (
+      select x.id, x.requested_by_membership_id from intake_requests x
+      where x.patient_id = i.patient_id and x.status = 'requested' and x.kind = 'anamnesis'
+      order by x.created_at desc limit 1
+    ) ir on true
+    left join memberships m on m.id = ir.requested_by_membership_id
+    left join users pu on pu.id = m.user_id
     where i.status = 'pending' and i.queued_at is not null and i.expires_at > ${now.toISOString()}
       and not exists (
         select 1 from notifications n
@@ -44,12 +52,20 @@ export async function portalInvitations({ tx, now, org, link, inviteTtlDays }: S
       refKey: r.id,
       recipientUserId: null,
       email: r.email,
-      message: portalInvitation({
-        patientName: r.patient_name ?? r.email,
-        orgName: org.name,
-        link: link(`/accept?token=${raw}`),
-        ttlDays: inviteTtlDays,
-      }),
+      message: r.intake_id
+        ? portalInvitationWithIntake({
+            patientName: r.patient_name ?? r.email,
+            orgName: org.name,
+            professionalName: r.pro_name ?? org.name,
+            link: link(`/accept?token=${raw}&next=${encodeURIComponent(`/app/formularios/${r.intake_id}`)}`),
+            ttlDays: inviteTtlDays,
+          })
+        : portalInvitation({
+            patientName: r.patient_name ?? r.email,
+            orgName: org.name,
+            link: link(`/accept?token=${raw}`),
+            ttlDays: inviteTtlDays,
+          }),
     });
   }
   return out;

@@ -252,6 +252,8 @@ export class IntakeFormsService {
       patientId: r.patientId,
       kind: r.kind,
       status: r.status,
+      trigger: r.trigger,
+      viaInvitation: r.delivery === "invitation",
       message: r.message,
       answers: r.answers
         ? Object.fromEntries(

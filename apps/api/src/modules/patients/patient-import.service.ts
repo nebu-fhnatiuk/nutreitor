@@ -102,19 +102,9 @@ export class PatientImportService {
       );
       if (groupRows.length) await tx.insert(patientGroupMembers).values(groupRows).onConflictDoNothing();
 
-      // Profesional (KAN-44): la misma asignación de siempre. En una org de una
-      // persona, sin columna, el deportista es de quien importa (ADR 0026).
-      const self = org.kind === "individual" ? (await resolvePatientAccess(tx)).membershipId : null;
-      let assigned = 0;
-      for (const [i, r] of rows.entries()) {
-        const membershipId = r.professionalEmail ? professionalIds.get(r.professionalEmail) : self;
-        if (!membershipId) continue;
-        await this.assignments.assignInTx(tx, ids[i]!, { membershipId, locationId: null });
-        assigned++;
-      }
-
       // Invitaciones (KAN-43): las manda el worker. El hash es de un token que nadie
-      // conoce; el worker genera el real al enviar.
+      // conoce; el worker genera el real al enviar. Van antes de asignar: la anamnesis
+      // automática (KAN-90) encuentra la invitación pendiente y no crea otra.
       const toInvite = dto.invite ? rows.map((r, i) => ({ r, id: ids[i]! })).filter(({ r }) => r.email) : [];
       if (toInvite.length) {
         const emails = toInvite.map(({ r }) => r.email!);
@@ -152,6 +142,19 @@ export class PatientImportService {
             metadata: { role: "patient", source: "import" },
           })),
         );
+      }
+
+      // Profesional (KAN-44): la misma asignación de siempre. En una org de una
+      // persona, sin columna, el deportista es de quien importa (ADR 0026).
+      const self = org.kind === "individual" ? (await resolvePatientAccess(tx)).membershipId : null;
+      let assigned = 0;
+      for (const [i, r] of rows.entries()) {
+        const membershipId = r.professionalEmail ? professionalIds.get(r.professionalEmail) : self;
+        if (!membershipId) continue;
+        // Con "invitar" la anamnesis automática (KAN-90) viaja en la invitación de
+        // arriba; sin "invitar", se respeta: no se pide ni se invita.
+        await this.assignments.assignInTx(tx, ids[i]!, { membershipId, locationId: null }, { autoIntake: dto.invite });
+        assigned++;
       }
 
       const result: ImportResultDto = {
