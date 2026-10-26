@@ -4,6 +4,7 @@ import { anthroVisibilityFields, type AnthroVisibilityField } from "./anthropome
 
 import type { CareAssignmentDto } from "./care-assignment.dto.js";
 import type { GroupRefDto } from "./group.dto.js";
+import type { FieldSources, SportProfile } from "./intake-forms.dto.js";
 import type { PatientNoteDto } from "./patient-note.dto.js";
 
 /** Catálogos acotados a nivel app (Zod), NO enums de DB: el catálogo evoluciona
@@ -175,4 +176,8 @@ export interface PatientDetailDto {
   groups: GroupRefDto[];
   assignments: CareAssignmentDto[];
   notes: PatientNoteDto[];
+  /** Perfil deportivo (KAN-60); null si nunca se cargó. */
+  sportProfile: SportProfile | null;
+  /** Datos de la ficha que vinieron del deportista (autorreportados y revisados). */
+  fieldSources: FieldSources;
 }

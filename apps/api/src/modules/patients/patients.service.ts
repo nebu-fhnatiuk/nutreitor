@@ -6,12 +6,16 @@ import {
 } from "@nestjs/common";
 import { careAssignments, memberships, patientGroupMembers, patients, users, type TenantTx } from "@nutreitor/db";
 import {
+  clinicalAnamnesisKeys,
   hasCapability,
+  type AnamnesisKey,
   type CreatePatientDto,
   type PatientDetailDto,
   type PatientDto,
   type UpdateClinicalVisibilityDto,
   type UpdatePatientDto,
+  type FieldSources,
+  type SportProfile,
 } from "@nutreitor/shared";
 import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
@@ -209,7 +213,7 @@ export class PatientsService {
 
       // No se mutan pacientes archivados (la baja lógica es terminal salvo restore).
       const [existing] = await tx
-        .select({ id: patients.id, archivedAt: patients.archivedAt })
+        .select()
         .from(patients)
         .where(eq(patients.id, id))
         .limit(1);
@@ -222,10 +226,15 @@ export class PatientsService {
       // Sin read_clinical, los campos clínicos se ignoran (no clobber a ciegas).
       const patch = fichaValues(dto, canClinical);
       const changed = Object.keys(patch);
+      // Un campo autorreportado (ADR 0045) que el profesional cambia a mano deja de serlo.
+      const sources = { ...((existing.fieldSources ?? {}) as FieldSources) };
+      for (const [k, v] of Object.entries(patch)) {
+        if (k in sources && (existing as Record<string, unknown>)[k] !== v) delete sources[k as keyof FieldSources];
+      }
       const [row] = changed.length
         ? await tx
             .update(patients)
-            .set({ ...patch, updatedAt: new Date() })
+            .set({ ...patch, fieldSources: sources, updatedAt: new Date() })
             .where(eq(patients.id, id))
             .returning()
         : await tx.select().from(patients).where(eq(patients.id, id)).limit(1);
@@ -448,6 +457,13 @@ function toDetailDto(
       : null,
     // Visibilidad hacia el paciente: sólo se expone (y edita) con read_clinical.
     clinicalVisibility: canClinical ? row.clinicalVisibility : null,
+    sportProfile: (row.sportProfile as SportProfile | null) ?? null,
+    // Sin read_clinical tampoco se dice de dónde vino un dato clínico.
+    fieldSources: Object.fromEntries(
+      Object.entries((row.fieldSources ?? {}) as FieldSources).filter(
+        ([k]) => canClinical || !clinicalAnamnesisKeys.includes(k as AnamnesisKey),
+      ),
+    ),
     groups,
     assignments,
     notes,

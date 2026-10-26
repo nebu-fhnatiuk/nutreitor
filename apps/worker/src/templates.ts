@@ -96,3 +96,13 @@ export function portalInvitation(p: { patientName: string; orgName: string; link
       `El link es personal y vence en ${p.ttlDays} días. Si no esperabas este mail, ignoralo.\n`,
   };
 }
+
+export function intakeRequested(p: { patientName: string; professionalName: string; orgName: string; form: string; link: string }): Rendered {
+  return {
+    subject: `${p.professionalName} te pidió completar un formulario`,
+    text:
+      `Hola ${firstName(p.patientName)}:\n\n` +
+      `${p.professionalName} (${p.orgName}) te pidió completar ${p.form} antes de la consulta. ` +
+      `Te lleva unos minutos: ${p.link}\n`,
+  };
+}

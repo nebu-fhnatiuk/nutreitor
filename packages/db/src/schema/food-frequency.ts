@@ -21,6 +21,8 @@ export const foodFrequencySurveys = pgTable(
     recordedByMembershipId: uuid("recorded_by_membership_id").notNull(),
     answeredOn: date("answered_on").notNull(),
     answers: jsonb("answers").$type<Record<string, unknown>>().notNull(),
+    /** Cargada por el profesional o autorreportada desde el portal (0051). */
+    source: text("source").$type<"professional" | "self_reported">().notNull().default("professional"),
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

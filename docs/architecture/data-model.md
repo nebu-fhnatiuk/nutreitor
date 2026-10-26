@@ -34,7 +34,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `meal_plans` | Tenant-scoped (RLS) | `tenant_id` | Plan versionado; `body` JSONB flexible por estilo (layout `day`/`week` + detalle opcional). |
 | `anthropometry_sessions` | Tenant-scoped (RLS) | `tenant_id` | Antropometría ISAK (ADR 0030): **tomas crudas** por sitio (`takes` jsonb, 1 a 3 valores); los resultados se calculan al leer. Editable y borrable, auditada. |
 | `sweat_tests` | Tenant-scoped (RLS) | `tenant_id` | Prueba de sudoración (ADR 0036): pesos antes/después, lo tomado y la orina, duración y condiciones (columnas tipadas con `CHECK`). Tasa, % de pérdida y plan de líquidos al leer. `group_id` (`ON DELETE SET NULL`) marca las cargadas por plantel. Editable y borrable, auditado. |
-| `food_frequency_surveys` | Tenant-scoped (RLS) | `tenant_id` | Frecuencia de consumo (ADR 0034): `answers` jsonb (item → frecuencia + porciones); porciones por día y comparación con las GAPA al leer. Editable y borrable, auditado. |
+| `food_frequency_surveys` | Tenant-scoped (RLS) | `tenant_id` | Frecuencia de consumo (ADR 0034): `answers` jsonb (item → frecuencia + porciones); porciones por día y comparación con las GAPA al leer. Editable y borrable, auditado. `source` = `professional` o `self_reported` (la mandó el deportista desde el portal y la aceptó el profesional, ADR 0045). |
+| `intake_requests` | Tenant-scoped (RLS) | `tenant_id` | Formularios previos a la consulta (ADR 0045): el profesional pide una anamnesis o una frecuencia de consumo y el deportista la contesta en el portal. `status` `requested → submitted → reviewed` (o `cancelled`); `answers` jsonb crudo, `applied` jsonb con lo que pasó a la ficha. Un pedido abierto por (paciente, tipo). `SELECT/INSERT/UPDATE`, sin `DELETE`. |
 | `dietary_recalls` | Tenant-scoped (RLS) | `tenant_id` | Recordatorio de 24 h (ADR 0033): `meals` jsonb con la forma de las comidas del plan (items vinculados a la base); `typical` y `day_label` para promediar y comparar contra el requerimiento. Totales derivados al leer. Editable y borrable, auditado. |
 | `energy_requirements` | Tenant-scoped (RLS) | `tenant_id` | Requerimiento energético (ADR 0032): **entradas** (`inputs` jsonb: fórmula, factor, ajuste, peso/talla/MLG usados, tipos de día con sesiones y g/kg, semana tipo); los resultados se calculan al leer. Append-only (sólo `SELECT`+`INSERT`). |
 | `patient_groups` | Tenant-scoped (RLS) | `tenant_id` | Grupo de deportistas: plantel, división o turno (ADR 0031). Nombre único por tenant (`lower(btrim(name))`). Lo arma el admin (`group:manage`). |
@@ -79,7 +80,8 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 > El **worker de notificaciones** usa el rol `nutreitor_worker` (sin `BYPASSRLS`):
 > `SELECT` acotado a lo que necesita para decidir y redactar, `SELECT/INSERT/UPDATE`
 > sólo en `notifications`, y `UPDATE (token_hash, expires_at)` en `invitations` para
-> generar el token de las invitaciones en lote al enviarlas (ADR 0043). Recorre los consultorios fijando el tenant; la lista de
+> generar el token de las invitaciones en lote al enviarlas (ADR 0043). Lee
+> `intake_requests` para avisar de los formularios pedidos (ADR 0045). Recorre los consultorios fijando el tenant; la lista de
 > ids sale de `worker_tenant_ids()` (SECURITY DEFINER, sólo ids). ADR 0023.
 > Aunque `organizations` lleva RLS, conceptualmente es la **raíz** del tenant: las
 > demás tablas referencian su `id` como `tenant_id` / `organization_id`.
@@ -131,6 +133,8 @@ erDiagram
   patients      ||--o{ energy_requirements    : "prescribed"
   patients      ||--o{ dietary_recalls        : "recalled"
   patients      ||--o{ food_frequency_surveys : "answers"
+  patients      ||--o{ intake_requests        : "asked"
+  memberships   ||--o{ intake_requests        : "requests / reviews"
   patients      ||--o{ sweat_tests            : "tested"
   patient_groups |o--o{ sweat_tests           : "batch"
   patient_groups ||--o{ patient_group_members : "contains"
@@ -262,6 +266,22 @@ erDiagram
     uuid recorded_by_membership_id FK
     date answered_on
     jsonb answers "item → frecuencia + porciones"
+    text source "professional|self_reported"
+  }
+
+  intake_requests {
+    uuid id PK
+    uuid tenant_id FK
+    uuid patient_id FK
+    text kind "anamnesis|food_frequency"
+    text status "requested|submitted|reviewed|cancelled"
+    uuid requested_by_membership_id FK
+    text message
+    jsonb answers "respuestas crudas del deportista"
+    timestamptz submitted_at
+    uuid reviewed_by_membership_id FK
+    timestamptz reviewed_at
+    jsonb applied "qué pasó a la ficha"
   }
 
   dietary_recalls {
@@ -400,6 +420,8 @@ erDiagram
     numeric initial_weight_kg
     uuid location_id FK
     jsonb clinical_visibility "campos clínicos visibles al paciente; {} = ninguno"
+    jsonb sport_profile "deporte, entrenamiento, suplementos, sueño (ADR 0045)"
+    jsonb field_sources "campo → origen autorreportado; {} = todo del profesional"
     timestamptz archived_at "soft delete"
     timestamptz updated_at
     timestamptz created_at
@@ -762,6 +784,8 @@ erDiagram
   `meal_plans (patient_id) WHERE status = 'active'`.
 - **Un perfil público por membership**: único sobre `professional_profiles
   (membership_id)`, y slug único por org `(organization_id, profile_slug)`.
+- **Un formulario abierto por (paciente, tipo)**: único parcial
+  `intake_requests (patient_id, kind) WHERE status IN ('requested','submitted')`.
 - **Preservación de autoría**: `patient_notes`, `patient_metrics` y `meal_plans`
   referencian al `membership` autor con `ON DELETE RESTRICT` (no se puede borrar un
   membership que dejó historia clínica).
@@ -798,6 +822,17 @@ erDiagram
   paciente únicamente si `clinical_visibility[campo] === true`. El stripping es
   server-side (helper puro `applyClinicalVisibility`); el front nunca decide. Ver el
   ADR [`../decisions/0008-visibilidad-campo-ficha-clinica.md`](../decisions/0008-visibilidad-campo-ficha-clinica.md).
+
+- **`patients.sport_profile`** — perfil deportivo (`sportProfileSchema`, shared):
+  `sport`, `position`, `trainingDaysPerWeek`, `trainingHoursPerWeek`,
+  `competitionLevel`, `injuries`, `supplements`, `sleepHours`, `mealsPerDay`; todo
+  opcional. Hoy lo llena sólo la anamnesis del portal (ADR 0045).
+
+- **`patients.field_sources`** — `Record<campo, { source: "self_reported", requestId,
+  reviewedBy, at }>`, default `{}`. Marca los campos de la ficha y del perfil deportivo
+  que vinieron de un formulario del deportista. Una edición manual que cambia el valor
+  borra la marca. Las claves clínicas se filtran para quien no tiene
+  `patient:read_clinical`.
 
 ## Historia
 

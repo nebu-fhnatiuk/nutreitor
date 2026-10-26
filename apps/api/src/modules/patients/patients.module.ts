@@ -33,6 +33,8 @@ import { PatientsService } from "./patients.service.js";
 import { PlanTemplatesController } from "./plan-templates.controller.js";
 import { PlanTemplatesService } from "./plan-templates.service.js";
 import { GroupActionsService } from "./group-actions.service.js";
+import { IntakeFormsController, PortalIntakeFormsController } from "./intake-forms.controller.js";
+import { IntakeFormsService } from "./intake-forms.service.js";
 import { PatientImportController } from "./patient-import.controller.js";
 import { PatientImportService } from "./patient-import.service.js";
 
@@ -40,6 +42,8 @@ import { PatientImportService } from "./patient-import.service.js";
   imports: [AuthModule],
   controllers: [
     PatientImportController,
+    IntakeFormsController,
+    PortalIntakeFormsController,
     PatientsController,
     MetricsController,
     MealPlansController,
@@ -59,6 +63,7 @@ import { PatientImportService } from "./patient-import.service.js";
   providers: [
     PatientsService,
     PatientImportService,
+    IntakeFormsService,
     GroupActionsService,
     CareAssignmentsService,
     PatientNotesService,

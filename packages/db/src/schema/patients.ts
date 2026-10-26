@@ -76,6 +76,10 @@ export const patients = pgTable(
     dietaryPreferences: text("dietary_preferences"),
     // Visibilidad por campo de la ficha clínica hacia el paciente (portal).
     // Default `{}` = todo oculto (conservador): se habilita campo por campo.
+    /** Perfil deportivo (KAN-60): deporte, posición, entrenamiento… (0051). */
+    sportProfile: jsonb("sport_profile"),
+    /** De dónde vino cada dato: autorreportado y revisado por quién (0051). */
+    fieldSources: jsonb("field_sources").notNull().default(sql`'{}'::jsonb`),
     clinicalVisibility: jsonb("clinical_visibility")
       .$type<ClinicalVisibility>()
       .notNull()
