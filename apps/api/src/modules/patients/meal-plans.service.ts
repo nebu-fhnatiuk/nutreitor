@@ -22,11 +22,11 @@ import { and, desc, eq, type SQL } from "drizzle-orm";
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
-import { assertCanAccessPatient, resolvePatientAccess } from "./patient-access.js";
+import { assertCanAccessPatient, resolvePatientAccess, type PatientAccess } from "./patient-access.js";
 
 /** Tope de una sesión de armado: más es un editor olvidado abierto, no trabajo. */
 const MAX_EDIT_SECONDS = 2 * 3600;
-type MealPlanRow = typeof mealPlans.$inferSelect;
+export type MealPlanRow = typeof mealPlans.$inferSelect;
 
 /**
  * Planes alimentarios VERSIONADOS. Guardar = supersede del activo + nueva versión
@@ -54,69 +54,79 @@ export class MealPlansService {
     return this.tenantDb.run(async (tx) => {
       const access = await resolvePatientAccess(tx);
       await assertCanAccessPatient(tx, patientId, access);
-      if (!access.membershipId) {
-        throw new ForbiddenException("No tenés un membership para editar el plan.");
-      }
-      await this.assertPatientActive(tx, patientId);
-
-      // Última versión (de cualquier estado) para numerar la nueva.
-      const [latest] = await tx
-        .select({ version: mealPlans.version })
-        .from(mealPlans)
-        .where(eq(mealPlans.patientId, patientId))
-        .orderBy(desc(mealPlans.version))
-        .limit(1);
-      const nextVersion = (latest?.version ?? 0) + 1;
-
-      // Supersede el activo vigente antes de insertar el nuevo (respeta el unique).
-      await tx
-        .update(mealPlans)
-        .set({ status: "superseded" })
-        .where(
-          and(
-            eq(mealPlans.patientId, patientId),
-            eq(mealPlans.status, "active"),
-          ),
-        );
-
-      const ctx = getTenantContext();
-      let row: MealPlanRow | undefined;
-      try {
-        [row] = await tx
-          .insert(mealPlans)
-          .values({
-            tenantId: ctx.tenantId,
-            region: ctx.region,
-            patientId,
-            authorMembershipId: access.membershipId,
-            version: nextVersion,
-            status: "active",
-            title: dto.title,
-            startDate: dto.startDate ?? null,
-            body: dto.body,
-            editSeconds: dto.editSeconds != null ? Math.min(dto.editSeconds, MAX_EDIT_SECONDS) : null,
-            draftedFrom: dto.draftedFrom ?? null,
-          })
-          .returning();
-      } catch (e) {
-        // Unique parcial de "un activo por paciente": dos saves concurrentes →
-        // 409 limpio en vez de un 500 crudo de Postgres.
-        const err = e as { code?: string; cause?: { code?: string } };
-        if (err?.code === "23505" || err?.cause?.code === "23505") {
-          throw new ConflictException(
-            "Se guardó otra versión al mismo tiempo. Reintentá.",
-          );
-        }
-        throw e;
-      }
-      await this.audit.recordForSession(tx, {
-        action: "plan.saved",
-        targetType: "patient",
-        targetId: patientId,
-        metadata: { planId: row!.id, version: nextVersion },
-      });
-      return this.toDto(tx, row!.id);
+      const row = await this.saveInTx(tx, patientId, dto, access);
+      return this.toDto(tx, row.id);
     });
+  }
+
+  /**
+   * Guarda la versión dentro de una tx existente, con el acceso ya verificado por
+   * quien llama. MISMA lógica para el guardado individual y para aplicar una
+   * plantilla a todo un grupo (KAN-33): numeración, supersede, unique y auditoría.
+   */
+  async saveInTx(tx: TenantTx, patientId: string, dto: SavePlanDto, access: PatientAccess): Promise<MealPlanRow> {
+    if (!access.membershipId) {
+      throw new ForbiddenException("No tenés un membership para editar el plan.");
+    }
+    await this.assertPatientActive(tx, patientId);
+
+    // Última versión (de cualquier estado) para numerar la nueva.
+    const [latest] = await tx
+      .select({ version: mealPlans.version })
+      .from(mealPlans)
+      .where(eq(mealPlans.patientId, patientId))
+      .orderBy(desc(mealPlans.version))
+      .limit(1);
+    const nextVersion = (latest?.version ?? 0) + 1;
+
+    // Supersede el activo vigente antes de insertar el nuevo (respeta el unique).
+    await tx
+      .update(mealPlans)
+      .set({ status: "superseded" })
+      .where(
+        and(
+          eq(mealPlans.patientId, patientId),
+          eq(mealPlans.status, "active"),
+        ),
+      );
+
+    const ctx = getTenantContext();
+    let row: MealPlanRow | undefined;
+    try {
+      [row] = await tx
+        .insert(mealPlans)
+        .values({
+          tenantId: ctx.tenantId,
+          region: ctx.region,
+          patientId,
+          authorMembershipId: access.membershipId,
+          version: nextVersion,
+          status: "active",
+          title: dto.title,
+          startDate: dto.startDate ?? null,
+          body: dto.body,
+          editSeconds: dto.editSeconds != null ? Math.min(dto.editSeconds, MAX_EDIT_SECONDS) : null,
+          draftedFrom: dto.draftedFrom ?? null,
+        })
+        .returning();
+    } catch (e) {
+      // Unique parcial de "un activo por paciente": dos saves concurrentes →
+      // 409 limpio en vez de un 500 crudo de Postgres.
+      const err = e as { code?: string; cause?: { code?: string } };
+      if (err?.code === "23505" || err?.cause?.code === "23505") {
+        throw new ConflictException(
+          "Se guardó otra versión al mismo tiempo. Reintentá.",
+        );
+      }
+      throw e;
+    }
+    await this.audit.recordForSession(tx, {
+      action: "plan.saved",
+      targetType: "patient",
+      targetId: patientId,
+      metadata: { planId: row!.id, version: nextVersion },
+    });
+    return row!;
   }
 
   /** Archiva el plan activo (deja al paciente sin plan vigente). */

@@ -1,6 +1,12 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
 import {
   addGroupMembersSchema,
+  applyGroupPlanSchema,
+  assignGroupProfessionalSchema,
+  type ApplyGroupPlanDto,
+  type ApplyGroupPlanResultDto,
+  type AssignGroupProfessionalDto,
+  type AssignGroupProfessionalResultDto,
   saveGroupAnthropometrySchema,
   saveGroupSchema,
   type AddGroupMembersDto,
@@ -18,6 +24,7 @@ import { JwtAuthGuard } from "../../core/auth/guards/jwt-auth.guard.js";
 import { RequireCapability } from "../../core/auth/require-capability.decorator.js";
 import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AnthropometryService } from "./anthropometry.service.js";
+import { GroupActionsService } from "./group-actions.service.js";
 import { GroupBoardService } from "./group-board.service.js";
 import { GroupsService } from "./groups.service.js";
 import { LogsAccess } from "../../core/audit/access-log.decorator.js";
@@ -34,7 +41,28 @@ export class GroupsController {
     private readonly groups: GroupsService,
     private readonly anthro: AnthropometryService,
     private readonly boardSvc: GroupBoardService,
+    private readonly actions: GroupActionsService,
   ) {}
+
+  /** KAN-32: asignar un profesional a todo el grupo (todo o nada). */
+  @Post(":id/assign")
+  @RequireCapability("patient:assign")
+  assignProfessional(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(assignGroupProfessionalSchema)) dto: AssignGroupProfessionalDto,
+  ): Promise<AssignGroupProfessionalResultDto> {
+    return this.actions.assignProfessional(id, dto);
+  }
+
+  /** KAN-33: aplicar una plantilla a todo el grupo (un plan propio por deportista). */
+  @Post(":id/plan")
+  @RequireCapability("plan:write")
+  applyPlan(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(applyGroupPlanSchema)) dto: ApplyGroupPlanDto,
+  ): Promise<ApplyGroupPlanResultDto> {
+    return this.actions.applyPlan(id, dto);
+  }
 
   /** Pizarra del plantel: semáforo por deportista, ordenada por quién necesita atención. */
   @Get(":id/board")
