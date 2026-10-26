@@ -2,6 +2,7 @@ import {
   auditLog,
   careAssignments,
   createDb,
+  intakeRequests,
   invitations,
   patientGroupMembers,
   patients,
@@ -182,6 +183,11 @@ describe("import", () => {
     const invs = await ownerDb.select().from(invitations).where(like(invitations.email, `imp-${RUN}-%`));
     expect(invs).toHaveLength(500);
     expect(invs.every((i) => i.status === "pending" && i.queuedAt && i.role === "patient" && i.patientId)).toBe(true);
+
+    // Anamnesis automática (KAN-90): viaja en esa misma invitación, sin crear otra.
+    const intakes = await ownerDb.select().from(intakeRequests).where(inArray(intakeRequests.patientId, ids));
+    expect(intakes).toHaveLength(500);
+    expect(intakes.every((r) => r.trigger === "assignment" && r.delivery === "invitation")).toBe(true);
 
     const [summary] = await ownerDb
       .select()

@@ -15,9 +15,10 @@ const ROLE_LABEL: Record<string, string> = {
 
 /**
  * Aceptar una invitación (KAN-77): el club y el rol a la vista; si el email todavía
- * no es una cuenta, se elige nombre y contraseña.
+ * no es una cuenta, se elige nombre y contraseña. Con `next` (un formulario pedido),
+ * el deportista entra directo ahí.
  */
-export function AcceptInvite({ token }: { token: string }) {
+export function AcceptInvite({ token, next }: { token: string; next?: string }) {
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "invalid">("loading");
   const [password, setPassword] = useState("");
@@ -57,7 +58,7 @@ export function AcceptInvite({ token }: { token: string }) {
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d?.message ?? `HTTP ${r.status}`);
-      window.location.assign(d.redirect);
+      window.location.assign(next && preview?.role === "patient" ? next : d.redirect);
     } catch (e2) {
       setErr(errorMessage(e2));
     } finally {

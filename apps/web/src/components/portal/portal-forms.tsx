@@ -182,7 +182,7 @@ export function PortalForm({ id }: { id: string }) {
                           ))}
                         </Select>
                       ) : f.kind === "longtext" ? (
-                        <Textarea id={idq} rows={3} value={values[k] ?? ""} onChange={(e) => set(e.target.value)} maxLength={2000} />
+                        <Textarea id={idq} rows={3} value={values[k] ?? ""} onChange={(e) => set(e.target.value)} maxLength={f.max ?? 2000} />
                       ) : f.kind === "int" || f.kind === "number" ? (
                         <div className="flex items-center gap-2">
                           <Input
@@ -196,7 +196,7 @@ export function PortalForm({ id }: { id: string }) {
                           <span className="text-sm text-stone-500">{f.unit}</span>
                         </div>
                       ) : (
-                        <Input id={idq} value={values[k] ?? ""} onChange={(e) => set(e.target.value)} maxLength={200} />
+                        <Input id={idq} value={values[k] ?? ""} onChange={(e) => set(e.target.value)} maxLength={f.max ?? 200} />
                       )}
                     </div>
                   </div>

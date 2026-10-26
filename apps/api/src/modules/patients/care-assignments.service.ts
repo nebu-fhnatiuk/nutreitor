@@ -17,7 +17,8 @@ import { and, asc, desc, eq, type SQL } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
-import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
+import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
+import { autoRequestAnamnesis } from "./intake-auto.js";
 import {
   assertCanAccessPatient,
   assertLocationInTenant,
@@ -50,6 +51,7 @@ export class CareAssignmentsService {
     tx: TenantTx,
     patientId: string,
     dto: AssignCareDto,
+    opts: { autoIntake?: boolean } = {},
   ): Promise<CareAssignmentDto> {
     // El paciente debe existir en el tenant (RLS ya acota). 404 si no.
     const [patient] = await tx
@@ -114,6 +116,18 @@ export class CareAssignmentsService {
       targetId: patientId,
       metadata: { assignmentId: inserted!.id, membershipId: dto.membershipId },
     });
+
+    // Antes de la primera consulta, la anamnesis le llega sola (KAN-90).
+    if (opts.autoIntake !== false) {
+      const { user, org } = getAuth();
+      await autoRequestAnamnesis(tx, this.audit, {
+        org,
+        patientId,
+        membershipId: dto.membershipId,
+        trigger: "assignment",
+        actor: { userId: user.id, role: user.role },
+      });
+    }
 
     return this.toDto(tx, inserted!.id);
   }

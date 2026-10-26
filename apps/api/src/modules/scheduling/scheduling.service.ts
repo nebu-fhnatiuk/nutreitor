@@ -20,6 +20,7 @@ import type {
   AuthOrg,
   AvailabilityDto,
   BookAppointmentDto,
+  MembershipRole,
   PublicBookAppointmentDto,
   PublicBookingResult,
   RescheduleAppointmentDto,
@@ -35,6 +36,7 @@ import {
   assertCanAccessPatient,
   resolvePatientAccess,
 } from "../patients/patient-access.js";
+import { autoRequestAnamnesis } from "../patients/intake-auto.js";
 import { generateSlots, isValidTimezone, type AvailabilityRuleInput } from "./slots.js";
 
 type AppointmentRow = typeof appointments.$inferSelect;
@@ -168,6 +170,7 @@ export class SchedulingService {
         targetId: id,
         metadata: { patientId: dto.patientId, startsAt: slot.startsAt },
       });
+      await this.anamnesisBeforeFirstVisit(tx, dto.patientId!, access.membershipId, getAuth());
       return this.toDto(tx, id);
     });
   }
@@ -194,6 +197,7 @@ export class SchedulingService {
         targetId: id,
         metadata: { patientId, startsAt: slot.startsAt, via: "patient" },
       });
+      await this.anamnesisBeforeFirstVisit(tx, patientId, membershipId, getAuth());
       return this.toDto(tx, id);
     });
   }
@@ -331,6 +335,7 @@ export class SchedulingService {
         targetId: id,
         metadata: { via: "public", email: dto.email, startsAt: slot.startsAt },
       });
+      await this.anamnesisBeforeFirstVisit(tx, patientId, membershipId, { org, user: null });
       const [prof] = await tx
         .select({ name: users.fullName })
         .from(memberships)
@@ -390,6 +395,25 @@ export class SchedulingService {
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Al reservar, la anamnesis le llega sola si es la primera consulta con ese
+   * profesional (KAN-90). Sin sesión en la reserva pública: actor nulo.
+   */
+  private async anamnesisBeforeFirstVisit(
+    tx: TenantTx,
+    patientId: string,
+    membershipId: string,
+    { org, user }: { org: AuthOrg; user: { id: string; role: MembershipRole } | null },
+  ): Promise<void> {
+    await autoRequestAnamnesis(tx, this.audit, {
+      org,
+      patientId,
+      membershipId,
+      trigger: "booking",
+      actor: user ? { userId: user.id, role: user.role } : null,
+    });
+  }
 
   private range(fromISO?: string, toISO?: string): { from: Date; to: Date } {
     const from = fromISO ? parseDate(fromISO, "from") : new Date();

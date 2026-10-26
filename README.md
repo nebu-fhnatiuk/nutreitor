@@ -464,8 +464,8 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (420 tests)
-docker compose exec api pnpm --filter @nutreitor/worker test   # worker (11 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (429 tests)
+docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 tests)
 ```
 
 - Los tests corren contra **Postgres real** en una base aparte (`nutreitor_test`, se

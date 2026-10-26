@@ -53,7 +53,12 @@ sequenceDiagram
 
 - **Formulario pedido** (al deportista, ADR 0045): cuando su profesional le pide la
   anamnesis o la frecuencia de consumo (últimas 48 h, sigue `requested`). Sólo el link
-  al formulario, sin el mensaje. Llave: id del pedido.
+  al formulario, sin el mensaje. Llave: id del pedido. Los pedidos que viajan en una
+  invitación (`delivery = 'invitation'`, KAN-90) no se avisan por acá.
+- **Invitación con la anamnesis** (KAN-90): si el paciente invitado tiene una anamnesis
+  automática pedida, la invitación al portal en cola sale con otro texto ("Antes de tu
+  primera consulta: completá tu ficha") y el link lleva al formulario después de crear
+  la cuenta. Misma llave que la invitación.
 
 ## Preferencias
 
