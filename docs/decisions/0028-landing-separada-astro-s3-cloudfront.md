@@ -20,13 +20,15 @@ cambio al deploy de la app clínica.
   (ADR 0037). El hero deja probar los colores de un club de ejemplo en vivo (un
   script chico que cambia `--brand`/`--accent2`). Antes: "Clínica luminosa", Manrope. Páginas: `/`, `/clubes`, `/gimnasios`, `/ingresar`, `404`,
   `robots.txt`, `sitemap.xml`, con JSON-LD (`SoftwareApplication` + `FAQPage`).
-- **En AWS** (objetivo, sin IaC todavía): S3 (privado, Origin Access Control) +
+- **En AWS** (en Terraform desde el ADR 0047): S3 (privado, Origin Access Control) +
   **CloudFront** delante de `nutreitor.com`, que decide por ruta:
   - `/registro*`, `/plataforma*`, `/api/*`, `/_next/*` y lo que pide la app → el **ALB**
     de la web (Next);
   - todo lo demás (`/`, `/clubes`, `/gimnasios`, …) → **S3**, con una CloudFront Function
     que agrega `index.html` (el build usa `build.format: "directory"`).
-  - `*.nutreitor.com` (cada organización) sigue yendo directo al ALB, sin cambios.
+  - `*.nutreitor.com` (cada organización) va al ALB. **Actualizado por el ADR 0047**: pasa
+    por una segunda distribución de CloudFront sin caché, y el ALB sólo acepta tráfico de
+    CloudFront.
 - **Mismo dominio**: el CTA es un link relativo (`/registro`), sin CORS ni cookies entre
   dominios, y el SEO queda en el dominio raíz.
 - **La web ya no tiene landing**: en prod `/` nunca le llega. En dev, si `SITE_URL` está

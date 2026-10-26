@@ -15,7 +15,7 @@ import json
 import logging
 
 from .inference import (
-    AWS_REGION,
+    BEDROCK_REGION,
     BEDROCK_MODEL_ID,
     INFERENCE_PROVIDER,
     MAX_OUTPUT_TOKENS,
@@ -239,7 +239,7 @@ def _bedrock_proposal(
         f"Objetivo diario: {json.dumps(targets or {'kcal': kcal}, ensure_ascii=False)}\n"
         f"Indicaciones del profesional: {instructions or 'ninguna'}"
     )
-    client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+    client = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION)
     resp = client.converse(
         modelId=BEDROCK_MODEL_ID,
         system=system,

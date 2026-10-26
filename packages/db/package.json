@@ -24,6 +24,10 @@
       "types": "./dist/migrate.d.ts",
       "default": "./dist/migrate.js"
     },
+    "./set-role-passwords": {
+      "types": "./dist/set-role-passwords.d.ts",
+      "default": "./dist/set-role-passwords.js"
+    },
     "./catalog": {
       "types": "./dist/catalog/build-food-catalog.d.ts",
       "default": "./dist/catalog/build-food-catalog.js"

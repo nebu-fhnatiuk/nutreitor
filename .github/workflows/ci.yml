@@ -73,3 +73,22 @@ jobs:
         run: docker build --target runtime -f apps/web/Dockerfile -t nutreitor-web:ci .
       - name: Build Worker image (target runtime)
         run: docker build --target runtime -f apps/worker/Dockerfile -t nutreitor-worker:ci .
+      - name: Build Agents image
+        run: docker build -t nutreitor-agents:ci apps/agents
+
+  terraform:
+    name: Terraform (fmt · validate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.9
+      - run: terraform fmt -check -recursive infra/terraform
+      # Sin backend ni credenciales: valida sintaxis, tipos y referencias de cada raíz.
+      - name: Validate
+        run: |
+          for d in bootstrap envs/staging envs/prod; do
+            terraform -chdir=infra/terraform/$d init -backend=false -input=false
+            terraform -chdir=infra/terraform/$d validate
+          done

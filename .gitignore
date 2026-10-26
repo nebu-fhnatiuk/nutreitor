@@ -44,3 +44,11 @@ __pycache__/
 
 # Claude Code (config personal)
 .claude/settings.local.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+crash.log

@@ -464,7 +464,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (418 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (429 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 tests)
 ```
 
@@ -522,8 +522,11 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
   decisiones de la plataforma); hoy salen por consola.
 - [ ] Contraseñas **bcryptjs → argon2id**, con migración transparente al próximo login.
 - [ ] Cookies `Secure`, dominio raíz + DNS/certificado wildcard,
-  `TRUSTED_PROXY_HOPS` según lo que haya delante de la web.
-- [ ] **Infraestructura como código** de la topología AWS de arriba.
+  `TRUSTED_PROXY_HOPS` según lo que haya delante de la web (con CloudFront y ALB: 2, ADR 0047).
+- [x] ~~Infraestructura como código~~: Terraform en [`infra/terraform/`](infra/terraform/README.md),
+  región sa-east-1 ([ADR 0046](docs/decisions/0046-region-de-produccion.md),
+  [ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md)). Falta el
+  primer `apply` y el pipeline de deploy.
 - [ ] SES: verificar el dominio y salir del sandbox. Pasar el email de confirmación
   de turno (hoy por consola) al mismo canal.
 - [ ] Imágenes de runtime más livianas (`pnpm deploy`).
