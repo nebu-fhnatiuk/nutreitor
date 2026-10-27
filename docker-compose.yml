@@ -13,17 +13,21 @@ services:
   db:
     image: postgres:17
     environment:
-      # El usuario bootstrap es el OWNER (superusuario): corre migraciones y crea
-      # el rol de runtime. El rol app (nutreitor_app) lo crea la migración 0001.
-      POSTGRES_USER: nutreitor_owner
-      POSTGRES_PASSWORD: owner_dev_pwd
-      POSTGRES_DB: nutreitor
+      # Como RDS (ADR 0048): `postgres` es el superusuario del contenedor y sólo
+      # administra; nutreitor_owner (dueño de la base, corre migraciones) NO es
+      # superusuario. Lo crea docker/postgres/01-roles.sql al crear el volumen; los
+      # roles app/control/worker/agents los crean las migraciones.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_pwd
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nutreitor_owner -d nutreitor"]
+      # Por TCP: durante el init el server temporal sólo escucha por socket, así que
+      # recién da OK cuando la base nutreitor ya existe.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U nutreitor_owner -d nutreitor"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,6 +59,8 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@db:5432/nutreitor
       DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@db:5432/nutreitor
+      # Plano de control (alta, consola, login): rol propio, sin el owner (ADR 0048).
+      DATABASE_CONTROL_URL: postgresql://nutreitor_control:control_dev_pwd@db:5432/nutreitor
       API_PORT: "3001"
       # Auth (dev). En prod: secretos por Secrets Manager, COOKIE_SECURE=true.
       JWT_ACCESS_SECRET: dev-access-secret-change-me

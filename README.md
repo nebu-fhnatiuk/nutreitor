@@ -159,12 +159,13 @@ flowchart LR
 - **Modular monolith a propósito** (ADR 0012): la API es stateless y escala
   horizontal. Se extrae un servicio cuando hay un disparador real, como pasó con los
   agentes (Python, ciclo propio) y el worker (proceso en segundo plano).
-- **Cuatro roles de Postgres**, cada uno con lo justo. Ninguno de runtime
-  bypassa RLS:
+- **Cinco roles de Postgres**, cada uno con lo justo. Ninguno es superusuario ni
+  bypassa RLS, ni en local ni en CI: la base se arma como RDS (ADR 0048):
 
-| Rol | Lo usa | Bypassa RLS | Para qué |
+| Rol | Lo usa | Ve entre tenants | Para qué |
 |---|---|---|---|
-| `nutreitor_owner` | migraciones y seed | sí | DDL, GRANTs, datos de referencia |
+| `nutreitor_owner` | migraciones, seed y tests (nunca la API) | sí, por una policy explícita | DDL, GRANTs, datos de referencia |
+| `nutreitor_control` | el plano de control de la API | sólo tablas de plataforma | alta, consola, login, invitaciones, sesiones |
 | `nutreitor_app` | la API | **no** | todo el producto |
 | `nutreitor_agents` | servicio de agentes | **no** | contexto clínico **minimizado** por agente |
 | `nutreitor_worker` | worker | **no** | recorre consultorios uno por uno; sólo escribe su registro de avisos |
@@ -343,6 +344,9 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0033](docs/decisions/0033-recordatorio-de-24-horas.md) | Recordatorio de 24 horas |
 | [0034](docs/decisions/0034-frecuencia-de-consumo.md) | Frecuencia de consumo por grupos (vs. GAPA) |
 | [0036](docs/decisions/0036-hidratacion-y-prueba-de-sudoracion.md) | Hidratación: prueba de sudoración y plan de líquidos |
+| [0046](docs/decisions/0046-region-de-produccion.md) | Región de producción: sa-east-1, Bedrock en us-east-1 |
+| [0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md) | Infraestructura como código con Terraform |
+| [0048](docs/decisions/0048-plano-de-control-sin-superusuario.md) | Plano de control sin superusuario: rol `nutreitor_control` |
 
 </details>
 
@@ -354,8 +358,8 @@ Lo que ya está resuelto en el código:
 
 - **Aislamiento por base** (RLS forzada, fail-closed) + test que lo verifica sobre el
   catálogo de Postgres + test de aislamiento con dos tenants reales en CI.
-- **Mínimo privilegio por proceso**: cuatro roles de Postgres; ninguno de runtime
-  bypassa RLS. Los GRANTs hacen append-only lo que tiene que serlo.
+- **Mínimo privilegio por proceso**: cinco roles de Postgres; ninguno es
+  superusuario ni bypassa RLS, y el plano de control no lee datos clínicos. Los GRANTs hacen append-only lo que tiene que serlo.
 - **Borde**: la API rechaza requests sin el secreto del edge; en prod además queda en
   red privada. Rate limiting en login y rutas públicas.
 - **Minimización hacia afuera**: los emails no llevan contenido clínico (el aviso de
@@ -420,7 +424,7 @@ El primer arranque instala dependencias, compila, migra y siembra la base.
 | site | http://localhost:4321 | landing de producto (Astro) |
 | web | http://localhost:3000 | la raíz redirige a la landing; el tenant demo en **http://demo.localhost:3000** |
 | api | http://localhost:3001 | `GET /health` |
-| db | localhost:5432 | Postgres 17 |
+| db | localhost:5432 | Postgres 17 armado como RDS: `nutreitor_owner` no es superusuario (ADR 0048) |
 | redis | localhost:6379 | rate limit + colas |
 | worker | — | en dev escanea cada minuto y "manda" los emails a `docker compose logs -f worker` |
 | agents | interno | provider `stub` (sin IA real) |
@@ -441,6 +445,21 @@ Para probar el alta: `localhost:3000/registro`. El link de confirmación sale en
 `*.localhost` resuelve solo en Chrome y Firefox (en Safari puede requerir
 `/etc/hosts`). Los asistentes de IA son un complemento: se instalan como admin en
 *Configuración → Complementos*.
+
+**Volumen de Postgres anterior a KAN-88 (2026-10-26).** Desde ese cambio, el
+Postgres de desarrollo se arma como RDS: el superusuario es `postgres` y el owner no lo
+es. El script `docker/postgres/01-roles.sql` sólo corre con el volumen vacío. Si tu
+volumen es anterior, el test `db-roles` falla. Para recrearlo (borra los datos de
+desarrollo):
+
+```bash
+docker compose stop && docker compose rm -f db && docker volume rm nutreitor_pgdata
+docker compose up -d   # migra y siembra solo
+```
+
+Para volver a cargar la demo del plantel, seguí
+[`tools/demo-data/README.md`](tools/demo-data/README.md): crear los grupos, importar
+`plantel-demo.csv` y correr `seed-salud.mjs`.
 
 **Útil en el día a día**
 
@@ -464,7 +483,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (429 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (435 tests)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 tests)
 ```
 

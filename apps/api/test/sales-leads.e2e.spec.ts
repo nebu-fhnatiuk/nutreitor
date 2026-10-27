@@ -10,6 +10,7 @@ import type { ApiEnv } from "../src/core/config/app-config.module.js";
 import { AdminDbService } from "../src/core/database/admin-db.service.js";
 import type { MailSender, PlainEmail } from "../src/core/mail/mail-sender.js";
 import { LeadsService } from "../src/modules/onboarding/leads.service.js";
+import { controlUrl } from "./test-db.js";
 
 /**
  * Consultas comerciales de la landing (KAN-80, ADR 0041), contra Postgres real:
@@ -38,6 +39,7 @@ class CapturingMail implements MailSender {
 
 let ownerDb: Database;
 let ownerPool: pg.Pool;
+let control: ReturnType<typeof createDb>;
 let appDb: Database;
 let appPool: pg.Pool;
 let mail: CapturingMail;
@@ -61,15 +63,17 @@ beforeAll(async () => {
   await runMigrations(OWNER_URL);
   await runSeed(OWNER_URL);
   ({ db: ownerDb, pool: ownerPool } = createDb(OWNER_URL));
+  control = createDb(controlUrl());
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
   mail = new CapturingMail();
-  leads = new LeadsService(new AdminDbService(ownerDb), mail, env);
+  leads = new LeadsService(new AdminDbService(control.db), mail, env);
 });
 
 afterAll(async () => {
   await ownerDb?.delete(salesLeads).where(like(salesLeads.orgName, `%${RUN}%`));
   await appPool?.end();
   await ownerPool?.end();
+  await control?.pool.end();
 });
 
 describe("formulario", () => {

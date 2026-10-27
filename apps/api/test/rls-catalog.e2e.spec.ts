@@ -68,7 +68,11 @@ beforeAll(async () => {
       (select array_agg(col.column_name::text) from information_schema.columns col
         where col.table_schema = 'public' and col.table_name = c.relname) as columns,
       (select coalesce(json_agg(json_build_object('qual', p.qual, 'withCheck', p.with_check)), '[]')
-        from pg_policies p where p.schemaname = 'public' and p.tablename = c.relname) as policies
+        from pg_policies p where p.schemaname = 'public' and p.tablename = c.relname
+          -- owner_all y control_plane son de roles que no son la app (ADR 0048): las
+          -- audita db-roles.e2e.spec.ts. Acá van las que aplican al rol app.
+          and not (p.policyname = 'owner_all' and p.roles = '{nutreitor_owner}')
+          and not (p.policyname = 'control_plane' and p.roles = '{nutreitor_control}')) as policies
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind = 'r'
       and has_table_privilege('nutreitor_app', c.oid, 'SELECT, INSERT, UPDATE, DELETE')

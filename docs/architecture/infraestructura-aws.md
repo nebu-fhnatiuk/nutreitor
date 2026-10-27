@@ -150,8 +150,12 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
   - Performance Insights encendido.
 - **Las apps verifican el certificado de RDS** (`sslmode=verify-full`) contra la CA
   de AWS, que viene adentro de las imágenes (`/etc/ssl/rds-global-bundle.pem`).
-- **Los roles de la base son los mismos que en desarrollo:**
-  - `nutreitor_owner` es el usuario maestro y corre las migraciones;
+- **Los roles de la base son los mismos que en desarrollo**, que se arma igual que
+  RDS (ADR [0048](../decisions/0048-plano-de-control-sin-superusuario.md)):
+  - `nutreitor_owner` es el usuario maestro, no es superusuario y sólo corre las
+    migraciones;
+  - `nutreitor_control` es el plano de control de la API: ve entre tenants sólo las
+    tablas de plataforma;
   - `nutreitor_app`, `nutreitor_worker` y `nutreitor_agents` son los de runtime,
     sujetos a RLS.
 
@@ -237,7 +241,8 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
 
 | Secreto | Lo usan |
 |---|---|
-| `db/owner-url` | api (plano de control), migrate |
+| `db/owner-url` | sólo migrate (la API no lo tiene, ADR 0048) |
+| `db/control-url` | api (plano de control), migrate |
 | `db/app-url` | api, migrate |
 | `db/worker-url` | worker, migrate |
 | `db/agents-url` | agents, migrate |
@@ -254,8 +259,8 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
 3. Sólo las reescribe cuando sube `credentials_version` (las de la base) o
    `app_secrets_version` (las de la app).
 4. Las migraciones crean los roles de la base con la contraseña de desarrollo. Por
-   eso la tarea `migrate`, después de migrar, les fija la contraseña real leyéndola de
-   su secreto.
+   eso la tarea `migrate`, después de migrar, les fija la contraseña real (app,
+   control, worker y agents) leyéndola de su secreto.
 
 ```mermaid
 sequenceDiagram
@@ -269,7 +274,7 @@ sequenceDiagram
   TF->>SM: secret_string_wo (4 URLs + 4 secretos de la app)
   M->>SM: lee las URLs (inyectadas por ECS)
   M->>RDS: migra con owner
-  M->>RDS: ALTER ROLE app/worker/agents PASSWORD ...
+  M->>RDS: ALTER ROLE app/control/worker/agents PASSWORD ...
   S->>SM: cada servicio recibe sólo sus secretos al arrancar
   S->>RDS: conecta con TLS verificado
 ```
@@ -312,7 +317,6 @@ Los comandos completos están en el [README de infra](../../infra/terraform/READ
 
 | Qué | Ticket |
 |---|---|
-| Verificar en el primer `apply` de staging que el plano de control funcione (en RDS el owner no es superusuario y las tablas fuerzan RLS) | KAN-88 (**bloquea prod**) |
 | Pipeline de deploy desde GitHub Actions (build, ECR, `apply`, `migrate`, landing) | KAN-89 |
 | Logs de acceso del ALB y CloudFront, flow logs, alarmas, WAF, restore probado | KAN-18 |
 | Dominio verificado en SES | KAN-17 |

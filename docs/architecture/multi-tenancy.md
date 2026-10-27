@@ -16,16 +16,22 @@ describe cómo se aísla cada request y por qué.
 Sale del **contexto de auth** (claims del JWT) cruzado con el **subdominio**. El
 cliente no puede elegir su tenant: lo deriva el servidor y lo hace cumplir la DB.
 
-## Dos roles de Postgres (defensa en profundidad)
+## Roles de Postgres (defensa en profundidad)
+
+Ningún rol es superusuario ni tiene `BYPASSRLS`, ni siquiera el owner: la base se
+arma igual que en RDS, en desarrollo y en CI (ADR
+[0048](../decisions/0048-plano-de-control-sin-superusuario.md)).
 
 | Rol | Uso | RLS |
 |---|---|---|
-| `nutreitor_owner` | migraciones, seed, control plane (alta/listado de orgs) | **bypassa** RLS |
-| `nutreitor_app` | runtime de la API (toda query tenant-scoped) | **sujeto** a RLS (sin `BYPASSRLS`, sin superuser, no es owner) |
+| `nutreitor_owner` | migraciones, seed y tests (nunca la API) | policy explícita `owner_all` en cada tabla: ve todo |
+| `nutreitor_control` | plano de control de la API: alta, consola, login, invitaciones, sesiones | policy `control_plane` **sólo** en las tablas de plataforma; ningún dato clínico |
+| `nutreitor_app` | runtime de la API (toda query tenant-scoped) | **sujeto** a RLS (`tenant_isolation`) |
+| `nutreitor_worker`, `nutreitor_agents` | worker y servicio de agentes | **sujetos** a RLS, con GRANTs acotados |
 
-El runtime **jamás** usa el owner. En código, esa separación es física: dos
-servicios distintos, `TenantDbService` (app-db) y `AdminDbService` (owner-db). El
-tipo de lo que inyectás dice de qué lado del borde estás.
+La API **jamás** usa el owner. En código, la separación es física: dos servicios
+distintos, `TenantDbService` (rol app) y `AdminDbService` (rol control). El tipo de lo
+que inyectás dice de qué lado del borde estás.
 
 Sobre cada tabla tenant-scoped:
 

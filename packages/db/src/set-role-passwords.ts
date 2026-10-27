@@ -1,7 +1,7 @@
 import pg from "pg";
 
 /**
- * Fija la contraseña de los roles de runtime (app, worker, agents) desde sus URLs.
+ * Fija la contraseña de los roles de runtime (app, control, worker, agents) desde sus URLs.
  *
  * Las migraciones crean los roles con la contraseña de desarrollo si no existen; en
  * un entorno real la tarea de migraciones corre esto después de migrar, con las URLs
@@ -10,7 +10,7 @@ import pg from "pg";
  *
  * Corre con el rol owner (DATABASE_OWNER_URL).
  */
-const ROLE_URLS = ["DATABASE_URL", "DATABASE_WORKER_URL", "DATABASE_AGENTS_URL"] as const;
+const ROLE_URLS = ["DATABASE_URL", "DATABASE_CONTROL_URL", "DATABASE_WORKER_URL", "DATABASE_AGENTS_URL"] as const;
 
 export async function setRolePasswords(ownerUrl: string, urls: string[]): Promise<string[]> {
   const client = new pg.Client({ connectionString: ownerUrl });

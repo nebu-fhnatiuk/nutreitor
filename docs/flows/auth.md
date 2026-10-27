@@ -14,7 +14,8 @@ mecánica de RLS en [`../architecture/multi-tenancy.md`](../architecture/multi-t
 `POST /auth/login` — `apps/api/src/core/auth/auth.controller.ts` →
 `AuthService.login()`. El slug llega en `x-tenant-slug` (lo inyecta el middleware de
 Next desde el subdominio). El lookup pre-auth de org/usuario usa la conexión
-**owner** (`AdminDbService`, bypassa RLS): todavía no hay contexto de tenant.
+**del plano de control** (`AdminDbService`, rol `nutreitor_control`, ADR 0048):
+todavía no hay contexto de tenant.
 
 Antes de tocar la base, `@RateLimit` corta con **429** + `Retry-After` a partir de
 20 intentos por minuto desde una IP o 10 cada 15 minutos contra un mismo email del

@@ -90,11 +90,10 @@ state remoto y sin secretos en el repo, antes del primer despliegue (KAN-89).
   y hacer `apply`, correr la migración y redeployar los servicios. Entre el `apply` y
   la migración, las tareas que ya corren siguen con las conexiones abiertas, pero no
   pueden abrir nuevas.
-- **Riesgo a verificar en el primer `apply` de staging:** en RDS el usuario maestro no
-  es superusuario. `nutreitor_owner` es dueño de las tablas con
-  `FORCE ROW LEVEL SECURITY`, así que sin `BYPASSRLS` las lecturas del plano de
-  control (alta, consola, resolución de login) verían cero filas. Queda registrado
-  en KAN-88, para resolverlo antes de prod; la salida de fondo es KAN-16.
+- **Riesgo resuelto en KAN-88 (ADR 0048):** en RDS el usuario maestro no es
+  superusuario, y con `FORCE ROW LEVEL SECURITY` el plano de control habría visto
+  cero filas. Ahora usa su propio rol, `nutreitor_control`, y desarrollo y CI se
+  arman igual que RDS.
 - **Quedan para otros tickets:**
   - KAN-18: logs de acceso del ALB, flow logs, alarmas y WAF;
   - KAN-17: la identidad de SES.

@@ -30,7 +30,7 @@ sequenceDiagram
   W->>API: GET /public/orgs/{slug} + x-internal-secret
   Note over API: ruta pública (sin JWT) pero igual exige x-internal-secret
   API->>SVC: getOrg(slug)
-  SVC->>O: bySlug(slug) bootstrap (bypassa RLS, sólo resuelve org.id)
+  SVC->>O: bySlug(slug) bootstrap (rol control, sólo resuelve org.id)
   SVC->>T: runAs(org.id, tx) → SET LOCAL app.current_tenant_id
   T->>T: queries bajo RLS, no pueden ver otro tenant
   SVC->>SVC: serializa filtrando por visibility (campos públicos)
@@ -38,8 +38,8 @@ sequenceDiagram
   W->>B: HTML cacheado (ISR, tags por org y profesional)
 ```
 
-El bootstrap del slug usa la conexión **owner** (`TenantResolverService.bySlug` vía
-`AdminDbService`) sólo para obtener `org.id` — el slug del hostname no es un tenant
+El bootstrap del slug usa la conexión **del plano de control** (`TenantResolverService.bySlug` vía
+`AdminDbService`, rol `nutreitor_control`) sólo para obtener `org.id` — el slug del hostname no es un tenant
 de confianza. La lectura real va por `TenantDbService.runAs(org.id, …)`, misma
 arquitectura de aislamiento que una request autenticada: **no hay ruta de negocio
 exenta de RLS**. "Público" significa sin JWT, no sin `x-internal-secret`.

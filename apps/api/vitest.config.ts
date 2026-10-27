@@ -11,6 +11,16 @@ if (owner && app) {
   const db = testDbName(owner);
   env.DATABASE_OWNER_URL = withDb(owner, db);
   env.DATABASE_URL = withDb(app, db);
+  // Plano de control (ADR 0048): si no viene, mismo servidor con el rol control.
+  const control = process.env.DATABASE_CONTROL_URL ?? controlFrom(app);
+  env.DATABASE_CONTROL_URL = withDb(control, db);
+}
+
+function controlFrom(url: string): string {
+  const u = new URL(url);
+  u.username = "nutreitor_control";
+  u.password = "control_dev_pwd";
+  return u.toString();
 }
 
 export default defineConfig({
