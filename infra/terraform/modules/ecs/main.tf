@@ -219,7 +219,7 @@ resource "aws_iam_role" "task" {
 
 data "aws_caller_identity" "current" {}
 
-# Bedrock, sólo agents y sólo los modelos listados, en la región de Bedrock (ADR 0046).
+# Bedrock, sólo agents y sólo los modelos listados, en la región de Bedrock (ADR 0048).
 resource "aws_iam_role_policy" "agents_bedrock" {
   count = var.bedrock_enabled ? 1 : 0
   name  = "bedrock"

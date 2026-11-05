@@ -1,4 +1,4 @@
-# Producción (ADR 0046 y 0047): sa-east-1, Multi-AZ, NAT por AZ y autoscaling por CPU
+# Producción (ADR 0048 y 0047): us-east-1, Multi-AZ, NAT por AZ y autoscaling por CPU
 # en web y api.
 
 variable "account_id" {
@@ -27,7 +27,7 @@ module "stack" {
   zone_id     = var.zone_id
 
   vpc_cidr   = "10.30.0.0/16"
-  azs        = ["sa-east-1a", "sa-east-1c"]
+  azs        = ["us-east-1a", "us-east-1b"]
   nat_per_az = true
 
   db_instance_class           = "db.t4g.medium"

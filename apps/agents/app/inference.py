@@ -24,8 +24,8 @@ INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "stub")
 BEDROCK_MODEL_ID = os.environ.get(
     "BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-20250514-v1:0"
 )
-# Bedrock puede vivir en otra región que la app (ADR 0046: app en sa-east-1, Bedrock
-# en us-east-1). Sin BEDROCK_REGION, cae en la región del proceso.
+# Bedrock se configura aparte de la región de la app (ADR 0048: hoy las dos son
+# us-east-1). Sin BEDROCK_REGION, cae en la región del proceso.
 BEDROCK_REGION = os.environ.get("BEDROCK_REGION") or os.environ.get("AWS_REGION", "us-east-1")
 MAX_OUTPUT_TOKENS = int(os.environ.get("AGENT_MAX_OUTPUT_TOKENS", "1024"))
 # Cuántos mensajes previos del hilo se mandan como contexto (acota costo/latencia).

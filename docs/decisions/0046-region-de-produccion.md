@@ -1,6 +1,6 @@
 # 0046 — Región de producción: sa-east-1, con Bedrock en us-east-1
 
-- **Estado**: aceptada
+- **Estado**: reemplazada por el [ADR 0048](0048-region-us-east-1.md)
 - **Fecha**: 2026-10-26
 - **Jira**: KAN-19 (Gap 1, KAN-5)
 
