@@ -512,8 +512,8 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
   cierra todas las sesiones ([ADR 0029](docs/decisions/0029-recuperar-la-contrasena.md)).
 - [ ] **MFA (TOTP) obligatorio para operadores de plataforma**: la consola decide qué
   organizaciones reciben datos de salud. Después, opcional para admins de org.
-- [ ] **Alta del operador inicial por CLI** (sin endpoint web) y **sin el usuario
-  seed** `plataforma@nutreitor.test` en prod.
+- [x] ~~Alta del operador inicial por CLI~~: sin endpoint web y sin usuario seed en
+  AWS ([comando](infra/terraform/README.md)).
 - [ ] **Extraer el control-plane** (alta, consola, resolución de login) a un
   servicio propio: la API clínica queda sólo con el rol `app`, sin credenciales
   `owner` en el plano de datos ([ADR 0012](docs/decisions/0012-modular-monolith-evolucion-a-servicios.md)).

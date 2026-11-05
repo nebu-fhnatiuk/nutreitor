@@ -103,6 +103,12 @@ stateDiagram-v2
 
 ## Consola de plataforma
 
+- **Primer operador:** en un entorno real el seed no corre. Se crea con
+  `packages/db/src/create-platform-operator.ts`, sin endpoint web, usando el rol owner
+  y la tarea de migración ([comando](../../infra/terraform/README.md)). No recibe
+  contraseña: el operador elige la suya en `/olvide`
+  ([ADR 0029](../decisions/0029-recuperar-la-contrasena.md)). Si el email ya tiene
+  cuenta, sólo le da el permiso.
 - Sesión propia: cookie `platform_token` host-only del dominio raíz, JWT con `aud`
   `nutreitor-platform`, 2 h sin refresh. `PlatformGuard` re-chequea
   `users.is_platform_admin` en cada request y rechaza si llega `x-tenant-slug`.

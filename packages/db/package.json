@@ -28,6 +28,10 @@
       "types": "./dist/set-role-passwords.d.ts",
       "default": "./dist/set-role-passwords.js"
     },
+    "./create-platform-operator": {
+      "types": "./dist/create-platform-operator.d.ts",
+      "default": "./dist/create-platform-operator.js"
+    },
     "./catalog": {
       "types": "./dist/catalog/build-food-catalog.d.ts",
       "default": "./dist/catalog/build-food-catalog.js"
