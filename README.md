@@ -543,7 +543,7 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
 - [ ] Cookies `Secure`, dominio raíz + DNS/certificado wildcard,
   `TRUSTED_PROXY_HOPS` según lo que haya delante de la web (con CloudFront y ALB: 2, ADR 0047).
 - [x] ~~Infraestructura como código~~: Terraform en [`infra/terraform/`](infra/terraform/README.md),
-  región sa-east-1 ([ADR 0046](docs/decisions/0046-region-de-produccion.md),
+  región us-east-1 ([ADR 0048](docs/decisions/0048-region-us-east-1.md),
   [ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md)). Falta el
   primer `apply` y el pipeline de deploy.
 - [ ] SES: verificar el dominio y salir del sandbox. Pasar el email de confirmación

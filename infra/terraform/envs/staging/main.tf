@@ -27,7 +27,7 @@ module "stack" {
   zone_id     = var.zone_id
 
   vpc_cidr   = "10.20.0.0/16"
-  azs        = ["sa-east-1a", "sa-east-1c"]
+  azs        = ["us-east-1a", "us-east-1b"]
   nat_per_az = false
 
   db_instance_class           = "db.t4g.micro"

@@ -35,7 +35,7 @@ export const orgSignupSchema = z
     kind: z.enum(orgKinds),
     orgName: z.string().trim().min(2).max(120),
     slug: orgSlugSchema,
-    region: regionSchema.default("sa-east-1"),
+    region: regionSchema.default("us-east-1"),
     fullName: z.string().trim().min(2).max(120),
     email: z.string().trim().toLowerCase().email(),
     licenseNumber: z.string().trim().min(2).max(40).optional(),

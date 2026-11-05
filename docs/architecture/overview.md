@@ -128,8 +128,8 @@ flowchart TB
 - **Prod**: Terraform en [`infra/terraform/`](../../infra/terraform/README.md),
   explicado en [`infraestructura-aws.md`](infraestructura-aws.md)
   (ADR [0047](../decisions/0047-infraestructura-como-codigo-terraform.md)), con una
-  cuenta AWS por entorno. App y datos en **sa-east-1**; Bedrock, sólo desde agents, en
-  us-east-1 (ADR [0046](../decisions/0046-region-de-produccion.md)).
+  cuenta AWS por entorno. App, datos y Bedrock en **us-east-1**
+  (ADR [0048](../decisions/0048-region-us-east-1.md)).
   - **Red**: VPC en 2 AZ con subnets públicas (ALB y NAT), privadas (tareas) y de
     datos (RDS y Redis, sin internet).
   - **ECS Fargate**:

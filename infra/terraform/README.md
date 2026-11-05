@@ -26,7 +26,7 @@ flowchart LR
   cf1 -->|/| s3[(S3 landing)]
   cf1 -->|/registro /plataforma /api ...| alb
   cf2 --> alb[ALB<br/>sólo CloudFront]
-  subgraph vpc [VPC sa-east-1 · subnets privadas]
+  subgraph vpc [VPC us-east-1 · subnets privadas]
     alb --> web[web]
     web -->|api:3001| api[api]
     api -->|agents:8000| agents[agents]

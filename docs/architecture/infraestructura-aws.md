@@ -4,7 +4,7 @@ Este documento explica cómo está armada la infraestructura de Nutreitor en AWS
 código está en [`infra/terraform/`](../../infra/terraform/) y su
 [README](../../infra/terraform/README.md) tiene los comandos paso a paso. Las
 decisiones están en el
-[ADR 0046](../decisions/0046-region-de-produccion.md) (región) y el
+[ADR 0048](../decisions/0048-region-us-east-1.md) (región) y el
 [ADR 0047](../decisions/0047-infraestructura-como-codigo-terraform.md) (IaC).
 
 **Estado (2026-10-26):** el código valida (`terraform validate` en CI), pero todavía no
@@ -14,9 +14,8 @@ tuvo un `apply` real: faltan las cuentas de AWS. Lo pendiente está al final.
 
 - **Dos entornos, staging y prod, cada uno en su propia cuenta de AWS.** Usan el mismo
   código y cambian sólo los tamaños.
-- **Región:** todo corre en **sa-east-1 (São Paulo)**. La única excepción es Bedrock
-  (IA), que se llama en **us-east-1** sólo desde el servicio de agentes y está apagado
-  por defecto.
+- **Región:** todo corre en **us-east-1 (Virginia)**, incluido Bedrock (IA), que se
+  llama sólo desde el servicio de agentes y está apagado por defecto.
 - **Todo el tráfico entra por CloudFront.** Detrás hay un ALB que sólo acepta
   conexiones de CloudFront, y detrás del ALB, la web.
 - **La app corre en ECS Fargate** como 4 servicios (web, api, agents, worker) más una
@@ -35,7 +34,7 @@ flowchart LR
   cf1 -->|/| s3[(S3<br/>landing)]
   cf1 -->|/registro /plataforma<br/>/olvide /restablecer /api /_next| alb
   cf2 --> alb[ALB<br/>sólo CloudFront]
-  subgraph vpc [VPC sa-east-1]
+  subgraph vpc [VPC us-east-1]
     subgraph priv [subnets privadas]
       alb --> web[web :3000]
       web -->|api:3001| api[api]
@@ -184,9 +183,8 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
   - la IP real del cliente queda siempre en la misma posición de `X-Forwarded-For`
     (`TRUSTED_PROXY_HOPS=2`), y el rate limiting la usa;
   - si se suma un WAF, va en un solo lugar.
-- **Certificados:** dos wildcards de ACM (`dominio` y `*.dominio`), uno en sa-east-1
-  para el ALB y otro en us-east-1 para CloudFront, porque CloudFront sólo los toma de
-  ahí. Se validan solos por DNS.
+- **Certificados:** dos wildcards de ACM (`dominio` y `*.dominio`), los dos en
+  us-east-1: uno para el ALB y otro para CloudFront, que sólo los toma de esa región. Se validan solos por DNS.
 - **ALB:** TLS 1.2 o 1.3, descarta encabezados inválidos y revisa la salud de la web
   pidiendo `/robots.txt`.
 - **Landing:** un bucket de S3 privado, que sólo lee CloudFront (OAC), con

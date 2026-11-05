@@ -122,7 +122,7 @@ variable "bedrock_enabled" {
 }
 
 variable "bedrock_region" {
-  description = "Región de Bedrock (ADR 0046)."
+  description = "Región de Bedrock (ADR 0048)."
   type        = string
   default     = "us-east-1"
 }
