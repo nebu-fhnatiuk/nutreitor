@@ -67,28 +67,31 @@ resource "aws_acm_certificate" "cloudfront" {
   }
 }
 
-# Los dos certificados piden los mismos registros de validación: se crean una vez.
+# Los dos certificados cubren los mismos dominios, y ACM pide el mismo registro para el
+# dominio y su wildcard: alcanza con uno. Sin for_each, porque esos valores recién se
+# conocen al crear el certificado y un for_each no se puede planificar con ellos.
+locals {
+  validation = tolist(aws_acm_certificate.regional.domain_validation_options)[0]
+}
+
 resource "aws_route53_record" "validation" {
-  for_each = {
-    for o in aws_acm_certificate.regional.domain_validation_options : o.resource_record_name => o...
-  }
   zone_id         = var.zone_id
-  name            = each.key
-  type            = each.value[0].resource_record_type
-  records         = [each.value[0].resource_record_value]
+  name            = local.validation.resource_record_name
+  type            = local.validation.resource_record_type
+  records         = [local.validation.resource_record_value]
   ttl             = 300
   allow_overwrite = true
 }
 
 resource "aws_acm_certificate_validation" "regional" {
   certificate_arn         = aws_acm_certificate.regional.arn
-  validation_record_fqdns = [for r in aws_route53_record.validation : r.fqdn]
+  validation_record_fqdns = [aws_route53_record.validation.fqdn]
 }
 
 resource "aws_acm_certificate_validation" "cloudfront" {
   provider                = aws.us_east_1
   certificate_arn         = aws_acm_certificate.cloudfront.arn
-  validation_record_fqdns = [for r in aws_route53_record.validation : r.fqdn]
+  validation_record_fqdns = [aws_route53_record.validation.fqdn]
 }
 
 # ── ALB → web ─────────────────────────────────────────────────────────────────
