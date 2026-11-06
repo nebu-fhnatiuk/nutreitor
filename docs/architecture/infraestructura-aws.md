@@ -300,7 +300,8 @@ Los comandos completos están en el [README de infra](../../infra/terraform/READ
   3. crear los repos de ECR y subir las imágenes;
   4. `apply`;
   5. correr `migrate`;
-  6. subir la landing.
+  6. crear el primer operador de plataforma;
+  7. subir la landing.
 - **Deploy de una versión:** cambiar `image_tag` y hacer `apply`. Si hay migraciones,
   correr `migrate` antes.
 - **Rotar las contraseñas de la base:** subir `credentials_version`, hacer `apply`,

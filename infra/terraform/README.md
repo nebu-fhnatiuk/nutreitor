@@ -100,7 +100,23 @@ flowchart LR
    de `nutreitor_app`, `nutreitor_control`, `nutreitor_worker` y `nutreitor_agents`
    desde sus secretos.
 
-6. **Landing**: `pnpm --filter @nutreitor/site build`, subir `apps/site/dist` al
+6. **Primer operador de plataforma**, una vez por entorno, con la tarea de migración y
+   otro comando. El seed no corre acá, así que sin este paso nadie puede entrar a la
+   consola:
+
+   ```bash
+   aws ecs run-task --cluster nutreitor-staging --launch-type FARGATE \
+     --task-definition nutreitor-staging-migrate \
+     --network-configuration "awsvpcConfiguration={subnets=[...],securityGroups=[...]}" \
+     --overrides '{"containerOverrides":[{"name":"migrate",
+       "command":["node","/app/packages/db/dist/create-platform-operator.js"],
+       "environment":[{"name":"OPERATOR_EMAIL","value":"<email>"},{"name":"OPERATOR_NAME","value":"<nombre>"}]}]}'
+   ```
+
+   No lleva contraseña: el operador elige la suya en `/olvide`, desde el dominio raíz.
+   Mientras el mail no use SES, el link sale en los logs de la API en CloudWatch.
+
+7. **Landing**: `pnpm --filter @nutreitor/site build`, subir `apps/site/dist` al
    bucket (`site_bucket`) e invalidar la distribución (`site_distribution_id`).
 
 ## Operación
