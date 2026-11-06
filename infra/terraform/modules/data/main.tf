@@ -75,10 +75,12 @@ resource "aws_db_parameter_group" "this" {
   name   = "${var.name}-pg17"
   family = "postgres17"
 
-  # Sin TLS no se conecta nadie.
+  # Sin TLS no se conecta nadie. AWS lo guarda con apply_method = pending-reboot;
+  # si no se fija igual acá, cada plan muestra un cambio in-place que nunca converge.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 
   # Consultas de más de 1 s al log (para encontrar lo lento sin loguear PHI de más).

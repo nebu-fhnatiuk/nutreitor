@@ -34,6 +34,15 @@ variable "github_repository" {
   default     = "nebu-fhnatiuk/nutreitor"
 }
 
+variable "create_service_linked_roles" {
+  description = <<-EOT
+    Crea los roles vinculados de ECS y ElastiCache. Sólo en una cuenta donde todavía
+    no existen (si ya existen, el apply falla). Ver infra/terraform/README.md.
+  EOT
+  type        = bool
+  default     = false
+}
+
 provider "aws" {
   region              = "us-east-1"
   allowed_account_ids = [var.account_id]
@@ -113,6 +122,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
       noncurrent_days = 90
     }
   }
+}
+
+# ── Roles vinculados a servicios ──────────────────────────────────────────────
+
+# En una cuenta nueva, el primer apply del entorno crea estos roles al vuelo y los
+# usa antes de que IAM los propague: ECS falla con "Service Linked Role is not ready"
+# y ElastiCache con "InvalidCredentialsException" (staging, 2026-11-06). Creándolos
+# en el bootstrap ya están listos cuando corre el entorno.
+resource "aws_iam_service_linked_role" "this" {
+  for_each         = var.create_service_linked_roles ? toset(["ecs.amazonaws.com", "elasticache.amazonaws.com"]) : toset([])
+  aws_service_name = each.key
 }
 
 # ── Deploy desde GitHub (OIDC, sin llaves de larga duración) ──────────────────

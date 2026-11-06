@@ -301,73 +301,108 @@ resource "aws_ecs_task_definition" "this" {
 
 # ── Servicios ─────────────────────────────────────────────────────────────────
 
-resource "aws_ecs_service" "this" {
-  for_each        = var.services
-  name            = each.key
-  cluster         = aws_ecs_cluster.this.id
-  task_definition = aws_ecs_task_definition.this[each.key].arn
-  desired_count   = each.value.desired
+# Service Connect arma el proxy de cada tarea con los nombres que existen en el
+# namespace cuando la tarea arranca: si web arranca antes de que api publique el suyo,
+# falla con `getaddrinfo ENOTFOUND api` hasta que se la redeploya (primer apply de
+# staging, 2026-11-06). Por eso los servicios se crean en escalones, cada uno después
+# del anterior: agents (servidor de api), api (servidor de web) y los clientes puros.
+locals {
+  publishers = ["api", "agents"]
 
-  capacity_provider_strategy {
-    capacity_provider = var.use_spot ? "FARGATE_SPOT" : "FARGATE"
-    weight            = 1
+  service_tiers = {
+    agents  = { for k, v in var.services : k => v if k == "agents" }
+    api     = { for k, v in var.services : k => v if k == "api" }
+    clients = { for k, v in var.services : k => v if !contains(["agents", "api"], k) }
   }
 
-  network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.security_group_ids[each.key]]
-    assign_public_ip = false
+  service_common = {
+    cluster_id           = aws_ecs_cluster.this.id
+    namespace_arn        = aws_service_discovery_http_namespace.this.arn
+    task_definition_arns = { for k, t in aws_ecs_task_definition.this : k => t.arn }
   }
+}
 
-  deployment_circuit_breaker {
-    enable   = true
-    rollback = true
-  }
-  deployment_minimum_healthy_percent = 100
-  deployment_maximum_percent         = 200
-  enable_execute_command             = false
-  propagate_tags                     = "SERVICE"
-  wait_for_steady_state              = false
+module "service_agents" {
+  source               = "./service"
+  services             = local.service_tiers.agents
+  cluster_id           = local.service_common.cluster_id
+  namespace_arn        = local.service_common.namespace_arn
+  task_definition_arns = local.service_common.task_definition_arns
+  use_spot             = var.use_spot
+  private_subnet_ids   = var.private_subnet_ids
+  security_group_ids   = var.security_group_ids
+  web_target_group_arn = var.web_target_group_arn
+  ports                = local.ports
+  publishers           = local.publishers
 
-  dynamic "load_balancer" {
-    for_each = each.key == "web" ? [1] : []
-    content {
-      target_group_arn = var.web_target_group_arn
-      container_name   = "web"
-      container_port   = 3000
-    }
-  }
-  health_check_grace_period_seconds = each.key == "web" ? 60 : null
-
-  # api y agents publican su nombre; web y worker sólo consumen.
-  service_connect_configuration {
-    enabled   = true
-    namespace = aws_service_discovery_http_namespace.this.arn
-    dynamic "service" {
-      for_each = contains(["api", "agents"], each.key) ? [1] : []
-      content {
-        port_name = each.key
-        client_alias {
-          dns_name = each.key
-          port     = local.ports[each.key]
-        }
-      }
-    }
-  }
-
-  # El autoscaling mueve desired_count; Terraform no lo pisa en cada apply.
-  lifecycle {
-    ignore_changes = [desired_count]
-  }
-
-  # agents antes que api, api antes que web: Service Connect resuelve al arrancar.
   depends_on = [aws_ecs_cluster_capacity_providers.this]
+}
+
+module "service_api" {
+  source               = "./service"
+  services             = local.service_tiers.api
+  cluster_id           = local.service_common.cluster_id
+  namespace_arn        = local.service_common.namespace_arn
+  task_definition_arns = local.service_common.task_definition_arns
+  use_spot             = var.use_spot
+  private_subnet_ids   = var.private_subnet_ids
+  security_group_ids   = var.security_group_ids
+  web_target_group_arn = var.web_target_group_arn
+  ports                = local.ports
+  publishers           = local.publishers
+
+  depends_on = [module.service_agents]
+}
+
+module "service_clients" {
+  source               = "./service"
+  services             = local.service_tiers.clients
+  cluster_id           = local.service_common.cluster_id
+  namespace_arn        = local.service_common.namespace_arn
+  task_definition_arns = local.service_common.task_definition_arns
+  use_spot             = var.use_spot
+  private_subnet_ids   = var.private_subnet_ids
+  security_group_ids   = var.security_group_ids
+  web_target_group_arn = var.web_target_group_arn
+  ports                = local.ports
+  publishers           = local.publishers
+
+  depends_on = [module.service_api]
+}
+
+# Los servicios ya creados en staging pasan a los submódulos sin recrearse.
+moved {
+  from = aws_ecs_service.this["agents"]
+  to   = module.service_agents.aws_ecs_service.this["agents"]
+}
+
+moved {
+  from = aws_ecs_service.this["api"]
+  to   = module.service_api.aws_ecs_service.this["api"]
+}
+
+moved {
+  from = aws_ecs_service.this["web"]
+  to   = module.service_clients.aws_ecs_service.this["web"]
+}
+
+moved {
+  from = aws_ecs_service.this["worker"]
+  to   = module.service_clients.aws_ecs_service.this["worker"]
+}
+
+locals {
+  service_names = merge(
+    module.service_agents.names,
+    module.service_api.names,
+    module.service_clients.names,
+  )
 }
 
 resource "aws_appautoscaling_target" "this" {
   for_each           = { for k, v in var.services : k => v if v.max > v.min }
   service_namespace  = "ecs"
-  resource_id        = "service/${aws_ecs_cluster.this.name}/${aws_ecs_service.this[each.key].name}"
+  resource_id        = "service/${aws_ecs_cluster.this.name}/${local.service_names[each.key]}"
   scalable_dimension = "ecs:service:DesiredCount"
   min_capacity       = each.value.min
   max_capacity       = each.value.max
