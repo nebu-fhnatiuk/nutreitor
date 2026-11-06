@@ -21,7 +21,7 @@ export function withDb(url: string, db: string): string {
 }
 
 /**
- * Conexión del plano de control (rol nutreitor_control, ADR 0048) para los tests de
+ * Conexión del plano de control (rol nutreitor_control, ADR 0049) para los tests de
  * AdminDbService. Se cierra con `pool.end()` en el afterAll del spec.
  */
 export function controlUrl(): string {

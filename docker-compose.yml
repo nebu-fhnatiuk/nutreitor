@@ -13,7 +13,7 @@ services:
   db:
     image: postgres:17
     environment:
-      # Como RDS (ADR 0048): `postgres` es el superusuario del contenedor y sólo
+      # Como RDS (ADR 0049): `postgres` es el superusuario del contenedor y sólo
       # administra; nutreitor_owner (dueño de la base, corre migraciones) NO es
       # superusuario. Lo crea docker/postgres/01-roles.sql al crear el volumen; los
       # roles app/control/worker/agents los crean las migraciones.
@@ -59,7 +59,7 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@db:5432/nutreitor
       DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@db:5432/nutreitor
-      # Plano de control (alta, consola, login): rol propio, sin el owner (ADR 0048).
+      # Plano de control (alta, consola, login): rol propio, sin el owner (ADR 0049).
       DATABASE_CONTROL_URL: postgresql://nutreitor_control:control_dev_pwd@db:5432/nutreitor
       API_PORT: "3001"
       # Auth (dev). En prod: secretos por Secrets Manager, COOKIE_SECURE=true.

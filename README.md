@@ -160,7 +160,7 @@ flowchart LR
   horizontal. Se extrae un servicio cuando hay un disparador real, como pasó con los
   agentes (Python, ciclo propio) y el worker (proceso en segundo plano).
 - **Cinco roles de Postgres**, cada uno con lo justo. Ninguno es superusuario ni
-  bypassa RLS, ni en local ni en CI: la base se arma como RDS (ADR 0048):
+  bypassa RLS, ni en local ni en CI: la base se arma como RDS (ADR 0049):
 
 | Rol | Lo usa | Ve entre tenants | Para qué |
 |---|---|---|---|
@@ -346,7 +346,8 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0036](docs/decisions/0036-hidratacion-y-prueba-de-sudoracion.md) | Hidratación: prueba de sudoración y plan de líquidos |
 | [0046](docs/decisions/0046-region-de-produccion.md) | Región de producción: sa-east-1, Bedrock en us-east-1 |
 | [0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md) | Infraestructura como código con Terraform |
-| [0048](docs/decisions/0048-plano-de-control-sin-superusuario.md) | Plano de control sin superusuario: rol `nutreitor_control` |
+| [0048](docs/decisions/0048-region-us-east-1.md) | Región de producción: us-east-1 (reemplaza a la 0046) |
+| [0049](docs/decisions/0049-plano-de-control-sin-superusuario.md) | Plano de control sin superusuario: rol `nutreitor_control` |
 
 </details>
 
@@ -424,7 +425,7 @@ El primer arranque instala dependencias, compila, migra y siembra la base.
 | site | http://localhost:4321 | landing de producto (Astro) |
 | web | http://localhost:3000 | la raíz redirige a la landing; el tenant demo en **http://demo.localhost:3000** |
 | api | http://localhost:3001 | `GET /health` |
-| db | localhost:5432 | Postgres 17 armado como RDS: `nutreitor_owner` no es superusuario (ADR 0048) |
+| db | localhost:5432 | Postgres 17 armado como RDS: `nutreitor_owner` no es superusuario (ADR 0049) |
 | redis | localhost:6379 | rate limit + colas |
 | worker | — | en dev escanea cada minuto y "manda" los emails a `docker compose logs -f worker` |
 | agents | interno | provider `stub` (sin IA real) |

@@ -90,7 +90,7 @@ state remoto y sin secretos en el repo, antes del primer despliegue (KAN-89).
   y hacer `apply`, correr la migración y redeployar los servicios. Entre el `apply` y
   la migración, las tareas que ya corren siguen con las conexiones abiertas, pero no
   pueden abrir nuevas.
-- **Riesgo resuelto en KAN-88 (ADR 0048):** en RDS el usuario maestro no es
+- **Riesgo resuelto en KAN-88 (ADR 0049):** en RDS el usuario maestro no es
   superusuario, y con `FORCE ROW LEVEL SECURITY` el plano de control habría visto
   cero filas. Ahora usa su propio rol, `nutreitor_control`, y desarrollo y CI se
   arman igual que RDS.

@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- 0053_control_role — plano de control sin superusuario (KAN-88, ADR 0048).
+-- 0053_control_role — plano de control sin superusuario (KAN-88, ADR 0049).
 --
 -- En RDS el usuario maestro (nutreitor_owner) no es superusuario: no ignora RLS y,
 -- como las tablas tienen FORCE ROW LEVEL SECURITY, ni siquiera su dueño ve filas

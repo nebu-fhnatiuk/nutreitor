@@ -150,7 +150,7 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
 - **Las apps verifican el certificado de RDS** (`sslmode=verify-full`) contra la CA
   de AWS, que viene adentro de las imágenes (`/etc/ssl/rds-global-bundle.pem`).
 - **Los roles de la base son los mismos que en desarrollo**, que se arma igual que
-  RDS (ADR [0048](../decisions/0048-plano-de-control-sin-superusuario.md)):
+  RDS (ADR [0049](../decisions/0049-plano-de-control-sin-superusuario.md)):
   - `nutreitor_owner` es el usuario maestro, no es superusuario y sólo corre las
     migraciones;
   - `nutreitor_control` es el plano de control de la API: ve entre tenants sólo las
@@ -239,7 +239,7 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
 
 | Secreto | Lo usan |
 |---|---|
-| `db/owner-url` | sólo migrate (la API no lo tiene, ADR 0048) |
+| `db/owner-url` | sólo migrate (la API no lo tiene, ADR 0049) |
 | `db/control-url` | api (plano de control), migrate |
 | `db/app-url` | api, migrate |
 | `db/worker-url` | worker, migrate |

@@ -4,7 +4,7 @@ import type { Database } from "@nutreitor/db";
 import { CONTROL_DB } from "./database.constants.js";
 
 /**
- * Acceso de plano de control (rol nutreitor_control, ADR 0048): alta de
+ * Acceso de plano de control (rol nutreitor_control, ADR 0049): alta de
  * organizaciones, consola de plataforma, login, invitaciones, sesiones y recuperar
  * la contraseña. Ve entre tenants sólo las tablas que necesita (GRANT + policy
  * `control_plane`); no tiene DDL ni acceso a datos clínicos.

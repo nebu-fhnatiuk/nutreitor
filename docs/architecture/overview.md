@@ -103,7 +103,7 @@ flowchart TB
 - **Borde de control plane**: el alta de organizaciones y la consola de plataforma
   (operaciones sin tenant) usan `AdminDbService` con el rol `nutreitor_control`: ve
   entre tenants sólo las tablas de plataforma y ningún dato clínico (ADR
-  [0048](../decisions/0048-plano-de-control-sin-superusuario.md)). La API no tiene
+  [0049](../decisions/0049-plano-de-control-sin-superusuario.md)). La API no tiene
   las credenciales del owner. El alta autoservicio
   (`/signup`) es pública y rate-limitada; la consola (`/platform/*` y el viejo
   `/admin/organizations`) exige la **sesión de plataforma**: cookie host-only del

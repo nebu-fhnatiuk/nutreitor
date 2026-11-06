@@ -33,7 +33,7 @@ jobs:
     services:
       postgres:
         image: postgres:17
-        # Como RDS (ADR 0048): `postgres` es el superusuario y nutreitor_owner, que
+        # Como RDS (ADR 0049): `postgres` es el superusuario y nutreitor_owner, que
         # crea el paso de abajo, no lo es.
         env:
           POSTGRES_USER: postgres

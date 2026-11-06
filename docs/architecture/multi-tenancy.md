@@ -20,7 +20,7 @@ cliente no puede elegir su tenant: lo deriva el servidor y lo hace cumplir la DB
 
 Ningún rol es superusuario ni tiene `BYPASSRLS`, ni siquiera el owner: la base se
 arma igual que en RDS, en desarrollo y en CI (ADR
-[0048](../decisions/0048-plano-de-control-sin-superusuario.md)).
+[0049](../decisions/0049-plano-de-control-sin-superusuario.md)).
 
 | Rol | Uso | RLS |
 |---|---|---|

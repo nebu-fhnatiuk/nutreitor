@@ -37,7 +37,7 @@ class DatabaseLifecycle implements OnModuleDestroy {
  * Provee las dos conexiones del modelo POOL:
  *   - APP_DB     (rol app)     → sujeto a RLS, runtime de la API.
  *   - CONTROL_DB (rol control) → plano de control: entre tenants, sólo en las tablas
- *     de plataforma (ADR 0048). La API nunca tiene la conexión del owner.
+ *     de plataforma (ADR 0049). La API nunca tiene la conexión del owner.
  *
  * Mantenerlas como providers separados hace explícita la frontera de privilegio:
  * un servicio que inyecta CONTROL_DB declara, por tipo, que opera fuera del tenant.

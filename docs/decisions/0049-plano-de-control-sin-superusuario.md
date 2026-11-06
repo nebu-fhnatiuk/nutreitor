@@ -1,4 +1,4 @@
-# 0048 — Plano de control sin superusuario: rol `nutreitor_control`
+# 0049 — Plano de control sin superusuario: rol `nutreitor_control`
 
 - **Estado**: aceptada
 - **Fecha**: 2026-10-26

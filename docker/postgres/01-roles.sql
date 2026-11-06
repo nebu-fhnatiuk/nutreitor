@@ -1,4 +1,4 @@
--- Postgres de desarrollo armado como RDS (KAN-88, ADR 0048).
+-- Postgres de desarrollo armado como RDS (KAN-88, ADR 0049).
 --
 -- En RDS el usuario maestro (nutreitor_owner) no es superusuario: tiene CREATEDB y
 -- CREATEROLE, es dueño de la base y no ignora RLS. Acá el superusuario es `postgres`

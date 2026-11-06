@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { controlUrl } from "./test-db.js";
 
 /**
- * Roles de la base como en RDS (KAN-88, ADR 0048): el owner no es superusuario, toda
+ * Roles de la base como en RDS (KAN-88, ADR 0049): el owner no es superusuario, toda
  * tabla con RLS le deja una policy explícita, y el plano de control ve entre tenants
  * sólo las tablas de plataforma, nunca datos clínicos.
  */
