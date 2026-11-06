@@ -18,6 +18,7 @@ import { tenantStorage } from "../src/core/tenant/tenant-context.store.js";
 import { ContactService } from "../src/modules/contact/contact.service.js";
 import { InvitationsService } from "../src/modules/invitations/invitations.service.js";
 import { CareAssignmentsService } from "../src/modules/patients/care-assignments.service.js";
+import { controlUrl } from "./test-db.js";
 
 /**
  * Solicitudes de contacto desde la vidriera (ADR 0027), contra Postgres real con el
@@ -48,6 +49,7 @@ let appDb: Database;
 let appPool: pg.Pool;
 let owner: Database;
 let ownerPool: pg.Pool;
+let control: ReturnType<typeof createDb>;
 let mail: CapturingMail;
 let svc: ContactService;
 
@@ -80,17 +82,19 @@ beforeAll(async () => {
   await runSeed(OWNER_URL);
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
   ({ db: owner, pool: ownerPool } = createDb(OWNER_URL));
+  control = createDb(controlUrl());
   const tenantDb = new TenantDbService(appDb);
   const audit = new AuditService();
   mail = new CapturingMail();
   const env = { WEB_ORIGIN_TEMPLATE: "http://{slug}.localhost:3000", INVITE_TTL_DAYS: 7 } as unknown as ApiEnv;
-  const invitations = new InvitationsService(tenantDb, new AdminDbService(owner), {} as AuthService, audit, mail, env);
+  const invitations = new InvitationsService(tenantDb, new AdminDbService(control.db), {} as AuthService, audit, mail, env);
   svc = new ContactService(tenantDb, audit, new CareAssignmentsService(tenantDb, audit), invitations, mail);
 });
 
 afterAll(async () => {
   await appPool?.end();
   await ownerPool?.end();
+  await control?.pool.end();
 });
 
 describe("formulario público", () => {

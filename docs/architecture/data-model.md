@@ -22,7 +22,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `password_resets` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Pedidos de recuperación de contraseña (ADR 0029): sha256 del token, vence en 60 min, un solo uso. **Sin grants al rol app**. `users.password_changed_at` invalida la sesión de consola emitida antes del cambio. |
 | `org_signups` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Solicitudes de alta pendientes de verificar el email (token hasheado, vencen en 48 h, un solo uso). **Sin grants al rol app**: la opera sólo la conexión owner. |
 | `sales_leads` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Consultas comerciales de "Hablemos para tu club" (landing, KAN-80, ADR 0041): contacto y datos de la organización, estado `new`/`contacted`/`closed` y quién la marcó. Nunca datos de salud. **Sin grants al rol app**: la opera la conexión owner y la leen sólo operadores de plataforma. |
-| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con owner (bypassa RLS). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
+| `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con el rol `nutreitor_control` (policy `control_plane`, ADR 0049). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | `queued_at` (0050): invitación al portal del import en lote que manda el worker, no la API (ADR 0043). El worker lee y sólo puede actualizar `token_hash` y `expires_at`. |
@@ -76,6 +76,14 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 > policies de RLS. Ver flujo [`../flows/agents.md`](../flows/agents.md) y ADRs 0013–0015.
 > Además lee `food_catalog` (sólo `SELECT`, dato de referencia) para el borrador de
 > plan de NUTRI (ADR 0020).
+>
+> El **plano de control** (alta, consola, login, invitaciones, sesiones) usa el rol
+> `nutreitor_control` (ADR 0049): sin DDL ni `BYPASSRLS`; ve entre tenants sólo
+> `organizations`, `memberships`, `invitations`, `refresh_tokens`,
+> `professional_profiles`, `audit_log` (sólo `INSERT`) y de `patients` las columnas
+> `id`, `tenant_id` y `user_id`, por GRANT + policy `control_plane`. El owner, que ya
+> no es superusuario (como en RDS), tiene una policy `owner_all` en cada tabla con
+> RLS, creada por `ensure_owner_policies()` en cada corrida de migraciones.
 >
 > El **worker de notificaciones** usa el rol `nutreitor_worker` (sin `BYPASSRLS`):
 > `SELECT` acotado a lo que necesita para decidir y redactar, `SELECT/INSERT/UPDATE`

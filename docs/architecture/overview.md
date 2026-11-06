@@ -58,7 +58,7 @@ flowchart TB
     alsmw["TenantContextMiddleware<br/>abre scope ALS"]
     guard["JwtAuthGuard + CapabilityGuard<br/>valida JWT, slug==org, membership"]
     tdb["TenantDbService (app-db)<br/>SET LOCAL + RLS"]
-    adb["AdminDbService (owner-db)<br/>control plane, BYPASS RLS"]
+    adb["AdminDbService (control-db)<br/>plano de control, tablas de plataforma"]
   end
 
   redis[("Redis 7<br/>contadores de rate-limit")]
@@ -77,7 +77,7 @@ flowchart TB
   edgeguard --> alsmw --> guard --> tdb
   guard -. "alta/listado de orgs<br/>(sin tenant)" .-> adb
   tdb -->|"rol nutreitor_app<br/>(sin BYPASSRLS)"| tenantTables
-  adb -->|"rol nutreitor_owner<br/>(BYPASSRLS)"| pg
+  adb -->|"rol nutreitor_control<br/>(policy control_plane)"| pg
   guard -.->|"lookup pre-auth de org por slug"| adb
 
   classDef global fill:#3a2,stroke:#0a0,color:#fff;
@@ -101,8 +101,10 @@ flowchart TB
   Toda lectura/escritura de tablas de negocio pasa por `TenantDbService`, que setea
   `app.current_tenant_id` por transacción y deja que la policy RLS filtre.
 - **Borde de control plane**: el alta de organizaciones y la consola de plataforma
-  (operaciones sin tenant) usan `AdminDbService` con el rol `nutreitor_owner`
-  (bypassa RLS) — explícitamente fuera del perímetro de tenant. El alta autoservicio
+  (operaciones sin tenant) usan `AdminDbService` con el rol `nutreitor_control`: ve
+  entre tenants sólo las tablas de plataforma y ningún dato clínico (ADR
+  [0049](../decisions/0049-plano-de-control-sin-superusuario.md)). La API no tiene
+  las credenciales del owner. El alta autoservicio
   (`/signup`) es pública y rate-limitada; la consola (`/platform/*` y el viejo
   `/admin/organizations`) exige la **sesión de plataforma**: cookie host-only del
   dominio raíz, JWT con `aud` propio y `users.is_platform_admin` re-chequeado en cada

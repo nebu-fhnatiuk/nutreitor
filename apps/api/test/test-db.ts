@@ -19,3 +19,13 @@ export function withDb(url: string, db: string): string {
   u.pathname = `/${db}`;
   return u.toString();
 }
+
+/**
+ * Conexión del plano de control (rol nutreitor_control, ADR 0049) para los tests de
+ * AdminDbService. Se cierra con `pool.end()` en el afterAll del spec.
+ */
+export function controlUrl(): string {
+  const url = process.env.DATABASE_CONTROL_URL;
+  if (!url) throw new Error("Falta DATABASE_CONTROL_URL para los tests del plano de control.");
+  return url;
+}

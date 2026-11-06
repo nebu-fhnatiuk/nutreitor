@@ -139,7 +139,7 @@ resource "aws_vpc_security_group_egress_rule" "tasks" {
 # Secrets Manager, con argumentos write-only) cuando cambia credentials_version.
 # Nunca quedan en el state ni en el repo.
 ephemeral "random_password" "db" {
-  for_each = toset(["owner", "app", "worker", "agents"])
+  for_each = toset(["owner", "app", "control", "worker", "agents"])
   length   = 40
   special  = false
 }
@@ -177,10 +177,11 @@ module "data" {
 
 locals {
   db_roles = {
-    owner  = "nutreitor_owner"
-    app    = "nutreitor_app"
-    worker = "nutreitor_worker"
-    agents = "nutreitor_agents"
+    owner   = "nutreitor_owner"
+    app     = "nutreitor_app"
+    control = "nutreitor_control"
+    worker  = "nutreitor_worker"
+    agents  = "nutreitor_agents"
   }
   # verify-full: el certificado de RDS se valida contra la CA que traen las imágenes.
   db_params = "sslmode=verify-full&sslrootcert=/etc/ssl/rds-global-bundle.pem"
@@ -306,8 +307,9 @@ module "ecs" {
       EDGE_SHARED_SECRET = local.app_secret.edge
     }
     api = {
-      DATABASE_URL         = local.db_secret.app
-      DATABASE_OWNER_URL   = local.db_secret.owner
+      DATABASE_URL = local.db_secret.app
+      # Plano de control con su rol (ADR 0048): la API no tiene el secreto del owner.
+      DATABASE_CONTROL_URL = local.db_secret.control
       JWT_ACCESS_SECRET    = local.app_secret.jwt_access
       JWT_REFRESH_SECRET   = local.app_secret.jwt_refresh
       EDGE_SHARED_SECRET   = local.app_secret.edge
@@ -322,10 +324,11 @@ module "ecs" {
     }
     # Migra con owner y fija la contraseña de cada rol desde su URL.
     migrate = {
-      DATABASE_OWNER_URL  = local.db_secret.owner
-      DATABASE_URL        = local.db_secret.app
-      DATABASE_WORKER_URL = local.db_secret.worker
-      DATABASE_AGENTS_URL = local.db_secret.agents
+      DATABASE_OWNER_URL   = local.db_secret.owner
+      DATABASE_URL         = local.db_secret.app
+      DATABASE_CONTROL_URL = local.db_secret.control
+      DATABASE_WORKER_URL  = local.db_secret.worker
+      DATABASE_AGENTS_URL  = local.db_secret.agents
     }
   }
 }

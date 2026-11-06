@@ -16,9 +16,12 @@ export const nodeEnvSchema = z
 export const databaseEnvSchema = z.object({
   // Conexión de runtime de la API: rol `nutreitor_app`, sujeto a RLS.
   DATABASE_URL: z.string().url(),
-  // Conexión de migraciones/seed: rol `nutreitor_owner`, bypassa RLS.
-  // Opcional porque el runtime de la API no la necesita.
+  // Conexión de migraciones/seed: rol `nutreitor_owner`. La API en runtime NO la usa
+  // (ADR 0049); queda para el tooling de la base.
   DATABASE_OWNER_URL: z.string().url().optional(),
+  // Plano de control (alta, consola, login, invitaciones): rol `nutreitor_control`,
+  // entre tenants sólo en las tablas de plataforma (ADR 0049).
+  DATABASE_CONTROL_URL: z.string().url().optional(),
 });
 
 export const authEnvSchema = z.object({

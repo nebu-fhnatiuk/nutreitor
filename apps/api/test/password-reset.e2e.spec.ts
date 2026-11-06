@@ -13,6 +13,7 @@ import type { ApiEnv } from "../src/core/config/app-config.module.js";
 import { AdminDbService } from "../src/core/database/admin-db.service.js";
 import type { MailSender, PlainEmail } from "../src/core/mail/mail-sender.js";
 import { PlatformAuthService } from "../src/modules/onboarding/platform-auth.js";
+import { controlUrl } from "./test-db.js";
 
 /**
  * Recuperar la contraseña (ADR 0029), contra Postgres real. Cubre: misma respuesta
@@ -53,6 +54,7 @@ class CapturingMail implements MailSender {
 
 let owner: Database;
 let ownerPool: pg.Pool;
+let control: ReturnType<typeof createDb>;
 let appDb: Database;
 let appPool: pg.Pool;
 let mail: CapturingMail;
@@ -68,13 +70,14 @@ beforeAll(async () => {
   await runMigrations(OWNER_URL);
   await runSeed(OWNER_URL);
   ({ db: owner, pool: ownerPool } = createDb(OWNER_URL));
+  control = createDb(controlUrl());
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
   // Operador de plataforma de prueba (también sirve para la sesión de consola).
   await owner.execute(sql`insert into users (id, email, full_name, hashed_password, is_platform_admin)
     values (${USER_ID}, ${EMAIL}, 'Reset Prueba', ${bcrypt.hashSync("vieja-clave-1", 4)}, true)
     on conflict (id) do update set hashed_password = excluded.hashed_password, password_changed_at = null`);
   await owner.delete(passwordResets).where(eq(passwordResets.userId, USER_ID));
-  const admin = new AdminDbService(owner);
+  const admin = new AdminDbService(control.db);
   mail = new CapturingMail();
   svc = new PasswordResetService(admin, new TenantResolverService(admin), mail, env);
   platform = new PlatformAuthService(admin, new JwtService({}), env);
@@ -83,6 +86,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await appPool?.end();
   await ownerPool?.end();
+  await control?.pool.end();
 });
 
 describe("pedido", () => {

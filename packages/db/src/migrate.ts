@@ -84,6 +84,13 @@ export async function runMigrations(connectionString: string): Promise<void> {
       }
     }
 
+    // Toda tabla con RLS, también las que agregue una migración nueva, le deja al
+    // owner su policy explícita: en RDS no es superusuario (0053, ADR 0049).
+    const { rows: fn } = await client.query<{ ok: boolean }>(
+      "SELECT to_regprocedure('ensure_owner_policies()') IS NOT NULL AS ok",
+    );
+    if (fn[0]?.ok) await client.query("SELECT ensure_owner_policies()");
+
     console.log("Migraciones al día.");
   } finally {
     await client.end();

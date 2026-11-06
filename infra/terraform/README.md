@@ -97,7 +97,8 @@ flowchart LR
 
    Las subnets y el security group salen de `terraform output stack`
    (`migrate_network`). La tarea migra con el rol owner y después fija la contraseña
-   de `nutreitor_app`, `nutreitor_worker` y `nutreitor_agents` desde sus secretos.
+   de `nutreitor_app`, `nutreitor_control`, `nutreitor_worker` y `nutreitor_agents`
+   desde sus secretos.
 
 6. **Landing**: `pnpm --filter @nutreitor/site build`, subir `apps/site/dist` al
    bucket (`site_bucket`) e invalidar la distribución (`site_distribution_id`).
@@ -117,8 +118,5 @@ flowchart LR
 
 ## Pendiente antes de prod
 
-- **Verificar en staging que `nutreitor_owner` pueda leer el plano de control.** En
-  RDS, el usuario maestro no es superusuario y las tablas tienen
-  `FORCE ROW LEVEL SECURITY` (KAN-88, ADR 0047).
 - Logs de acceso del ALB, flow logs, alarmas y WAF (KAN-18).
 - Pipeline de deploy desde GitHub Actions (KAN-89).

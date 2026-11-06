@@ -1,27 +1,28 @@
 import { Inject, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { Database } from "@nutreitor/db";
 
-import { OWNER_DB } from "./database.constants.js";
+import { CONTROL_DB } from "./database.constants.js";
 
 /**
- * Acceso de control-plane (rol owner, BYPASSA RLS). Reservado a operaciones de
- * plataforma que no son de ningún tenant: alta/listado de organizaciones.
+ * Acceso de plano de control (rol nutreitor_control, ADR 0049): alta de
+ * organizaciones, consola de plataforma, login, invitaciones, sesiones y recuperar
+ * la contraseña. Ve entre tenants sólo las tablas que necesita (GRANT + policy
+ * `control_plane`); no tiene DDL ni acceso a datos clínicos.
  *
- * El tipo lo dice todo: quien inyecta AdminDbService está saliendo del perímetro
- * de RLS a propósito. En el futuro este control-plane puede vivir en un servicio
- * separado sin owner-creds en el plano de datos.
+ * El tipo lo dice todo: quien inyecta AdminDbService está saliendo del perímetro del
+ * tenant a propósito. A futuro este plano puede vivir en un servicio aparte (KAN-16).
  */
 @Injectable()
 export class AdminDbService {
-  constructor(@Inject(OWNER_DB) private readonly ownerDb: Database | null) {}
+  constructor(@Inject(CONTROL_DB) private readonly controlDb: Database | null) {}
 
-  /** DB con privilegios de owner. Tira si la API no fue configurada como control-plane. */
+  /** DB del plano de control. Tira si la API no fue configurada con el rol control. */
   get db(): Database {
-    if (!this.ownerDb) {
+    if (!this.controlDb) {
       throw new ServiceUnavailableException(
-        "Operación de administración no disponible: falta DATABASE_OWNER_URL.",
+        "Operación de administración no disponible: falta DATABASE_CONTROL_URL.",
       );
     }
-    return this.ownerDb;
+    return this.controlDb;
   }
 }

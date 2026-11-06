@@ -26,6 +26,7 @@ import type { MailSender, PlainEmail } from "../src/core/mail/mail-sender.js";
 import { PlatformAuthService } from "../src/modules/onboarding/platform-auth.js";
 import { PlatformService } from "../src/modules/onboarding/platform.service.js";
 import { SignupService } from "../src/modules/onboarding/signup.service.js";
+import { controlUrl } from "./test-db.js";
 
 /**
  * Alta autoservicio de organizaciones + consola de plataforma (ADR 0025), contra
@@ -73,6 +74,7 @@ class CapturingMail implements MailSender {
 
 let ownerDb: Database;
 let ownerPool: pg.Pool;
+let control: ReturnType<typeof createDb>;
 let appDb: Database;
 let appPool: pg.Pool;
 let mail: CapturingMail;
@@ -100,8 +102,9 @@ beforeAll(async () => {
   await runMigrations(OWNER_URL);
   await runSeed(OWNER_URL);
   ({ db: ownerDb, pool: ownerPool } = createDb(OWNER_URL));
+  control = createDb(controlUrl());
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
-  const admin = new AdminDbService(ownerDb);
+  const admin = new AdminDbService(control.db);
   mail = new CapturingMail();
   signup = new SignupService(admin, new AuditService(), mail, env);
   platform = new PlatformService(admin, new AuditService(), mail, env);
@@ -115,6 +118,7 @@ afterAll(async () => {
   // referencia); el sufijo por corrida evita choques entre corridas.
   await appPool?.end();
   await ownerPool?.end();
+  await control?.pool.end();
 });
 
 describe("alta autoservicio", () => {

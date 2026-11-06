@@ -33,21 +33,29 @@ jobs:
     services:
       postgres:
         image: postgres:17
+        # Como RDS (ADR 0049): `postgres` es el superusuario y nutreitor_owner, que
+        # crea el paso de abajo, no lo es.
         env:
-          POSTGRES_USER: nutreitor_owner
-          POSTGRES_PASSWORD: owner_dev_pwd
-          POSTGRES_DB: nutreitor
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_ci_pwd
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U nutreitor_owner -d nutreitor"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # El rol app (nutreitor_app) lo crea la migración 0001 en el beforeAll del test.
+      # Los roles app/control/worker/agents los crean las migraciones en el beforeAll.
       DATABASE_OWNER_URL: postgresql://nutreitor_owner:owner_dev_pwd@localhost:5432/nutreitor
       DATABASE_URL: postgresql://nutreitor_app:app_dev_pwd@localhost:5432/nutreitor
+      DATABASE_CONTROL_URL: postgresql://nutreitor_control:control_dev_pwd@localhost:5432/nutreitor
     steps:
       - uses: actions/checkout@v4
+      - name: Owner como el usuario maestro de RDS
+        run: psql -v ON_ERROR_STOP=1 -f docker/postgres/01-roles.sql
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres_ci_pwd
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

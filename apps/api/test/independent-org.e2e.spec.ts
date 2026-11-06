@@ -22,6 +22,7 @@ import { ConversationsService } from "../src/modules/patients/conversations.serv
 import { EfficiencyService } from "../src/modules/patients/efficiency.service.js";
 import { PatientNotesService } from "../src/modules/patients/patient-notes.service.js";
 import { PatientsService } from "../src/modules/patients/patients.service.js";
+import { controlUrl } from "./test-db.js";
 
 /**
  * Profesional independiente = org de una persona (ADR 0026): la admin es quien
@@ -48,6 +49,7 @@ const COLLEAGUE_M = "00000000-0000-0000-0000-000000005020";
 
 let appPool: pg.Pool;
 let ownerPool: pg.Pool;
+let control: ReturnType<typeof createDb>;
 let owner: Database;
 let patientsSvc: PatientsService;
 let chat: ConversationsService;
@@ -82,6 +84,7 @@ beforeAll(async () => {
   let appDb: Database;
   ({ db: appDb, pool: appPool } = createDb(APP_URL));
   ({ db: owner, pool: ownerPool } = createDb(OWNER_URL));
+  control = createDb(controlUrl());
 
   await owner.execute(sql`insert into organizations (id, name, slug, region, status, kind)
     values (${ORG.id}, ${ORG.name}, ${ORG.slug}, 'sa-east-1', 'active', 'individual')
@@ -108,16 +111,17 @@ beforeAll(async () => {
   );
   chat = new ConversationsService(tenantDb);
   efficiency = new EfficiencyService(tenantDb);
-  orgs = new OrganizationsService(new AdminDbService(owner), tenantDb, audit);
+  orgs = new OrganizationsService(new AdminDbService(control.db), tenantDb, audit);
   const noMail: MailSender = { sendInvitation: async () => {}, send: async () => {} };
   const env = { WEB_ORIGIN_TEMPLATE: "http://{slug}.localhost:3000", INVITE_TTL_DAYS: 7 } as unknown as ApiEnv;
-  invites = new InvitationsService(tenantDb, new AdminDbService(owner), {} as AuthService, audit, noMail, env);
+  invites = new InvitationsService(tenantDb, new AdminDbService(control.db), {} as AuthService, audit, noMail, env);
 });
 
 afterAll(async () => {
   await owner?.execute(sql`update organizations set kind = 'individual' where id = ${ORG.id}`);
   await appPool?.end();
   await ownerPool?.end();
+  await control?.pool.end();
 });
 
 describe("helpers de rol", () => {

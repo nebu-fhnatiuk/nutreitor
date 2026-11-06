@@ -2,8 +2,8 @@
 export const APP_DB = Symbol("APP_DB");
 
 /**
- * Conexión de administración: rol nutreitor_owner, BYPASSA RLS. Sólo para
- * operaciones de plataforma (alta/listado de organizaciones). La usa AdminDbService.
- * Puede no estar configurada si la API no cumple rol de control-plane.
+ * Conexión del plano de control: rol nutreitor_control (ADR 0049), con acceso entre
+ * tenants sólo a las tablas de plataforma. La usa AdminDbService. Puede no estar
+ * configurada si la API no cumple rol de control-plane.
  */
-export const OWNER_DB = Symbol("OWNER_DB");
+export const CONTROL_DB = Symbol("CONTROL_DB");
