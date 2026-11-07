@@ -1,6 +1,9 @@
 # Infraestructura (Terraform)
 
-Topología de producción de Nutreitor en AWS. Las decisiones están en los ADR
+Topología de producción de Nutreitor en AWS.
+
+**Estado (2026-11-06):** staging desplegado en us-east-1 (cuenta `mascherano`). Prod
+todavía no tiene cuenta. Las decisiones están en los ADR
 [0046](../../docs/decisions/0046-region-de-produccion.md) (región) y
 [0047](../../docs/decisions/0047-infraestructura-como-codigo-terraform.md) (IaC).
 La explicación completa (qué hace cada módulo, seguridad, secretos y tamaños) está en
@@ -61,6 +64,22 @@ flowchart LR
    terraform apply -var env=staging -var account_id=<cuenta>
    ```
 
+   **Roles vinculados a servicios.** En una cuenta nueva, el primer apply del entorno
+   crea al vuelo los roles vinculados de ECS y ElastiCache y los usa antes de que IAM
+   termine de propagarlos: ECS falla con `Service Linked Role is not ready` y
+   ElastiCache con `InvalidCredentialsException`. Para evitarlo, crearlos en el
+   bootstrap:
+
+   ```bash
+   aws iam get-role --role-name AWSServiceRoleForECS          # ¿ya existe?
+   aws iam get-role --role-name AWSServiceRoleForElastiCache
+   terraform apply -var env=staging -var account_id=<cuenta> -var create_service_linked_roles=true
+   ```
+
+   Sólo si no existen: si ya están (como en `mascherano`), dejar la variable en
+   `false`, porque crearlos de nuevo falla. Si el apply del entorno igual tropieza
+   con estos errores, alcanza con esperar un minuto y repetirlo.
+
    El state del bootstrap queda local. Para moverlo al bucket que acaba de crear,
    agregá un bloque `backend "s3" {}` y corré
    `terraform init -migrate-state -backend-config=../envs/staging/backend.hcl`
@@ -85,6 +104,14 @@ flowchart LR
    terraform init -backend-config=backend.hcl
    terraform plan -out=staging.tfplan
    terraform apply staging.tfplan
+   ```
+
+   Los servicios se crean en orden (agents, api y después web y worker) para que
+   cada cliente encuentre su servidor en Service Connect al arrancar. Si igual
+   alguno queda fallando con `getaddrinfo ENOTFOUND api` (o `agents`), redeployarlo:
+
+   ```bash
+   aws ecs update-service --cluster nutreitor-staging --service web --force-new-deployment
    ```
 
 5. **Migración** (también después de cada deploy con migraciones nuevas):

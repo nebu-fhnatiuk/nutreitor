@@ -7,8 +7,10 @@ decisiones están en el
 [ADR 0048](../decisions/0048-region-us-east-1.md) (región) y el
 [ADR 0047](../decisions/0047-infraestructura-como-codigo-terraform.md) (IaC).
 
-**Estado (2026-10-26):** el código valida (`terraform validate` en CI), pero todavía no
-tuvo un `apply` real: faltan las cuentas de AWS. Lo pendiente está al final.
+**Estado (2026-11-06):** staging está desplegado en us-east-1, en la cuenta
+`mascherano`. El primer `apply` real mostró tres problemas que se corrigieron en el
+código (orden de Service Connect, roles vinculados a servicios y un diff permanente
+en `rds.force_ssl`). Prod todavía no tiene cuenta. Lo pendiente está al final.
 
 ## Resumen en una pantalla
 
@@ -197,6 +199,12 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
 
 - **Cluster:** Fargate, con un namespace de Service Connect (`<entorno>.internal`).
   api y agents publican su nombre; web y worker sólo lo usan.
+- **Orden de creación:** el proxy de Service Connect de cada tarea conoce sólo los
+  nombres que ya existían en el namespace cuando arrancó. Si web arranca antes de que
+  api publique el suyo, falla con `getaddrinfo ENOTFOUND api` hasta que se la
+  redeploya (pasó en el primer apply de staging). Por eso los servicios se crean en
+  escalones (submódulo `modules/ecs/service`): primero agents, después api y al final
+  web y worker.
 - **Imágenes (ECR):** un repositorio por imagen (api, web, worker, agents), con tags
   inmutables (el SHA del commit), escaneo al subir, cifrado KMS y las últimas 30
   imágenes.
@@ -295,10 +303,12 @@ sequenceDiagram
 Los comandos completos están en el [README de infra](../../infra/terraform/README.md).
 
 - **Primer despliegue:**
-  1. bootstrap de la cuenta;
+  1. bootstrap de la cuenta (en una cuenta nueva, con los roles vinculados de ECS y
+     ElastiCache: `create_service_linked_roles = true`);
   2. zona DNS;
   3. crear los repos de ECR y subir las imágenes;
-  4. `apply`;
+  4. `apply` (si algún cliente igual arrancara sin resolver `api` o `agents`,
+     redeployarlo con `--force-new-deployment`);
   5. correr `migrate`;
   6. crear el primer operador de plataforma;
   7. subir la landing.
