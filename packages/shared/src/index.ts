@@ -25,6 +25,7 @@ export * from "./command-search.js";
 export * from "./report-story.js";
 export * from "./dtos/meal-plan.dto.js";
 export * from "./dtos/plan-draft.dto.js";
+export * from "./dtos/consultation-note.dto.js";
 export * from "./dtos/adherence.dto.js";
 export * from "./dtos/message.dto.js";
 export * from "./dtos/efficiency.dto.js";
