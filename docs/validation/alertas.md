@@ -1,6 +1,6 @@
 # Validación — catálogo de alertas clínico-nutricionales
 
-**Estado: a confirmar** (KAN-98, épica KAN-91). Es la lista inicial de reglas que va a
+**Estado: sección C validada** por Florencia Hnatiuk, nutricionista, el 2026-11-19 (PR #123). Las secciones A, B y D y el criterio de nivel siguen a confirmar (KAN-98, épica KAN-91). Es la lista inicial de reglas que va a
 implementar el motor de alertas (KAN-97). El motor revisa el plan contra la ficha y
 avisa con la fuente visible. Las alertas **no bloquean**: el profesional acepta o
 descarta cada una y la decisión queda registrada. El LLM no decide nada; como mucho
@@ -56,12 +56,25 @@ así que son las primeras que se pueden implementar.
 
 | ID | Salta cuando… | Umbral | Nivel | Texto del aviso | Fuente | ¿Lo confirmás? |
 |---|---|---|---|---|---|---|
-| C1 | La energía del plan se aparta del objetivo del tipo de día | Más de ±10 % | Informativa | "El plan aporta {kcal} kcal; el objetivo del día {tipo} es {objetivo} kcal ({desvío} %)." | Criterio de la app | |
-| C2 | Disponibilidad energética baja: (ingesta − gasto del ejercicio) / kg de masa libre de grasa | Menos de 30 kcal/kg MLG/día | Importante | "Disponibilidad energética estimada de {x} kcal/kg MLG en el día {tipo}. Por debajo de 30 hay riesgo de REDs." | Mountjoy et al., 2023, consenso del COI sobre REDs, *BJSM* | |
-| C3 | Igual que C2 | Entre 30 y 45 kcal/kg MLG/día, si el objetivo no es bajar peso | Informativa | "Disponibilidad energética estimada de {x} kcal/kg MLG: por debajo del nivel óptimo (45)." | Mountjoy et al., 2023, *BJSM* | |
-| C4 | Proteína fuera del rango de referencia | Menos de 1,2 o más de 2,0 g/kg/día | Informativa | "El plan aporta {x} g/kg de proteína; la referencia para deportistas es 1,2–2,0 g/kg." | Thomas, Erdman y Burke, 2016, posición ACSM, AND y Dietitians of Canada | |
-| C5 | Hidratos fuera de la banda según la carga de entrenamiento del día | Fuera de la banda de `MACRO_REFERENCE` (3–5, 5–7, 6–10 u 8–12 g/kg) | Informativa | "El día {tipo} aporta {x} g/kg de hidratos; para esta carga la referencia es {min}–{max} g/kg." | Thomas, Erdman y Burke, 2016 | |
-| C6 | Grasa fuera del rango | Menos de 20 % o más de 35 % de la energía | Informativa | "La grasa aporta el {x} % de la energía; la referencia es 20–35 %." | Thomas, Erdman y Burke, 2016 | |
+| C1 | La energía del plan se aparta del objetivo del tipo de día | Más de ±10 % (±15 % en días de descanso) | Informativa | "El plan aporta {kcal} kcal; el objetivo del día {tipo} es {objetivo} kcal ({desvío} %)." | Criterio de la app || ✓ |
+| C2 | Disponibilidad energética baja: (ingesta − gasto del ejercicio) / kg de masa libre de grasa | Menos de 30 kcal/kg MLG/día | Importante | "Disponibilidad energética estimada de {x} kcal/kg MLG en el día {tipo}. Por debajo de 30 hay riesgo de REDs." | Mountjoy et al., 2023, consenso del COI sobre REDs, *BJSM* || ✓ |
+| C3 | Igual que C2 | Entre 30 y 45 kcal/kg MLG/día, si el objetivo no es bajar peso | Informativa | "Disponibilidad energética estimada de {x} kcal/kg MLG: por debajo del nivel óptimo (45)." | Mountjoy et al., 2023, *BJSM* || ✓ |
+| C4 | Proteína fuera del rango de referencia | Menos de 1,2 o más de 2,0 g/kg/día | Informativa | "El plan aporta {x} g/kg de proteína; la referencia para deportistas es 1,2–2,0 g/kg." | Thomas, Erdman y Burke, 2016, posición ACSM, AND y Dietitians of Canada || ✓ |
+| C5 | Hidratos fuera de la banda según la carga de entrenamiento del día | Fuera de la banda de `MACRO_REFERENCE` (3–5, 5–7, 6–10 u 8–12 g/kg) | Informativa | "El día {tipo} aporta {x} g/kg de hidratos; para esta carga la referencia es {min}–{max} g/kg." | Thomas, Erdman y Burke, 2016 || ✓ |
+| C6 | Grasa fuera del rango | Menos de 20 % o más de 35 % de la energía | Informativa | "La grasa aporta el {x} % de la energía; la referencia es 20–35 %." | Thomas, Erdman y Burke, 2016 || ✓ |
+
+### Criterios de cálculo de la sección C (a confirmar)
+
+Los umbrales están validados; estos criterios los elegí yo para poder calcularlos:
+
+| Criterio | Cómo lo calcula la app | ¿Lo confirmás? |
+|---|---|---|
+| Qué se evalúa | El plan prescripto, no la ingesta real. El gasto del ejercicio es el estimado por MET del requerimiento: (MET − 1) × kg × h. | |
+| Días sin macros completos | Si algún alimento del día no tiene kcal, el día no se evalúa (el total sería parcial) y se avisa que falta completar. | |
+| Banda de hidratos (C5) | Por minutos de entrenamiento del tipo de día: 0 → 3–5 g/kg; hasta 60 → 5–7; hasta 240 → 6–10; más de 240 → 8–12. | |
+| "Objetivo de bajar peso" (C3) | El ajuste del requerimiento es negativo (déficit). | |
+| Día de descanso (C1) | El nombre del tipo de día dice "descanso" o "libre", o no tiene sesiones. | |
+| Plan de día-tipo (sin semana) | Solo se evalúan C1, C4 y C6: sin semana tipo no se sabe qué entrenamiento corresponde. | |
 
 ## D. Suplementación y dopaje
 
@@ -102,8 +115,7 @@ suplementación cuando esté KAN-59.
 
 1. ¿Falta alguna interacción frecuente en tu práctica? Por ejemplo: anticonceptivos
    orales, antiepilépticos, corticoides inhalados o diuréticos tiazídicos.
-2. ¿C1 (±10 % de energía) tiene que ser más laxo en los días de descanso?
-3. ¿D1 debería saltar también para deportistas sin control antidopaje, con nivel
+2. ¿D1 debería saltar también para deportistas sin control antidopaje, con nivel
    informativo?
-4. ¿Las alertas de horario (B1, B9) tienen sentido si el plan no tiene horarios
+3. ¿Las alertas de horario (B1, B9) tienen sentido si el plan no tiene horarios
    cargados, o se omiten?
