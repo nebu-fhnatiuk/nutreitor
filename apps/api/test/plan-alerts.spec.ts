@@ -1,4 +1,4 @@
-import { planAlerts, type EnergyInputs, type EnergySubject, type MealPlanBody, type PlanAlertRule } from "@nutreitor/shared";
+import { planAlerts, type DayPlan, type EnergyInputs, type EnergySubject, type MealPlanBody, type PlanAlertRule } from "@nutreitor/shared";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -29,7 +29,7 @@ const day = (kcal: number, protein_g: number, carbs_g: number, fat_g: number) =>
 const TRAINING = day(2800, 96, 420, 78); // DE 47,1 · 1,6 g/kg P · 7 g/kg HC · 25 % grasa
 const REST = day(2200, 96, 240, 61); // DE 45,8 · 4 g/kg HC · 25 % grasa
 
-const week = (mon = TRAINING, sun = REST, targets = { mon: 2800, sun: 2200 }): MealPlanBody => ({
+const week = (mon: DayPlan = TRAINING, sun: DayPlan = REST, targets = { mon: 2800, sun: 2200 }): MealPlanBody => ({
   layout: "week",
   days: { mon, sun },
   dayTargets: { mon: { kcal: targets.mon }, sun: { kcal: targets.sun } },
