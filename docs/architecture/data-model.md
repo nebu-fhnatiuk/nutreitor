@@ -26,7 +26,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | `queued_at` (0050): invitación al portal del import en lote que manda el worker, no la API (ADR 0043). El worker lee y sólo puede actualizar `token_hash` y `expires_at`. |
-| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). |
+| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). `allergy_flags` (text[]): casillas de alergias e intolerancias (KAN-105, ADR 0052), con `CHECK` sobre las claves válidas; son dato clínico y viajan al portal con la visibilidad de `allergies`. |
 | `locations` | Tenant-scoped (RLS) | `tenant_id` | Sede esquelética (referencia). |
 | `care_assignments` | Tenant-scoped (RLS) | `tenant_id` | Paciente↔profesional M:N versionado. |
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
@@ -52,7 +52,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `agent_runs` | Tenant-scoped (RLS) | `tenant_id` | Append-only. Audit por llamada (modelo, tokens, latencia, `status`: ok/crisis/error). Base del tope de costo y del flag de crisis. |
 | `agent_consents` | Tenant-scoped (RLS) | `tenant_id` | Consentimiento del paciente para asistentes del portal (versión + fecha). |
 | `org_modules` | Tenant-scoped (RLS) | `tenant_id` | Complementos instalables por org (entitlements). Una fila por `(tenant, module)`; `status` active/inactive, `plan`, `terms_version`. Gatea features vía `ModuleGuard`. |
-| `food_catalog` | **Global (sin RLS), sólo lectura** | — | Catálogo de referencia nutricional: valores por 100 g de USDA FoodData Central (CC0) + curado AR (nombre local, grupo, medidas caseras). Sin tenant ni PHI. El rol app sólo tiene `SELECT`; se carga por seed. Ver ADR 0018. |
+| `food_catalog` | **Global (sin RLS), sólo lectura** | — | Catálogo de referencia nutricional: valores por 100 g de USDA FoodData Central (CC0) + curado AR (nombre local, grupo, medidas caseras). Sin tenant ni PHI. El rol app sólo tiene `SELECT`; se carga por seed. `allergens` (text[]): alérgenos del alimento genérico, validados (KAN-105, ADR 0052; salen de `foods-ar.curation.json` vía la migración 0055). Ver ADR 0018. |
 | `recipe_library` | **Global (sin RLS), sólo lectura** | — | Recetario de referencia (ADR 0019): ingredientes del catálogo **por `slug`** (los ids del catálogo cambian entre bases), porciones que rinde y pasos. Sin nutrientes guardados: se calculan al servir. Se carga por migración generada. |
 | `tenant_recipes` | Tenant-scoped (RLS) | `tenant_id` | Recetas propias del consultorio: ingredientes del catálogo (por `slug`) o propios (por `id`). Sin `DELETE`: se archivan. |
 | `plan_templates` | Tenant-scoped (RLS) | `tenant_id` | Plantillas de planes del consultorio: `body` con la misma forma que `meal_plans.body`, sin datos del paciente. Se usan como punto de partida al crear o revisar un plan. Sin `DELETE`: se archivan. |
@@ -64,7 +64,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `notifications` | Tenant-scoped (RLS) | `tenant_id` | Registro de avisos del worker (ADR 0023), **sin contenido**: tipo, `ref_key`, destinatario, canal, estado e intentos. `UNIQUE (tenant, kind, ref_key, destinatario, canal)` = idempotencia. Escribe sólo `nutreitor_worker`; la app sólo lee. |
 | `notification_preferences` | Tenant-scoped (RLS) | `tenant_id` | Opt-in del recordatorio diario de registro por usuario (hora 0–23 + zona horaria). PK (tenant, user). |
 | `patient_reports` | Tenant-scoped (RLS) | `tenant_id` | Reporte mensual del paciente: `period` (1.º del mes, único por paciente), `status` draft/published, `data` (foto de los números del mes), comentario del profesional. Publicado = fijo. Ver `flows/reports.md`. |
-| `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo. Sin `DELETE`: se archiva (`archived_at`). |
+| `tenant_foods` | Tenant-scoped (RLS) | `tenant_id` | Alimentos propios del consultorio (preparaciones, marcas locales). Mismas columnas nutricionales que el catálogo, incluido `allergens` (lo marca el profesional). Sin `DELETE`: se archiva (`archived_at`). |
 
 > Las tablas globales son **tres**: `users` (identidad, ADR 0003), `food_catalog`
 > (referencia nutricional, ADR 0018) y `recipe_library` (recetario de referencia,
@@ -454,6 +454,7 @@ erDiagram
     jsonb clinical_visibility "campos clínicos visibles al paciente; {} = ninguno"
     jsonb sport_profile "deporte, entrenamiento, suplementos, sueño (ADR 0045)"
     jsonb field_sources "campo → origen autorreportado; {} = todo del profesional"
+    text_array allergy_flags "casillas de alergias (KAN-105); CHECK claves válidas"
     timestamptz archived_at "soft delete"
     timestamptz updated_at
     timestamptz created_at
@@ -666,6 +667,7 @@ erDiagram
     numeric sodium_mg
     jsonb portions "medidas caseras"
     jsonb extra "micronutrientes"
+    text_array allergens "CHECK claves válidas"
   }
 
   tenant_foods {
@@ -679,6 +681,7 @@ erDiagram
     numeric carbs_g
     numeric fat_g
     jsonb portions
+    text_array allergens "CHECK claves válidas"
     uuid created_by_membership_id FK
     timestamptz archived_at "baja lógica"
   }

@@ -1,5 +1,5 @@
 import { foodCatalog, tenantFoods, type RecipeIngredient, type TenantTx } from "@nutreitor/db";
-import type { FoodNutrients, RecipeIngredientDto } from "@nutreitor/shared";
+import { mergeAllergens, type AllergenKey, type FoodNutrients, type RecipeIngredientDto } from "@nutreitor/shared";
 import { inArray } from "drizzle-orm";
 
 /**
@@ -16,6 +16,8 @@ export interface ComputedRecipe {
   per100g: FoodNutrients;
   perServing: FoodNutrients;
   missingIngredients: number;
+  /** Unión de los alérgenos de los ingredientes que existen (KAN-105). */
+  allergens: AllergenKey[];
 }
 
 type NutrientRow = {
@@ -30,6 +32,7 @@ type NutrientRow = {
   name: string;
   foodGroup: string;
   portions: { label: string; grams: number }[];
+  allergens: string[];
 };
 
 const KEYS = ["energyKcal", "proteinG", "carbsG", "fatG", "fiberG", "sugarsG", "satFatG", "sodiumMg"] as const;
@@ -56,6 +59,7 @@ export async function computeRecipes(
     ) as never;
     let totalGrams = 0;
     let missing = 0;
+    const allergenLists: AllergenKey[][] = [];
     const ingredients: RecipeIngredientDto[] = recipe.ingredients.map((ing) => {
       const ref = ing.kind === "catalog" ? ing.slug : ing.id;
       const food = ing.kind === "catalog" ? bySlug.get(ing.slug) : byId.get(ing.id);
@@ -64,6 +68,7 @@ export async function computeRecipes(
         missing++;
         return { kind: ing.kind, ref, grams: ing.grams, name: null, group: null, portions: [], per100g: null };
       }
+      allergenLists.push(food.allergens as AllergenKey[]);
       const f = ing.grams / 100;
       for (const k of KEYS) {
         const v = food[k];
@@ -104,6 +109,7 @@ export async function computeRecipes(
       per100g: totalGrams > 0 ? scale(100 / totalGrams) : scale(0),
       perServing: scale(1 / Math.max(recipe.servings, 1)),
       missingIngredients: missing,
+      allergens: mergeAllergens(allergenLists),
     };
   });
 }

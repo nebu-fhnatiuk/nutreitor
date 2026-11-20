@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
+  ALLERGY_FLAG_LABEL,
+  allergyAllergens,
+  type AllergyFlag,
   ANAMNESIS_FIELDS,
   activityLevels,
   clinicalFields,
@@ -397,12 +400,21 @@ export function PatientDetail({
   );
 }
 
+const norm = (v: string) => v.trim().toLowerCase().replace(/[.\s]+$/, "");
+
+/** Casillas + texto libre, sin repetir el texto si dice lo mismo que una casilla. */
+function allergySummary(flags: AllergyFlag[], text: string | null): string {
+  const labels = flags.map((k) => ALLERGY_FLAG_LABEL[k]);
+  const extra = text && !labels.some((l) => norm(l) === norm(text)) ? text.trim() : "";
+  return [labels.join(", "), extra].filter(Boolean).join(". ");
+}
+
 /** Datos clínicos que hay que tener presentes siempre (se ignoran "ninguna", "no"…). */
 function clinicalAlerts(p: PatientDetailDto) {
   if (!p.clinical) return [];
   return (
     [
-      ["Alergias / intolerancias", p.clinical.allergies],
+      ["Alergias / intolerancias", allergySummary(p.clinical.allergyFlags, p.clinical.allergies)],
       ["Patologías", p.clinical.diagnosedConditions],
       ["Medicación", p.clinical.currentMedication],
     ] as const
@@ -804,6 +816,32 @@ function Field({
 // Estilo de campo compartido (fuente única en components/ui) + ancho completo.
 const inputCls = `w-full ${fieldClass}`;
 
+/**
+ * Casillas de alergias e intolerancias (KAN-105). Las usan las alertas del plan y
+ * NUTRI; el texto libre queda para el detalle. Lista validada en
+ * docs/validation/alergenos.md.
+ */
+function AllergyFlagsField({ value, onToggle }: { value: AllergyFlag[]; onToggle: (k: AllergyFlag) => void }) {
+  const box = (k: AllergyFlag) => (
+    <label key={k} className="flex items-center gap-2 text-sm text-stone-700">
+      <input type="checkbox" checked={value.includes(k)} onChange={() => onToggle(k)} className="h-4 w-4 accent-brand" />
+      {ALLERGY_FLAG_LABEL[k]}
+    </label>
+  );
+  return (
+    <div className="space-y-2">
+      <fieldset>
+        <legend className="mb-1 text-xs text-stone-500">Alergias</legend>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">{allergyAllergens.map(box)}</div>
+      </fieldset>
+      <fieldset>
+        <legend className="mb-1 text-xs text-stone-500">Intolerancias y condiciones</legend>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">{box("celiaquia")}{box("intolerancia_lactosa")}</div>
+      </fieldset>
+    </div>
+  );
+}
+
 function EditForm({
   patient: p,
   onCancel,
@@ -836,6 +874,9 @@ function EditForm({
     diagnosedConditions: p.clinical?.diagnosedConditions ?? "",
     familyHistory: p.clinical?.familyHistory ?? "",
   });
+  const [allergyFlags, setAllergyFlags] = useState<AllergyFlag[]>(p.clinical?.allergyFlags ?? []);
+  const toggleFlag = (k: AllergyFlag) =>
+    setAllergyFlags((list) => (list.includes(k) ? list.filter((x) => x !== k) : [...list, k]));
   const [busy, setBusy] = useState(false);
   const upd = (k: keyof typeof f, v: string) => setF((s) => ({ ...s, [k]: v }));
   const orNull = (v: string) => (v.trim() ? v.trim() : null);
@@ -865,6 +906,7 @@ function EditForm({
           reasonForConsult: orNull(f.reasonForConsult),
           medicalHistory: orNull(f.medicalHistory),
           allergies: orNull(f.allergies),
+          allergyFlags,
           currentMedication: orNull(f.currentMedication),
           diagnosedConditions: orNull(f.diagnosedConditions),
           familyHistory: orNull(f.familyHistory),
@@ -951,9 +993,21 @@ function EditForm({
           <L label="Antecedentes médicos" wide>
             <textarea value={f.medicalHistory} onChange={(e) => upd("medicalHistory", e.target.value)} rows={2} className={inputCls} />
           </L>
-          <L label="Alergias / intolerancias" wide>
-            <textarea value={f.allergies} onChange={(e) => upd("allergies", e.target.value)} rows={2} className={inputCls} />
-          </L>
+          {/* Grupo propio (no <label>): adentro hay casillas con su propio label. */}
+          <div role="group" aria-labelledby="ficha-alergias" className="block sm:col-span-2">
+            <span id="ficha-alergias" className="mb-1 block text-xs text-stone-500">
+              Alergias / intolerancias
+            </span>
+            <AllergyFlagsField value={allergyFlags} onToggle={toggleFlag} />
+            <textarea
+              value={f.allergies}
+              onChange={(e) => upd("allergies", e.target.value)}
+              rows={2}
+              aria-label="Detalle de alergias e intolerancias"
+              placeholder="Detalle (opcional): severidad, reacciones, marcas a evitar…"
+              className={`${inputCls} mt-2`}
+            />
+          </div>
           <L label="Medicación actual" wide>
             <textarea value={f.currentMedication} onChange={(e) => upd("currentMedication", e.target.value)} rows={2} className={inputCls} />
           </L>

@@ -1,4 +1,5 @@
 export * from "./region.js";
+export * from "./allergens.js";
 export * from "./tenant-context.js";
 export * from "./auth/capabilities.js";
 export * from "./dtos/organization.dto.js";

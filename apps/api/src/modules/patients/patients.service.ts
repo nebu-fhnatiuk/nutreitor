@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { careAssignments, memberships, patientGroupMembers, patients, users, type TenantTx } from "@nutreitor/db";
 import {
+  type AllergyFlag,
   clinicalAnamnesisKeys,
   hasCapability,
   type AnamnesisKey,
@@ -367,6 +368,7 @@ const CLINICAL_KEYS = [
   "reasonForConsult",
   "medicalHistory",
   "allergies",
+  "allergyFlags",
   "currentMedication",
   "diagnosedConditions",
   "familyHistory",
@@ -399,6 +401,8 @@ function fichaValues(
   set("reasonForConsult", dto.reasonForConsult);
   set("medicalHistory", dto.medicalHistory);
   set("allergies", dto.allergies);
+  // null = limpiar las casillas (la columna es NOT NULL: lista vacía).
+  if (dto.allergyFlags !== undefined) p.allergyFlags = dto.allergyFlags ?? [];
   set("currentMedication", dto.currentMedication);
   set("diagnosedConditions", dto.diagnosedConditions);
   set("familyHistory", dto.familyHistory);
@@ -450,6 +454,7 @@ function toDetailDto(
           reasonForConsult: row.reasonForConsult,
           medicalHistory: row.medicalHistory,
           allergies: row.allergies,
+          allergyFlags: row.allergyFlags as AllergyFlag[],
           currentMedication: row.currentMedication,
           diagnosedConditions: row.diagnosedConditions,
           familyHistory: row.familyHistory,

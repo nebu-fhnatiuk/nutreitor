@@ -42,7 +42,11 @@ const nutrientColumns = {
   extra: jsonb("extra")
     .$type<Record<string, number>>()
     .notNull()
-    .default(sql`'{}'::jsonb`),
+    .default(sql`'{}'::jsonb`),  /** Alérgenos del alimento (KAN-105, migración 0055; CHECK sobre las claves válidas). */
+  allergens: text("allergens")
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
 };
 
 /**

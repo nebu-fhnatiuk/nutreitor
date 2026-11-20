@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { FoodDto } from "./food.dto.js";
+import { allergenKeys } from "../allergens.js";
 import { planAlertRules, type PlanAlertDecision, type PlanAlertLevel, type PlanAlertRule } from "../plan-alert-rules.js";
 
 /**
@@ -61,6 +62,12 @@ const foodRefSchema = z.object({
   attribution: z.string().max(80).nullish(),
   /** Grupo del alimento ("Verduras"): agrupa la lista de compras por góndola. */
   group: z.string().max(60).optional(),
+  /**
+   * Copia de los alérgenos del alimento al vincularlo (KAN-105), igual que los
+   * nutrientes: una versión guardada no cambia si después se corrige el catálogo.
+   * Ausente en items vinculados antes de que existiera el dato.
+   */
+  allergens: z.array(z.enum(allergenKeys)).max(allergenKeys.length).optional(),
   /**
    * Sólo recetas: copia del desglose de ingredientes por cada 100 g de receta. La
    * lista de compras lo expande (no se compra "3 kg de guiso": se compran lentejas,
@@ -245,6 +252,7 @@ export function foodRefFor(f: FoodDto, grams?: number): FoodRef {
     },
     attribution: f.attribution,
     group: f.group,
+    allergens: f.allergens,
     ...(f.recipe?.ingredients.length ? { ingredients: f.recipe.ingredients } : {}),
   };
 }

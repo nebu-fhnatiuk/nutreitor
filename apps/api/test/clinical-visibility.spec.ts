@@ -14,6 +14,7 @@ const full: PatientClinical = {
   reasonForConsult: "baja de peso",
   medicalHistory: "HTA",
   allergies: "maní",
+  allergyFlags: ["mani", "celiaquia"],
   currentMedication: "enalapril",
   diagnosedConditions: "prediabetes",
   familyHistory: "DBT2 materna",
@@ -38,6 +39,12 @@ describe("applyClinicalVisibility", () => {
     expect(out.familyHistory).toBeNull();
   });
 
+  it("las casillas de alergias siguen la visibilidad del texto de alergias", () => {
+    expect(applyClinicalVisibility(full, {}).allergyFlags).toEqual([]);
+    expect(applyClinicalVisibility(full, { medicalHistory: true }).allergyFlags).toEqual([]);
+    expect(applyClinicalVisibility(full, { allergies: true }).allergyFlags).toEqual(["mani", "celiaquia"]);
+  });
+
   it("false explícito = oculto (no se filtra por valor truthy del flag)", () => {
     const out = applyClinicalVisibility(full, { allergies: false });
     expect(out.allergies).toBeNull();
@@ -46,7 +53,7 @@ describe("applyClinicalVisibility", () => {
   it("no inventa claves fuera del set clínico ni muta la entrada", () => {
     const input = { ...full };
     const out = applyClinicalVisibility(input, { allergies: true });
-    expect(Object.keys(out).sort()).toEqual([...clinicalFields].sort());
+    expect(Object.keys(out).sort()).toEqual([...clinicalFields, "allergyFlags"].sort());
     expect(input).toEqual(full); // pura: no mutó
   });
 });

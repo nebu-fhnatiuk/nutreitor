@@ -14,6 +14,7 @@ import {
   type TenantTx,
 } from "@nutreitor/db";
 import {
+  type AllergyFlag,
   applyClinicalVisibility,
   hasCapability,
   type PatientMetricDto,
@@ -115,6 +116,7 @@ export class PortalService {
               reasonForConsult: patient.reasonForConsult,
               medicalHistory: patient.medicalHistory,
               allergies: patient.allergies,
+              allergyFlags: patient.allergyFlags as AllergyFlag[],
               currentMedication: patient.currentMedication,
               diagnosedConditions: patient.diagnosedConditions,
               familyHistory: patient.familyHistory,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { allergyFlagsSchema, type AllergyFlag } from "../allergens.js";
 import { anthroVisibilityFields, type AnthroVisibilityField } from "./anthropometry.dto.js";
 
 import type { CareAssignmentDto } from "./care-assignment.dto.js";
@@ -42,6 +43,8 @@ const patientFichaFields = {
   reasonForConsult: z.string().max(4000).nullish(),
   medicalHistory: z.string().max(8000).nullish(),
   allergies: z.string().max(4000).nullish(),
+  /** Casillas de alergias e intolerancias (KAN-105); el texto de arriba queda para el detalle. */
+  allergyFlags: allergyFlagsSchema.nullish(),
   currentMedication: z.string().max(4000).nullish(),
   diagnosedConditions: z.string().max(4000).nullish(),
   familyHistory: z.string().max(4000).nullish(),
@@ -98,6 +101,8 @@ export interface PatientClinical {
   reasonForConsult: string | null;
   medicalHistory: string | null;
   allergies: string | null;
+  /** Casillas estructuradas; viajan con la misma visibilidad que `allergies`. */
+  allergyFlags: AllergyFlag[];
   currentMedication: string | null;
   diagnosedConditions: string | null;
   familyHistory: string | null;
@@ -143,6 +148,8 @@ export function applyClinicalVisibility(
   for (const field of clinicalFields) {
     out[field] = visibility[field] === true ? clinical[field] : null;
   }
+  // Las casillas de alergias siguen la visibilidad del texto de alergias.
+  out.allergyFlags = visibility.allergies === true ? clinical.allergyFlags : [];
   return out;
 }
 

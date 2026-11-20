@@ -10,6 +10,7 @@ const food = (id: string, kcal: number, p: number, c: number, g: number): FoodDt
   per100g: { energyKcal: kcal, proteinG: p, carbsG: c, fatG: g, fiberG: null, sugarsG: null, satFatG: null, sodiumMg: null },
   portions: [],
   extra: {},
+  allergens: [],
   attribution: null,
   archived: false,
 });

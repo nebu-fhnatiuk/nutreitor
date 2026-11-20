@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { foodCatalog, recipeLibrary, tenantFoods, tenantRecipes, type TenantTx } from "@nutreitor/db";
 import {
   equivalentSwaps,
+  type AllergenKey,
   type FoodDto,
   type FoodNutrients,
   type FoodSearchQuery,
@@ -247,6 +248,7 @@ function fromCatalog(r: CatalogRow): FoodDto {
     per100g: nutrients(r),
     portions: r.portions,
     extra: r.extra,
+    allergens: r.allergens as AllergenKey[],
     attribution: r.source === "usda" ? "USDA FoodData Central" : r.source,
     archived: false,
   };
@@ -261,6 +263,7 @@ function fromTenant(r: TenantRow): FoodDto {
     per100g: nutrients(r),
     portions: r.portions,
     extra: r.extra,
+    allergens: r.allergens as AllergenKey[],
     attribution: null,
     archived: r.archivedAt !== null,
   };
@@ -279,6 +282,7 @@ function toColumns(dto: TenantFoodDto) {
     satFatG: s(dto.satFatG),
     sodiumMg: s(dto.sodiumMg),
     portions: dto.portions,
+    allergens: dto.allergens,
   };
 }
 
@@ -296,6 +300,7 @@ export function recipeToFood(
     per100g: c.per100g,
     portions: portion > 0 ? [{ label: "1 porción", grams: portion }] : [],
     extra: {},
+    allergens: c.allergens,
     attribution: c.ingredients.some((i) => i.kind === "catalog") ? "USDA FoodData Central" : null,
     archived: r.archived,
     recipe: {
