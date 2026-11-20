@@ -68,7 +68,7 @@ sequenceDiagram
   E->>API: GET /foods?q=arroz (debounce 250 ms)
   API-->>E: sugerencias (catálogo + propios)
   P->>E: elige "Arroz blanco, cocido"
-  E->>E: vincula el item: 1 medida casera (o 100 g)<br/>copia per100g + medidas + atribución
+  E->>E: vincula el item: 1 medida casera (o 100 g)<br/>copia per100g + medidas + atribución + alérgenos
   P->>E: cambia a "2 taza" o a gramos
   E->>E: recalcula macros = per100g × gramos / 100
   E->>E: total del día vs objetivo (±10% ok, si no se resalta)
@@ -77,6 +77,10 @@ sequenceDiagram
 
 - El campo sigue aceptando **texto libre**: un item sin vínculo se carga como antes
   (cantidad, unidad y macros a mano).
+- **Alérgenos** (KAN-105, ADR 0052): cada alimento trae sus marcas (catálogo
+  validado, propios marcados por el profesional, recetas = unión de sus ingredientes)
+  y se copian al item al vincularlo, como los nutrientes. Un item de texto libre no
+  tiene alérgenos conocidos.
 - Con vínculo, los macros del item se calculan solos (no se editan a mano) y se puede
   **desvincular** para volver a la carga manual.
 - La vista del plan (también la del portal del paciente) muestra los gramos, el

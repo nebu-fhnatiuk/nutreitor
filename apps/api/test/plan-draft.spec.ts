@@ -11,6 +11,7 @@ const food = (slug: string, kcal: number, p: number, c: number, g: number): Food
   per100g: { energyKcal: kcal, proteinG: p, carbsG: c, fatG: g, fiberG: null, sugarsG: null, satFatG: null, sodiumMg: null },
   portions: [{ label: "1 taza", grams: 160 }],
   extra: {},
+  allergens: [],
   attribution: "USDA FoodData Central",
   archived: false,
 });

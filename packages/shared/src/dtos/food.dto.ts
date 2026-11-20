@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { allergensSchema, type AllergenKey } from "../allergens.js";
+
 /**
  * Base de alimentos (ADR 0018). Dos orígenes con la misma forma: el catálogo de
  * referencia global (`catalog`, sólo lectura) y los alimentos propios del
@@ -41,6 +43,8 @@ export interface FoodDto {
   portions: FoodPortion[];
   /** Micronutrientes opcionales por 100 g (clave → valor). */
   extra: Record<string, number>;
+  /** Alérgenos del alimento (KAN-105). En las recetas, la unión de sus ingredientes. */
+  allergens: AllergenKey[];
   /** Atribución de la fuente del dato (catálogo: "usda"). Null en los propios. */
   attribution: string | null;
   archived: boolean;
@@ -71,6 +75,7 @@ export const tenantFoodSchema = z
     satFatG: grams.nullish(),
     sodiumMg: z.number().min(0).max(40000).nullish(),
     portions: z.array(foodPortionSchema).max(10).default([]),
+    allergens: allergensSchema.default([]),
   })
   // Por 100 g, los macros no pueden sumar más que el peso.
   .refine((f) => f.proteinG + f.carbsG + f.fatG <= 100, {

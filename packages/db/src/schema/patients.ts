@@ -64,6 +64,11 @@ export const patients = pgTable(
     reasonForConsult: text("reason_for_consult"),
     medicalHistory: text("medical_history"),
     allergies: text("allergies"),
+    /** Casillas de alergias e intolerancias (KAN-105, migración 0055). */
+    allergyFlags: text("allergy_flags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     currentMedication: text("current_medication"),
     diagnosedConditions: text("diagnosed_conditions"),
     familyHistory: text("family_history"),
