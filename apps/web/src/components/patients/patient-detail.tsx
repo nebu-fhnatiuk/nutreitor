@@ -318,7 +318,7 @@ export function PatientDetail({
           </div>
         )}
         {view.section === "plan" && (
-          <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} />
+          <MealPlanPanel patientId={p.id} canWrite={canWritePlan} canUseAgent={canUseAgent} allergyFlags={p.clinical?.allergyFlags ?? null} />
         )}
         {view.section === "evolucion" && (
           <div className="space-y-6">

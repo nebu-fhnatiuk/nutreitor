@@ -3,7 +3,7 @@
  * para que el schema de guardado del plan (meal-plan.dto) los use sin importar el
  * motor, que a su vez depende de meal-plan.dto.
  */
-export const planAlertRules = ["C1", "C2", "C3", "C4", "C5", "C6"] as const;
+export const planAlertRules = ["A1", "A2", "A3", "C1", "C2", "C3", "C4", "C5", "C6"] as const;
 export type PlanAlertRule = (typeof planAlertRules)[number];
 export type PlanAlertLevel = "important" | "info";
 

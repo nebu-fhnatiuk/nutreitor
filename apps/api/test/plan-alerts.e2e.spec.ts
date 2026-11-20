@@ -153,6 +153,39 @@ describe("con requerimiento", () => {
     ).rejects.toThrow();
   });
 
+  it("alergias: usa las casillas de la ficha guardadas en la base (A1)", async () => {
+    await owner.execute(sql`update patients set allergy_flags = '{mani}' where id = ${PATIENT}`);
+    const body: MealPlanBody = {
+      layout: "week",
+      days: {
+        ...BODY.days,
+        sun: {
+          meals: [
+            {
+              name: "Merienda",
+              items: [
+                {
+                  text: "Maní tostado",
+                  macros: { kcal: 2200, protein_g: 96, carbs_g: 240, fat_g: 61 },
+                  food: {
+                    source: "catalog",
+                    id: "00000000-0000-4000-8000-000000000001",
+                    grams: 100,
+                    per100g: { kcal: 2200, protein_g: 96, carbs_g: 240, fat_g: 61 },
+                    allergens: ["mani"],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    const plan = await asPro(() => plans.save(PATIENT, { title: "Plan", body }));
+    expect(plan.alertReviews!.find((a) => a.rule === "A1")).toMatchObject({ day: "sun", level: "important", decision: "unreviewed" });
+    await owner.execute(sql`update patients set allergy_flags = '{}' where id = ${PATIENT}`);
+  });
+
   it("RLS: otra organización no las ve", async () => {
     const leaked = await withTenant(appDb, SEED.orgA.id, (tx) =>
       tx.select().from(planAlertReviews).where(eq(planAlertReviews.patientId, PATIENT)),

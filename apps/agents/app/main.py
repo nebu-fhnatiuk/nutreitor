@@ -194,18 +194,18 @@ def _check_budget(cur) -> None:
 #    PACIENTE y no necesita el plan, las alergias, las métricas ni el motivo crudo para
 #    acompañar emocionalmente. Si se ratifica distinto, cambiar acá y en el ADR 0015.
 #
-# Tokens de campo: full_name | goal | reason | dietary_preferences | allergies
+# Tokens de campo: full_name | goal | reason | dietary_preferences | allergies | allergy_flags
 #                  plan_meta (título+versión) | plan_full (+ body) | metrics
 _AGENT_CONTEXT_FIELDS: dict[str, frozenset[str]] = {
     # NUTRI asiste al PROFESIONAL: evolución + ajuste del plan.
     "nutri": frozenset({"full_name", "goal", "reason", "plan_meta", "metrics"}),
     # CHEF asiste al PROFESIONAL/paciente con recetas: necesita el plan y lo que no puede comer.
-    "chef": frozenset({"full_name", "dietary_preferences", "allergies", "plan_full"}),
+    "chef": frozenset({"full_name", "dietary_preferences", "allergies", "allergy_flags", "plan_full"}),
     # PSICO habla con el PACIENTE: contexto MÍNIMO (ver nota "a ratificar").
     "psico": frozenset({"full_name", "goal"}),
     # NUTRI armando un BORRADOR de plan (ADR 0020): necesita lo que el paciente NO
     # puede o no quiere comer; el objetivo de macros lo manda el gateway.
-    "nutri_draft": frozenset({"full_name", "goal", "dietary_preferences", "allergies", "metrics"}),
+    "nutri_draft": frozenset({"full_name", "goal", "dietary_preferences", "allergies", "allergy_flags", "metrics"}),
 }
 _DEFAULT_CONTEXT_FIELDS = frozenset({"full_name"})
 
@@ -216,6 +216,8 @@ _PATIENT_COLS = {
     "reason": "reason_for_consult",
     "dietary_preferences": "dietary_preferences",
     "allergies": "allergies",
+    # Casillas estructuradas de la ficha (KAN-105, ADR 0052).
+    "allergy_flags": "allergy_flags",
 }
 
 

@@ -1,4 +1,4 @@
-import { planAlerts, type DayPlan, type EnergyInputs, type EnergySubject, type MealPlanBody, type PlanAlertRule } from "@nutreitor/shared";
+import { planAlerts, type AllergenKey, type AllergyFlag, type DayPlan, type EnergyInputs, type EnergySubject, type MealPlanBody, type PlanAlertContext, type PlanAlertRule } from "@nutreitor/shared";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -35,12 +35,12 @@ const week = (mon: DayPlan = TRAINING, sun: DayPlan = REST, targets = { mon: 280
   dayTargets: { mon: { kcal: targets.mon }, sun: { kcal: targets.sun } },
 });
 
-const rules = (body: MealPlanBody, ctx = { subject, energy }) => planAlerts(body, ctx).alerts.map((a) => `${a.day}:${a.rule}`);
-const only = (rule: PlanAlertRule, body: MealPlanBody) => planAlerts(body, { subject, energy }).alerts.filter((a) => a.rule === rule);
+const rules = (body: MealPlanBody, ctx: PlanAlertContext = { subject, energy, allergyFlags: [] }) => planAlerts(body, ctx).alerts.map((a) => `${a.day}:${a.rule}`);
+const only = (rule: PlanAlertRule, body: MealPlanBody) => planAlerts(body, { subject, energy, allergyFlags: [] }).alerts.filter((a) => a.rule === rule);
 
 describe("plan de referencia", () => {
   it("no dispara ninguna alerta", () => {
-    const r = planAlerts(week(), { subject, energy });
+    const r = planAlerts(week(), { subject, energy, allergyFlags: [] });
     expect(r.alerts).toEqual([]);
     expect(r.notEvaluated).toEqual([]);
     expect(r.missing).toEqual([]);
@@ -152,5 +152,104 @@ describe("orden", () => {
   it("primero las importantes, después por día y por regla", () => {
     const body = week(day(1900, 60, 400, 30), day(2200, 96, 360, 61), { mon: 2800, sun: 2200 });
     expect(rules(body)).toEqual(["mon:C2", "mon:C1", "mon:C4", "mon:C6", "sun:C5"]);
+  });
+});
+
+// ── Sección A · alergias e intolerancias (KAN-105) ─────────────────────────────
+
+const linked = (text: string, allergens: AllergenKey[] | undefined, kcal = 200) => ({
+  text,
+  macros: { kcal, protein_g: 10, carbs_g: 20, fat_g: 5 },
+  food: {
+    source: "catalog" as const,
+    id: "00000000-0000-4000-8000-000000000001",
+    grams: 100,
+    per100g: { kcal, protein_g: 10, carbs_g: 20, fat_g: 5 },
+    ...(allergens ? { allergens } : {}),
+  },
+});
+const meals = (...ms: [string, ReturnType<typeof linked>[]][]): DayPlan => ({
+  meals: ms.map(([name, items]) => ({ name, items })),
+});
+const dayPlan = (d: DayPlan): MealPlanBody => ({ layout: "day", day: d });
+/** Solo las alertas de la sección A (las de energía se prueban arriba). */
+const aAlerts = (body: MealPlanBody, allergyFlags: AllergyFlag[] | null) => {
+  const r = planAlerts(body, { subject, energy: null, allergyFlags });
+  return { ...r, alerts: r.alerts.filter((a) => a.rule.startsWith("A")) };
+};
+
+describe("A1 · alergia tildada", () => {
+  it("un alimento con un alérgeno: el texto validado", () => {
+    const r = aAlerts(dayPlan(meals(["Merienda", [linked("Maní tostado", ["mani"]), linked("Banana", [])]])), ["mani"]);
+    expect(r.alerts.filter((a) => a.rule === "A1")).toEqual([
+      expect.objectContaining({
+        level: "important",
+        message: "El plan incluye Maní tostado, que contiene maní. En la ficha figura alergia a maní.",
+      }),
+    ]);
+  });
+
+  it("varios alimentos: una sola alerta por día que los lista", () => {
+    const body = dayPlan(meals(["Desayuno", [linked("Leche entera", ["leche", "lactosa"]), linked("Pan blanco", ["tacc"])]], ["Merienda", [linked("Maní tostado", ["mani"])]]));
+    const [a] = aAlerts(body, ["mani", "leche"]).alerts.filter((x) => x.rule === "A1");
+    expect(a).toMatchObject({ value: 2 });
+    expect(a!.message).toBe("El plan incluye Leche entera (leche) y Maní tostado (maní): alimentos con alérgenos que figuran en la ficha.");
+  });
+
+  it("no salta si el alérgeno no está tildado", () => {
+    expect(aAlerts(dayPlan(meals(["Merienda", [linked("Maní tostado", ["mani"])]])), ["huevo"]).alerts).toEqual([]);
+  });
+});
+
+describe("A2 · celiaquía", () => {
+  it("salta con alimentos con TACC", () => {
+    const [a] = aAlerts(dayPlan(meals(["Almuerzo", [linked("Fideos", ["tacc"]), linked("Pan blanco", ["tacc"])]])), ["celiaquia"]).alerts;
+    expect(a).toMatchObject({ rule: "A2", level: "important", message: "Fideos y Pan blanco contienen gluten (TACC). En la ficha figura celiaquía." });
+  });
+
+  it("no salta sin celiaquía tildada (aunque haya TACC)", () => {
+    expect(aAlerts(dayPlan(meals(["Almuerzo", [linked("Fideos", ["tacc"])]])), ["mani"]).alerts).toEqual([]);
+  });
+});
+
+describe("A3 · intolerancia a la lactosa", () => {
+  it("informativa, agrupa por comida", () => {
+    const body = dayPlan(meals(["Desayuno", [linked("Leche entera", ["leche", "lactosa"])]], ["Cena", [linked("Ricota", ["leche", "lactosa"]), linked("Queso rallado", ["leche"])]]));
+    const [a] = aAlerts(body, ["intolerancia_lactosa"]).alerts;
+    expect(a).toMatchObject({ rule: "A3", level: "info", value: 2 });
+    expect(a!.message).toBe(
+      "Las comidas Desayuno (Leche entera) y Cena (Ricota) incluyen alimentos con lactosa. Con intolerancia suele tolerarse hasta unos 12 g por toma.",
+    );
+  });
+
+  it("la leche sin lactosa (queso estacionado) no la dispara", () => {
+    expect(aAlerts(dayPlan(meals(["Cena", [linked("Queso rallado", ["leche"])]])), ["intolerancia_lactosa"]).alerts).toEqual([]);
+  });
+});
+
+describe("sección A · datos que faltan", () => {
+  it("sin conocer las casillas de la ficha no evalúa y lo avisa", () => {
+    const r = aAlerts(dayPlan(meals(["Merienda", [linked("Maní tostado", ["mani"])]])), null);
+    expect(r.alerts).toEqual([]);
+    expect(r.missing.join(" ")).toContain("No se conocen las alergias");
+  });
+
+  it("los alimentos sin datos de alérgenos se cuentan y se avisan, no se suponen limpios", () => {
+    const body = dayPlan({ meals: [{ name: "Merienda", items: [{ text: "Galletitas caseras" }, linked("Barrita vieja", undefined)] }] });
+    const r = aAlerts(body, ["mani"]);
+    expect(r.alerts).toEqual([]);
+    expect(r.missing.join(" ")).toContain("2 alimentos no tienen datos de alérgenos");
+  });
+
+  it("se evalúa aunque falten kcal en el día (no depende de los macros)", () => {
+    const body = dayPlan({ meals: [{ name: "Merienda", items: [{ ...linked("Maní tostado", ["mani"]), macros: undefined }] }] });
+    const r = aAlerts(body, ["mani"]);
+    expect(r.alerts.map((a) => a.rule)).toEqual(["A1"]);
+    expect(r.notEvaluated).toHaveLength(1);
+  });
+
+  it("las importantes de alergias van antes que las de energía", () => {
+    const body: MealPlanBody = { layout: "day", day: meals(["Día", [linked("Maní tostado", ["mani"], 1900)]]), targets: { kcal: 2800 } };
+    expect(planAlerts(body, { subject, energy, allergyFlags: ["mani"] }).alerts.map((a) => a.rule)[0]).toBe("A1");
   });
 });

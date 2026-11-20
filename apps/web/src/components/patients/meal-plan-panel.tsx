@@ -14,6 +14,7 @@ import {
   sumMacros,
   targetDeviation,
   weekdays,
+  type AllergyFlag,
   type DayPlan,
   type EnergyRequirementDto,
   type FoodDto,
@@ -89,11 +90,14 @@ export function MealPlanPanel({
   patientId,
   canWrite,
   canUseAgent = false,
+  allergyFlags = null,
 }: {
   patientId: string;
   canWrite: boolean;
   /** NUTRI instalado y permitido: habilita "Borrador con NUTRI" en el editor. */
   canUseAgent?: boolean;
+  /** Casillas de alergias de la ficha ya cargada (KAN-105); null = sin acceso clínico. */
+  allergyFlags?: AllergyFlag[] | null;
 }) {
   const [plans, setPlans] = useState<MealPlanDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,6 +192,7 @@ export function MealPlanPanel({
       {editing ? (
         <PlanEditor
           initial={active}
+          allergyFlags={allergyFlags}
           onCancel={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
@@ -633,6 +638,7 @@ export function MealsEditor({
 
 function PlanEditor({
   initial,
+  allergyFlags,
   patientId,
   canUseAgent,
   onCancel,
@@ -640,6 +646,7 @@ function PlanEditor({
   onError,
 }: {
   initial: MealPlanDto | null;
+  allergyFlags: AllergyFlag[] | null;
   patientId: string;
   canUseAgent: boolean;
   onCancel: () => void;
@@ -741,7 +748,10 @@ function PlanEditor({
   const editorHasContent = () => hasContent(dayMeals) || weekdays.some((d) => hasContent(week[d] ?? []));
 
   // Se recalcula en cada render: el motor es una función pura y barata.
-  const alertResult = requirement === undefined ? null : planAlerts(buildBody(), planAlertContextFrom(requirement));
+  const alertResult =
+    requirement === undefined
+      ? null
+      : planAlerts(buildBody(), planAlertContextFrom(requirement, allergyFlags));
 
   /** Carga un cuerpo (plantilla o borrador) en el editor; las notas se conservan si no trae. */
   function loadBody(body: MealPlanBody) {

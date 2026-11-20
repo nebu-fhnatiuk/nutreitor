@@ -24,7 +24,7 @@ test por regla con casos positivos y negativos.
 
 ## A. Alergias e intolerancias
 
-> **Se valida en [`alergenos.md`](alergenos.md)** (KAN-105), junto con la lista de alérgenos y la curación del catálogo. A3 cambió: avisa si la comida tiene lactosa, sin contar gramos.
+> **Validada en [`alergenos.md`](alergenos.md)** (KAN-105) e implementada. A3 cambió: avisa si la comida tiene lactosa, sin contar gramos. La tabla de abajo queda como referencia de la propuesta original.
 
 | ID | Salta cuando… | Umbral | Nivel | Texto del aviso | Fuente | ¿Lo confirmás? |
 |---|---|---|---|---|---|---|
