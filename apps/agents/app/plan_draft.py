@@ -15,6 +15,8 @@ import json
 import logging
 
 from .inference import (
+    ALLERGY_FLAG_LABEL,
+    ALLERGY_FLAG_TAG,
     BEDROCK_REGION,
     BEDROCK_MODEL_ID,
     INFERENCE_PROVIDER,
@@ -33,7 +35,7 @@ DEFAULT_KCAL = 2000
 def load_catalog(cur) -> list[dict]:
     """Catálogo global (referencia, sin PHI). Valores por 100 g."""
     cur.execute(
-        "select slug, name, food_group, energy_kcal, protein_g, carbs_g, fat_g "
+        "select slug, name, food_group, energy_kcal, protein_g, carbs_g, fat_g, allergens "
         "from food_catalog order by food_group, name"
     )
     return [
@@ -45,6 +47,7 @@ def load_catalog(cur) -> list[dict]:
             "protein_g": float(r[4]),
             "carbs_g": float(r[5]),
             "fat_g": float(r[6]),
+            "allergens": list(r[7] or []),
         }
         for r in cur.fetchall()
     ]
@@ -69,10 +72,23 @@ _EXCLUSION_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
 )
 
 
-def excluded_slugs(catalog: list[dict], allergies: str | None, preferences: str | None) -> dict[str, str]:
-    """slug → motivo ("alergia: maní"). Reglas por categoría + coincidencia directa
-    de palabras de las alergias con el nombre del alimento."""
+def excluded_slugs(
+    catalog: list[dict],
+    allergies: str | None,
+    preferences: str | None,
+    allergy_flags: list[str] | None = None,
+) -> dict[str, str]:
+    """slug → motivo. Primero lo ESTRUCTURADO (KAN-105): casillas de la ficha contra
+    los alérgenos validados del catálogo. Después la heurística sobre el texto libre,
+    que solo puede excluir de más (red de seguridad para lo que no está tildado)."""
     out: dict[str, str] = {}
+    for flag in allergy_flags or []:
+        tag = ALLERGY_FLAG_TAG.get(flag)
+        if not tag:
+            continue
+        for f in catalog:
+            if tag in f.get("allergens", []):
+                out.setdefault(f["slug"], f"ficha: {ALLERGY_FLAG_LABEL.get(flag, flag)}")
     for label, text in (("alergias", allergies), ("preferencias", preferences)):
         norm = _normalize(text or "")
         if not norm.strip():
@@ -270,7 +286,9 @@ def propose(
     clinical: dict, catalog: list[dict], targets: dict | None, instructions: str | None
 ) -> tuple[dict | None, InferenceResult]:
     """Propuesta (o None si el provider falló) + resultado para el audit."""
-    excluded = excluded_slugs(catalog, clinical.get("allergies"), clinical.get("dietary_preferences"))
+    excluded = excluded_slugs(
+        catalog, clinical.get("allergies"), clinical.get("dietary_preferences"), clinical.get("allergy_flags")
+    )
     if INFERENCE_PROVIDER == "stub":
         proposal = _stub_proposal(catalog, excluded, targets)
         text = json.dumps(proposal, ensure_ascii=False)

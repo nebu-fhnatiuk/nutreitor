@@ -72,14 +72,16 @@ El servicio carga sólo lo que cada agente necesita (todo bajo RLS, vía el rol
 - **NUTRI**: nombre/objetivo del paciente, plan activo (título + versión), y las
   últimas mediciones (peso/fecha).
 - **CHEF**: además del paciente y el plan, **lee el cuerpo del plan** (`body` jsonb,
-  layouts `day`/`week`) para derivar las **comidas**, más `dietary_preferences` y
-  `allergies` para respetarlas en las recetas.
+  layouts `day`/`week`) para derivar las **comidas**, más `dietary_preferences`,
+  `allergies` y las casillas `allergy_flags` (KAN-105) para respetarlas en las recetas.
 - **PSICO**: contexto **MÍNIMO** (sólo nombre + objetivo general). NO recibe plan,
   alergias, métricas ni motivo crudo (minimización de datos; "a ratificar" en ADR 0015).
 
 - **NUTRI · borrador de plan** (`nutri_draft`): nombre, objetivo, **preferencias y
-  alergias** (para no proponer lo prohibido) y mediciones; además lee el **catálogo
-  de alimentos** (referencia, sin PHI).
+  alergias** (texto y casillas `allergy_flags`) y mediciones; además lee el **catálogo
+  de alimentos** con sus alérgenos (referencia, sin PHI). Excluye primero por las
+  casillas contra los alérgenos validados (ADR 0052); la heurística sobre el texto
+  libre queda como red de seguridad que solo excluye de más.
 
 Cada agente declara una **allow-list** de campos (`_AGENT_CONTEXT_FIELDS` en el
 servicio): no se le inyecta el contexto crudo completo, sólo lo que su función necesita.

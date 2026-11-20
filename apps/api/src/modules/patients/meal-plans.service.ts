@@ -19,6 +19,7 @@ import {
   planAlertKey,
   planAlerts,
   weekdays,
+  type AllergyFlag,
   type MealPlanBody,
   type MealPlanDto,
   type PlanAlertReviewDto,
@@ -151,7 +152,13 @@ export class MealPlansService {
     membershipId: string,
   ): Promise<{ alertsKept: number; alertsUnreviewed: number }> {
     const req = await latestEnergyRequirement(tx, plan.patientId);
-    const { alerts } = planAlerts(dto.body, planAlertContextFrom(req));
+    const [patient] = await tx
+      .select({ allergyFlags: patients.allergyFlags })
+      .from(patients)
+      .where(eq(patients.id, plan.patientId))
+      .limit(1);
+    const flags = (patient?.allergyFlags ?? []) as AllergyFlag[];
+    const { alerts } = planAlerts(dto.body, planAlertContextFrom(req, flags));
     if (!alerts.length) return { alertsKept: 0, alertsUnreviewed: 0 };
 
     const reviews = new Map((dto.alertReviews ?? []).map((r) => [planAlertKey(r), r.reason?.trim() || null]));

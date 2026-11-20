@@ -325,7 +325,7 @@ erDiagram
     uuid meal_plan_id FK
     uuid patient_id FK
     uuid energy_requirement_id FK "SET NULL"
-    text rule "C1..C6"
+    text rule "A1..A3, C1..C6"
     text level "important | info"
     text day "day | mon..sun"
     text message

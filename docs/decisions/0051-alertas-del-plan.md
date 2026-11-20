@@ -1,6 +1,6 @@
 # 0051 — Alertas clínico-nutricionales del plan: motor determinístico y foto al guardar
 
-- **Estado**: aceptada. Implementada la sección C del catálogo (energía y macros).
+- **Estado**: aceptada. Implementadas las secciones A (alergias e intolerancias, KAN-105) y C (energía y macros).
 - **Fecha**: 2026-11-20
 - **Épica**: KAN-91 · Tickets: KAN-97 (motor), KAN-98 (catálogo) · Relacionados:
   [ADR 0032](0032-requerimiento-energetico-periodizado.md), [ADR 0014](0014-inferencia-bedrock-y-controles-de-costo.md)
@@ -79,8 +79,13 @@ Si el profesional no corrige el plan, puede marcar la alerta como mantenida. En 
   Si cambian los umbrales, las fotos viejas conservan el texto y el valor de su momento
   (es lo buscado). El plan se evalúa contra el **último** requerimiento; si el
   profesional lo cambia después, las versiones ya guardadas no se recalculan.
-- **Pendiente:** secciones A, B y D del catálogo, que necesitan datos estructurados
-  (alérgenos, medicación por principio activo, suplementos de KAN-59) y su validación.
+- **Sección A** (KAN-105, ADR 0052): usa las casillas de la ficha y los alérgenos
+  copiados a cada item. Una alerta por regla y por día, que agrupa los alimentos (la
+  clave de `plan_alert_reviews` es versión + regla + día). No depende de las kcal: se
+  evalúa aunque el día tenga alimentos sin macros. Los items sin datos de alérgenos
+  (texto libre o vinculados antes) se cuentan y se avisan; no se suponen limpios.
+- **Pendiente:** secciones B y D del catálogo, que necesitan datos estructurados
+  (medicación por principio activo, suplementos de KAN-59) y su validación.
 
 ## Alternativas descartadas
 

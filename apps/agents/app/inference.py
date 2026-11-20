@@ -20,6 +20,20 @@ from dataclasses import dataclass
 
 logger = logging.getLogger("nutreitor.agents.inference")
 
+# Casillas de alergias de la ficha (KAN-105). Espejo de ALLERGY_FLAG_LABEL y
+# ALLERGY_FLAG_TAG de packages/shared/src/allergens.ts: si cambia la lista allá, cambia acá.
+ALLERGY_FLAG_LABEL: dict[str, str] = {
+    "tacc": "gluten (TACC)", "leche": "leche", "huevo": "huevo", "pescado": "pescado",
+    "crustaceos": "crustáceos", "mani": "maní", "frutos_secos": "frutos secos", "soja": "soja",
+    "sulfitos": "sulfitos", "sesamo": "sésamo",
+    "celiaquia": "celiaquía", "intolerancia_lactosa": "intolerancia a la lactosa",
+}
+ALLERGY_FLAG_TAG: dict[str, str] = {
+    **{k: k for k in ("tacc", "leche", "huevo", "pescado", "crustaceos", "mani", "frutos_secos", "soja", "sulfitos", "sesamo")},
+    "celiaquia": "tacc",
+    "intolerancia_lactosa": "lactosa",
+}
+
 INFERENCE_PROVIDER = os.environ.get("INFERENCE_PROVIDER", "stub")
 BEDROCK_MODEL_ID = os.environ.get(
     "BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-20250514-v1:0"
@@ -156,8 +170,10 @@ def _clinical_block(clinical: dict) -> str:
         lines.append(f"Motivo de consulta: {clinical['reason']}")
     if clinical.get("dietary_preferences"):
         lines.append(f"Preferencias/restricciones: {clinical['dietary_preferences']}")
+    if clinical.get("allergy_flags"):
+        lines.append("Alergias e intolerancias (ficha): " + ", ".join(ALLERGY_FLAG_LABEL.get(f, f) for f in clinical["allergy_flags"]))
     if clinical.get("allergies"):
-        lines.append(f"Alergias: {clinical['allergies']}")
+        lines.append(f"Alergias (detalle): {clinical['allergies']}")
     plan = clinical.get("plan")
     if plan:
         lines.append(f"Plan activo: «{plan['title']}» (v{plan['version']}).")

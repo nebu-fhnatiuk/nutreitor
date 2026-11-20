@@ -1,7 +1,7 @@
 # 0052 — Alérgenos estructurados en la ficha y en los alimentos
 
-- **Estado**: aceptada. Datos implementados (KAN-105); las reglas A del motor de
-  alertas y el cambio en NUTRI van en el paso siguiente.
+- **Estado**: aceptada e implementada (KAN-105): datos, reglas A1 a A3 del motor de
+  alertas y exclusiones de NUTRI.
 - **Fecha**: 2026-11-20
 - **Épica**: KAN-91 · Relacionados: [ADR 0018](0018-base-de-alimentos.md),
   [ADR 0019](0019-recetas.md), [ADR 0051](0051-alertas-del-plan.md)
@@ -37,6 +37,11 @@ nutricionista en [`docs/validation/alergenos.md`](../validation/alergenos.md).
 
 Criterio de curación: solo los alérgenos propios del alimento genérico. Lo que
 depende de la marca y las trazas ("puede contener") no se marcan.
+
+6. **NUTRI** (borrador de plan) excluye primero por las casillas de la ficha contra
+   los alérgenos del catálogo. La heurística sobre el texto libre queda como red de
+   seguridad: solo puede excluir de más (por ejemplo, ante "no es alérgica al maní").
+   Las listas de `apps/agents/app/inference.py` son un espejo de `allergens.ts`.
 
 ## Consecuencias
 
