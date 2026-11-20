@@ -24,6 +24,8 @@ test por regla con casos positivos y negativos.
 
 ## A. Alergias e intolerancias
 
+> **Se valida en [`alergenos.md`](alergenos.md)** (KAN-105), junto con la lista de alérgenos y la curación del catálogo. A3 cambió: avisa si la comida tiene lactosa, sin contar gramos.
+
 | ID | Salta cuando… | Umbral | Nivel | Texto del aviso | Fuente | ¿Lo confirmás? |
 |---|---|---|---|---|---|---|
 | A1 | Un alimento del plan contiene un alérgeno que figura en la ficha | Cualquier cantidad | Importante | "El plan incluye {alimento}, que contiene {alérgeno}. En la ficha figura alergia a {alérgeno}." | Código Alimentario Argentino, art. 235 séptimo (alérgenos de declaración obligatoria) | |
