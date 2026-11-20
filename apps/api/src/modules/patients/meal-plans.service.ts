@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -8,20 +9,27 @@ import {
   mealPlans,
   memberships,
   patients,
+  planAlertReviews,
   users,
   type TenantTx,
 } from "@nutreitor/db";
 import {
   normalizeMealPlanBody,
+  planAlertContextFrom,
+  planAlertKey,
+  planAlerts,
+  weekdays,
   type MealPlanBody,
   type MealPlanDto,
+  type PlanAlertReviewDto,
   type SavePlanDto,
 } from "@nutreitor/shared";
-import { and, desc, eq, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, type SQL } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { getTenantContext } from "../../core/tenant/tenant-context.store.js";
+import { latestEnergyRequirement } from "./energy.service.js";
 import { assertCanAccessPatient, resolvePatientAccess, type PatientAccess } from "./patient-access.js";
 
 /** Tope de una sesión de armado: más es un editor olvidado abierto, no trabajo. */
@@ -120,13 +128,60 @@ export class MealPlansService {
       }
       throw e;
     }
+    const alerts = await this.recordAlerts(tx, row!, dto, access.membershipId);
     await this.audit.recordForSession(tx, {
       action: "plan.saved",
       targetType: "patient",
       targetId: patientId,
-      metadata: { planId: row!.id, version: nextVersion },
+      metadata: { planId: row!.id, version: nextVersion, ...alerts },
     });
     return row!;
+  }
+
+  /**
+   * Alertas de la versión (KAN-97, ADR 0051): se RECALCULAN acá con el requerimiento
+   * vigente (no se confía en lo que mande el cliente) y se guarda cada una con la
+   * decisión del profesional. Las decisiones sobre alertas que ya no existen (el plan
+   * cambió) se ignoran. Mantener una importante exige el motivo.
+   */
+  private async recordAlerts(
+    tx: TenantTx,
+    plan: MealPlanRow,
+    dto: SavePlanDto,
+    membershipId: string,
+  ): Promise<{ alertsKept: number; alertsUnreviewed: number }> {
+    const req = await latestEnergyRequirement(tx, plan.patientId);
+    const { alerts } = planAlerts(dto.body, planAlertContextFrom(req));
+    if (!alerts.length) return { alertsKept: 0, alertsUnreviewed: 0 };
+
+    const reviews = new Map((dto.alertReviews ?? []).map((r) => [planAlertKey(r), r.reason?.trim() || null]));
+    const rows = alerts.map((a) => {
+      const kept = reviews.has(planAlertKey(a));
+      const reason = kept ? reviews.get(planAlertKey(a))! : null;
+      if (kept && a.level === "important" && !reason) {
+        throw new BadRequestException(`Para mantener la alerta "${a.message}" escribí el motivo.`);
+      }
+      return {
+        tenantId: plan.tenantId,
+        region: plan.region,
+        mealPlanId: plan.id,
+        patientId: plan.patientId,
+        energyRequirementId: req?.id ?? null,
+        rule: a.rule,
+        level: a.level,
+        day: a.day,
+        dayLabel: a.dayLabel,
+        message: a.message,
+        source: a.source,
+        value: String(a.value),
+        decision: kept ? ("kept" as const) : ("unreviewed" as const),
+        reason,
+        decidedByMembershipId: membershipId,
+      };
+    });
+    await tx.insert(planAlertReviews).values(rows);
+    const alertsKept = rows.filter((r) => r.decision === "kept").length;
+    return { alertsKept, alertsUnreviewed: rows.length - alertsKept };
   }
 
   /** Archiva el plan activo (deja al paciente sin plan vigente). */
@@ -185,7 +240,42 @@ export class MealPlansService {
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(where)
       .orderBy(desc(mealPlans.version));
-    return rows.map((r) => toPlanDto(r.plan, r.authorName));
+    const reviews = await this.alertReviews(tx, rows.map((r) => r.plan.id));
+    return rows.map((r) => ({ ...toPlanDto(r.plan, r.authorName), alertReviews: reviews.get(r.plan.id) ?? [] }));
+  }
+
+  private async alertReviews(tx: TenantTx, planIds: string[]): Promise<Map<string, PlanAlertReviewDto[]>> {
+    const out = new Map<string, PlanAlertReviewDto[]>();
+    if (!planIds.length) return out;
+    const rows = await tx
+      .select()
+      .from(planAlertReviews)
+      .where(inArray(planAlertReviews.mealPlanId, planIds));
+    for (const r of rows) {
+      const list = out.get(r.mealPlanId) ?? [];
+      list.push({
+        rule: r.rule as PlanAlertReviewDto["rule"],
+        level: r.level,
+        day: r.day as PlanAlertReviewDto["day"],
+        dayLabel: r.dayLabel,
+        message: r.message,
+        source: r.source,
+        decision: r.decision,
+        reason: r.reason,
+      });
+      out.set(r.mealPlanId, list);
+    }
+    // Mismo orden que el motor: importantes primero, después por día y por regla.
+    const dayIdx = (d: string) => (d === "day" ? -1 : weekdays.indexOf(d as (typeof weekdays)[number]));
+    for (const list of out.values()) {
+      list.sort(
+        (a, b) =>
+          (a.level === b.level ? 0 : a.level === "important" ? -1 : 1) ||
+          dayIdx(a.day) - dayIdx(b.day) ||
+          a.rule.localeCompare(b.rule),
+      );
+    }
+    return out;
   }
 }
 

@@ -34,6 +34,7 @@ export * from "./dietary-recalls.js";
 export * from "./food-frequency.js";
 export * from "./sweat-tests.js";
 export * from "./notifications.js";
+export * from "./plan-alert-reviews.js";
 
 import { organizations } from "./organizations.js";
 import { locations } from "./locations.js";
@@ -70,6 +71,7 @@ import { dietaryRecalls } from "./dietary-recalls.js";
 import { foodFrequencySurveys } from "./food-frequency.js";
 import { sweatTests } from "./sweat-tests.js";
 import { notificationPreferences } from "./notifications.js";
+import { planAlertReviews } from "./plan-alert-reviews.js";
 
 /** Schema completo para pasar a drizzle() y a drizzle-kit. */
 export const schema = {
@@ -118,4 +120,5 @@ export const schema = {
   foodFrequencySurveys,
   sweatTests,
   notificationPreferences,
+  planAlertReviews,
 };

@@ -28,10 +28,10 @@ import {
   type MealPlanBody,
   type Weekday,
 } from "./dtos/meal-plan.dto.js";
+import type { EnergyRequirementDto } from "./dtos/energy.dto.js";
+import { planAlertRules, type PlanAlertLevel, type PlanAlertRule } from "./plan-alert-rules.js";
 
-export const planAlertRules = ["C1", "C2", "C3", "C4", "C5", "C6"] as const;
-export type PlanAlertRule = (typeof planAlertRules)[number];
-export type PlanAlertLevel = "important" | "info";
+export * from "./plan-alert-rules.js";
 
 export const PLAN_ALERT_THRESHOLDS = {
   /** C1: desvío de kcal frente al objetivo del día, en %. */
@@ -99,6 +99,8 @@ const WEEKDAY_LABEL: Record<Weekday, string> = {
 };
 
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-AR", { maximumFractionDigits: digits });
+/** g/kg con un decimal fijo: "1,0", "1,2–2,0". */
+const fmtGPerKg = (n: number) => n.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 interface DayToCheck {
   key: Weekday | "day";
@@ -178,7 +180,7 @@ function checkDay(d: DayToCheck, totals: Macros, ctx: PlanAlertContext): PlanAle
   if (totals.protein_g != null && weight != null && weight > 0) {
     const g = totals.protein_g / weight;
     if (g < t.proteinGPerKg.min || g > t.proteinGPerKg.max) {
-      add("C4", "info", Math.round(g * 10) / 10, `El plan aporta ${fmt(g)} g/kg de proteína; la referencia para deportistas es ${fmt(t.proteinGPerKg.min)}–${fmt(t.proteinGPerKg.max)} g/kg.`, SOURCE.acsm);
+      add("C4", "info", Math.round(g * 10) / 10, `El plan aporta ${fmtGPerKg(g)} g/kg de proteína; la referencia para deportistas es ${fmtGPerKg(t.proteinGPerKg.min)}–${fmtGPerKg(t.proteinGPerKg.max)} g/kg.`, SOURCE.acsm);
     }
   }
 
@@ -188,7 +190,7 @@ function checkDay(d: DayToCheck, totals: Macros, ctx: PlanAlertContext): PlanAle
     const band = carbBand(minutes);
     const g = totals.carbs_g / weight;
     if (g < band.min || g > band.max) {
-      add("C5", "info", Math.round(g * 10) / 10, `El día aporta ${fmt(g)} g/kg de hidratos; para ${minutes} min de entrenamiento la referencia es ${band.min}–${band.max} g/kg.`, SOURCE.acsm);
+      add("C5", "info", Math.round(g * 10) / 10, `El día aporta ${fmtGPerKg(g)} g/kg de hidratos; para ${minutes} min de entrenamiento la referencia es ${band.min}–${band.max} g/kg.`, SOURCE.acsm);
     }
   }
 
@@ -242,4 +244,28 @@ export function planAlerts(body: MealPlanBody, ctx: PlanAlertContext): PlanAlert
       planAlertRules.indexOf(a.rule) - planAlertRules.indexOf(b.rule),
   );
   return { alerts, notEvaluated, missing };
+}
+
+/** Clave estable de una alerta dentro de un plan: una regla por día. */
+export const planAlertKey = (a: { rule: PlanAlertRule; day: Weekday | "day" }) => `${a.rule}:${a.day}`;
+
+/**
+ * Contexto de las alertas a partir del último requerimiento del deportista: el peso,
+ * la talla y la masa libre de grasa usados ahí, y sus tipos de día. Lo usan el
+ * editor (para mostrarlas) y la API (para registrarlas al guardar): mismo cálculo.
+ */
+export function planAlertContextFrom(req: EnergyRequirementDto | null): PlanAlertContext {
+  if (!req) {
+    return { subject: { sex: null, ageYears: null, weightKg: null, heightCm: null, ffmKg: null }, energy: null };
+  }
+  return {
+    subject: { sex: req.sex, ageYears: req.ageYears, weightKg: req.weightKg, heightCm: req.heightCm ?? null, ffmKg: req.ffmKg ?? null },
+    energy: {
+      formula: req.formula,
+      activityFactor: req.activityFactor,
+      adjustmentPct: req.adjustmentPct,
+      dayTypes: req.dayTypes,
+      week: req.week,
+    },
+  };
 }

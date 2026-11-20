@@ -9,6 +9,8 @@ import {
   macroCoverage,
   macrosForGrams,
   normalizeMealPlanBody,
+  planAlertContextFrom,
+  planAlerts,
   sumMacros,
   targetDeviation,
   weekdays,
@@ -31,6 +33,7 @@ import {
 
 import { api, errorMessage } from "@/lib/api";
 import { FoodPicker } from "./food-picker";
+import { alertReviewsFor, keptWithoutReason, PlanAlertsPanel, SavedPlanAlerts, type KeptAlerts } from "./plan-alerts-panel";
 import { ShoppingListView } from "./shopping-list";
 import { WeekStrip, todayWeekday } from "./week-strip";
 import { Alert, Button, Input, Label, Modal, useFeedback } from "@/components/ui";
@@ -319,6 +322,8 @@ export function PlanView({
       {body.layout === "week" && body.dayTargets && Object.keys(body.dayTargets).length > 0 && (
         <PlanWeekStrip body={body} forPatient={forPatient} compact={compact} />
       )}
+
+      {!forPatient && plan.alertReviews && plan.alertReviews.length > 0 && <SavedPlanAlerts reviews={plan.alertReviews} />}
 
       <div className="mt-3 space-y-4">
         {empty && <p className="text-sm text-stone-500">Sin comidas cargadas.</p>}
@@ -671,6 +676,16 @@ function PlanEditor({
   }, []);
   const [generalNotes, setGeneralNotes] = useState(initial?.body.generalNotes ?? "");
   const [busy, setBusy] = useState(false);
+  // Alertas del plan (KAN-97): requerimiento vigente (undefined = cargando) y las
+  // que el profesional decidió mantener, con su motivo.
+  const [requirement, setRequirement] = useState<EnergyRequirementDto | null | undefined>(undefined);
+  const [keptAlerts, setKeptAlerts] = useState<KeptAlerts>({});
+  useEffect(() => {
+    api<EnergyRequirementDto[]>(`patients/${patientId}/energy`).then(
+      (list) => setRequirement(list[0] ?? null),
+      () => setRequirement(null),
+    );
+  }, [patientId]);
 
   /** Copia las comidas del día activo a los 7 días (atajo para armar la semana). */
   function copyDayToAll() {
@@ -725,6 +740,9 @@ function PlanEditor({
 
   const editorHasContent = () => hasContent(dayMeals) || weekdays.some((d) => hasContent(week[d] ?? []));
 
+  // Se recalcula en cada render: el motor es una función pura y barata.
+  const alertResult = requirement === undefined ? null : planAlerts(buildBody(), planAlertContextFrom(requirement));
+
   /** Carga un cuerpo (plantilla o borrador) en el editor; las notas se conservan si no trae. */
   function loadBody(body: MealPlanBody) {
     const next = initialEditorState({ body } as MealPlanDto);
@@ -778,10 +796,16 @@ function PlanEditor({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const alerts = alertResult?.alerts ?? [];
+    if (keptWithoutReason(alerts, keptAlerts).length) {
+      onError("Para mantener una alerta importante escribí el motivo, o destildala.");
+      return;
+    }
     setBusy(true);
     onError("");
     try {
       const body = buildBody();
+      const alertReviews = alertReviewsFor(alerts, keptAlerts);
       await api(`patients/${patientId}/plans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -791,6 +815,7 @@ function PlanEditor({
           body,
           editSeconds: Math.round((Date.now() - openedAt.current) / 1000),
           draftedFrom,
+          ...(alertReviews.length ? { alertReviews } : {}),
         }),
       });
       onSaved();
@@ -965,6 +990,8 @@ function PlanEditor({
           <DayTotals meals={week[activeDay] ?? []} targets={cleanMacros(dayTargets[activeDay] ?? targets)} />
         </div>
       )}
+
+      {alertResult && <PlanAlertsPanel result={alertResult} kept={keptAlerts} onChange={setKeptAlerts} />}
 
       <label className="block">
         <span className="mb-1 block text-xs text-stone-500">Notas generales (opcional)</span>

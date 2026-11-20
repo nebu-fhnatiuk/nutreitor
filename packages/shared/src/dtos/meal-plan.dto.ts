@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { FoodDto } from "./food.dto.js";
+import { planAlertRules, type PlanAlertDecision, type PlanAlertLevel, type PlanAlertRule } from "../plan-alert-rules.js";
 
 /**
  * Documento del plan alimentario, flexible por ESTILO de trabajo del profesional.
@@ -171,11 +172,38 @@ export const savePlanSchema = z.object({
   editSeconds: z.number().int().min(0).max(86_400).optional(),
   /** Desde qué se armó la versión. */
   draftedFrom: z.enum(["scratch", "previous", "template", "nutri"]).optional(),
+  /**
+   * Alertas que el profesional decidió mantener (KAN-97). La API recalcula las
+   * alertas del plan y guarda cada una con su decisión: las que no están acá quedan
+   * "sin revisar". En las importantes el motivo es obligatorio.
+   */
+  alertReviews: z
+    .array(
+      z.object({
+        rule: z.enum(planAlertRules),
+        day: z.enum([...weekdays, "day"]),
+        reason: z.string().trim().max(500).nullish(),
+      }),
+    )
+    .max(60)
+    .optional(),
 });
 export type SavePlanDto = z.infer<typeof savePlanSchema>;
 export type PlanDraftedFrom = NonNullable<SavePlanDto["draftedFrom"]>;
 
 export type MealPlanStatus = "active" | "superseded" | "archived";
+
+/** Alerta registrada al guardar una versión del plan (KAN-97). */
+export interface PlanAlertReviewDto {
+  rule: PlanAlertRule;
+  level: PlanAlertLevel;
+  day: Weekday | "day";
+  dayLabel: string;
+  message: string;
+  source: string;
+  decision: PlanAlertDecision;
+  reason: string | null;
+}
 
 export interface MealPlanDto {
   id: string;
@@ -187,6 +215,8 @@ export interface MealPlanDto {
   authorMembershipId: string;
   authorName: string;
   createdAt: string;
+  /** Alertas con las que se guardó la versión. Solo en la vista del profesional, nunca en el portal. */
+  alertReviews?: PlanAlertReviewDto[];
 }
 
 // ── Cálculo nutricional (ADR 0018) ───────────────────────────────────────────

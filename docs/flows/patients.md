@@ -105,6 +105,13 @@ El save de plan calcula `version = max(version)+1`, marca `superseded` al activo
 inserta el nuevo `active`; el índice único parcial `… WHERE status='active'`
 garantiza un único plan activo por paciente (un choque concurrente da `409`).
 
+En el mismo save, la API recalcula las **alertas clínico-nutricionales** del plan con
+el requerimiento vigente y las guarda en `plan_alert_reviews`, una por alerta, con la
+decisión del profesional que viene en `alertReviews`: mantenida (en las importantes,
+con motivo; si falta, `400`) o sin revisar. El editor muestra las mismas alertas
+mientras se arma el plan (misma función de `packages/shared`). Ver el
+[ADR 0051](../decisions/0051-alertas-del-plan.md).
+
 ### Estructura del plan (multi-estilo)
 
 El `body` del plan es un documento JSONB flexible por estilo de trabajo: layout
