@@ -95,6 +95,12 @@ describe("C4 · proteína", () => {
     expect(only("C4", week(day(2800, 150, 420, 78)))[0]).toMatchObject({ value: 2.5 });
   });
 
+  it("muestra los g/kg con un decimal fijo", () => {
+    expect(only("C4", week(day(2800, 60, 420, 78)))[0]!.message).toBe(
+      "El plan aporta 1,0 g/kg de proteína; la referencia para deportistas es 1,2–2,0 g/kg.",
+    );
+  });
+
   it("no dispara en los bordes del rango", () => {
     expect(only("C4", week(day(2800, 72, 420, 78)))).toEqual([]); // 1,2
     expect(only("C4", week(day(2800, 120, 420, 78)))).toEqual([]); // 2,0

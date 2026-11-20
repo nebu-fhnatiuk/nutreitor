@@ -38,6 +38,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `intake_requests` | Tenant-scoped (RLS) | `tenant_id` | Formularios previos a la consulta (ADR 0045): el profesional pide una anamnesis o una frecuencia de consumo y el deportista la contesta en el portal. `status` `requested → submitted → reviewed` (o `cancelled`); `answers` jsonb crudo, `applied` jsonb con lo que pasó a la ficha. `trigger` (`manual`, `assignment`, `booking`) y `delivery` (`portal`, `invitation`) marcan la anamnesis automática de KAN-90. Un pedido abierto por (paciente, tipo). `SELECT/INSERT/UPDATE`, sin `DELETE`. |
 | `dietary_recalls` | Tenant-scoped (RLS) | `tenant_id` | Recordatorio de 24 h (ADR 0033): `meals` jsonb con la forma de las comidas del plan (items vinculados a la base); `typical` y `day_label` para promediar y comparar contra el requerimiento. Totales derivados al leer. Editable y borrable, auditado. |
 | `energy_requirements` | Tenant-scoped (RLS) | `tenant_id` | Requerimiento energético (ADR 0032): **entradas** (`inputs` jsonb: fórmula, factor, ajuste, peso/talla/MLG usados, tipos de día con sesiones y g/kg, semana tipo); los resultados se calculan al leer. Append-only (sólo `SELECT`+`INSERT`). |
+| `plan_alert_reviews` | Tenant-scoped (RLS) | `tenant_id` | Alertas clínico-nutricionales con las que se guardó cada versión del plan (KAN-97, ADR 0051). La API las **recalcula** al guardar (motor de `packages/shared`) y guarda una fila por alerta con la decisión: `kept` (con `reason`, obligatorio si `level = 'important'`, forzado por CHECK) o `unreviewed`. Una por (`meal_plan_id`, `rule`, `day`). Guarda el `energy_requirement_id` usado. Append-only (sólo `SELECT`+`INSERT`). Nunca llega al portal. |
 | `patient_groups` | Tenant-scoped (RLS) | `tenant_id` | Grupo de deportistas: plantel, división o turno (ADR 0031). Nombre único por tenant (`lower(btrim(name))`). Lo arma el admin (`group:manage`). |
 | `patient_group_members` | Tenant-scoped (RLS) | `tenant_id` | Pertenencia paciente↔grupo (M:N, PK `group_id, patient_id`). Sin UPDATE (GRANT). Borrar el grupo o el paciente la borra; un grupo **no** abre acceso a sus miembros. |
 | `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
@@ -99,7 +100,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 Algunas tablas restringen el DML a nivel de rol (no sólo por código). El rol
 `nutreitor_app` recibe:
 
-- `audit_log`, `data_access_log`, `patient_notes`, `messages`: **sólo `SELECT` + `INSERT`** → append-only, el
+- `audit_log`, `data_access_log`, `patient_notes`, `messages`, `energy_requirements`, `plan_alert_reviews`: **sólo `SELECT` + `INSERT`** → append-only, el
   runtime no puede actualizar ni borrar (corregir = nueva entrada).
 - `food_catalog`, `recipe_library`: **sólo `SELECT`** → referencias globales; se
   cargan por migración con el owner, el runtime no las puede modificar.
@@ -209,6 +210,9 @@ erDiagram
   users |o--o{ notifications            : "recipient (SET NULL)"
   users ||--o{ notification_preferences : "prefers"
   meal_plans |o--o{ adherence_meal_logs : "version (SET NULL)"
+  meal_plans ||--o{ plan_alert_reviews  : "saved with"
+  energy_requirements |o--o{ plan_alert_reviews : "computed from (SET NULL)"
+  memberships ||--o{ plan_alert_reviews : "decides"
   patients ||--o{ appointments     : "books"
   patients ||--o{ agent_conversations : "subject of"
   patients ||--o{ agent_consents      : "consents"
@@ -312,6 +316,24 @@ erDiagram
     uuid created_by_membership_id FK
     jsonb inputs "fórmula, tipos de día, semana"
     text note
+    timestamptz created_at
+  }
+
+  plan_alert_reviews {
+    uuid id PK
+    uuid tenant_id FK
+    uuid meal_plan_id FK
+    uuid patient_id FK
+    uuid energy_requirement_id FK "SET NULL"
+    text rule "C1..C6"
+    text level "important | info"
+    text day "day | mon..sun"
+    text message
+    text source
+    numeric value
+    text decision "kept | unreviewed"
+    text reason "obligatorio si important + kept"
+    uuid decided_by_membership_id FK
     timestamptz created_at
   }
 
@@ -792,6 +814,9 @@ erDiagram
   `care_assignments (patient_id, membership_id) WHERE status = 'active'`.
 - **Un plan activo por paciente**: único parcial
   `meal_plans (patient_id) WHERE status = 'active'`.
+- **Mantener una alerta importante exige motivo**: `CHECK` en `plan_alert_reviews`
+  (`level = 'important' AND decision = 'kept'` ⇒ `reason` no vacío), además de la
+  validación de la API.
 - **Un perfil público por membership**: único sobre `professional_profiles
   (membership_id)`, y slug único por org `(organization_id, profile_slug)`.
 - **Un formulario abierto por (paciente, tipo)**: único parcial

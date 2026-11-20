@@ -139,6 +139,23 @@ export class EnergyService {
   }
 }
 
+/**
+ * Versión vigente del requerimiento (la más reciente), o null. Sin chequeo de acceso:
+ * la llama quien ya lo verificó dentro de su tx (el guardado del plan, KAN-97).
+ */
+export async function latestEnergyRequirement(tx: TenantTx, patientId: string): Promise<EnergyRequirementDto | null> {
+  const [x] = await tx
+    .select({ r: energyRequirements, by: users.fullName })
+    .from(energyRequirements)
+    .leftJoin(memberships, eq(memberships.id, energyRequirements.createdByMembershipId))
+    .leftJoin(users, eq(users.id, memberships.userId))
+    .where(eq(energyRequirements.patientId, patientId))
+    .orderBy(desc(energyRequirements.createdAt))
+    .limit(1);
+  if (!x) return null;
+  return toDto(x.r, x.by, await loadSubject(tx, patientId));
+}
+
 function binarySex(s: string | null): EnergySex | null {
   return s === "female" || s === "male" ? s : null;
 }
