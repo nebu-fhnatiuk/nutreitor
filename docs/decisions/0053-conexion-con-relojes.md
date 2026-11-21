@@ -104,8 +104,11 @@ medir la carga manual. Mientras tanto, suben archivos.
 
 - **Tabla nueva `training_activities`** (append-only, con RLS por tenant): deportista,
   origen (archivo o Garmin), fecha y hora, deporte, duración, distancia, frecuencia
-  cardíaca media y máxima, carga si viene, y la referencia al archivo original en S3.
-  Las kcal del reloj se guardan, pero no se usan para el cálculo.
+  cardíaca media y máxima, y carga si viene. Las kcal del reloj se guardan, pero no
+  se usan para el cálculo.
+- **El archivo original no se guarda.** La API lo procesa en memoria y guarda solo el
+  resumen: es menos dato de salud retenido (minimización) y no hace falta un bucket
+  todavía. Si después se quiere mostrar el recorrido o las vueltas, se revisa.
 - **Conexiones:** una tabla con los tokens OAuth de Garmin, cifrados con KMS.
   Desconectar borra los tokens y avisa a Garmin.
 - **Consentimiento:** es un flujo nuevo de datos de salud (Ley 25.326, datos
