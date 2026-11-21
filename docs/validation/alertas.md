@@ -34,6 +34,8 @@ test por regla con casos positivos y negativos.
 
 ## B. Interacciones fármaco-nutriente
 
+> **En validación en [`medicacion.md`](medicacion.md)** (2026-11-21): medicación por código ATC, B6 y B7 esperan a KAN-59, y se suman B11–B14 (diuréticos, corticoides, anticonceptivos y antiepilépticos). La tabla de abajo queda como referencia de la propuesta original.
+
 Requieren la medicación cargada por principio activo. Las de horario requieren
 también a qué hora la toma.
 
