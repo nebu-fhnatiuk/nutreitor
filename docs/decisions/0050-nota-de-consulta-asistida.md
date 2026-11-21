@@ -1,7 +1,8 @@
 # 0050 — Nota de consulta asistida: transcripción en streaming con Amazon Transcribe
 
-- **Estado**: aceptada. La implementación va en KAN-95 y KAN-96. La prueba de
-  concepto está escrita pero todavía no corrió contra AWS (ver *Validación*).
+- **Estado**: aceptada, salvo el proveedor de speech-to-text: Transcribe o
+  Speechmatics se decide con la prueba de concepto (ver *Comparación de
+  proveedores*). La implementación va en KAN-95 y KAN-96.
 - **Fecha**: 2026-11-19
 - **Épica**: KAN-91 · Relacionados: [ADR 0014](0014-inferencia-bedrock-y-controles-de-costo.md),
   [ADR 0048](0048-region-us-east-1.md), [ADR 0006](0006-borde-edge-api-defensa-en-profundidad.md),
@@ -168,6 +169,42 @@ términos técnicos queda por debajo del 90 %, o si los profesionales tienen que
 corregir más de lo que ahorran. La alternativa a probar es Whisper propio (ver
 abajo).
 
+## Comparación de proveedores: Transcribe o Speechmatics
+
+Agregado el 2026-11-21, a partir de una propuesta del equipo: Speechmatics tiene un
+programa para startups con hasta US$ 50.000 en créditos de uso. Antes estaba
+descartado junto con las demás APIs externas (ver *Alternativas*); se reabre porque
+cambia el costo y porque Transcribe no tiene `es-AR`, que es el riesgo principal.
+
+La arquitectura no cambia: la API emite una credencial de vida corta y el navegador
+manda el audio directo al proveedor. Con Speechmatics es una **clave temporal** de
+tiempo real, que la API pide con la clave de la cuenta.
+
+| | Amazon Transcribe | Speechmatics |
+|---|---|---|
+| Español | `es-US`, sin `es-AR` | `es`, un solo modelo para todos los acentos |
+| Audio en tiempo real | No se guarda | No se graba ni se guarda: se procesa en memoria |
+| Uso para entrenar | Opt-out con una política de AWS Organizations | Opt-in: hay que **activarlo** en el portal. Si se activa, Speechmatics pasa a tratar los datos personales como **responsable independiente**. Queda desactivado |
+| Contrato | Dentro de la cuenta de AWS y su BAA | Proveedor nuevo: un subencargado más y una transferencia internacional más. Dice cumplir HIPAA, ISO 27001 y SOC 2; **el BAA y el acuerdo de tratamiento de datos hay que pedirlos** |
+| Región | `us-east-1` | Nube de EE. UU. o de la UE |
+| Parámetros | Fijados por la firma de la URL | Los manda el cliente en el primer mensaje. El navegador podría cambiar idioma o vocabulario: no es un problema de acceso a datos, pero sí de costo y calidad |
+| Precio en tiempo real | ~US$ 1,44 por hora (US$ 0,024/min, a confirmar) | ~US$ 0,40–0,80 por hora según el plan (a confirmar), o con créditos |
+
+**Cómo se decide:** se corre el mismo guion con los dos ([`tools/poc-transcribe/`](../../tools/poc-transcribe/README.md)):
+primero con voces sintéticas y después con una grabación real rioplatense.
+Speechmatics se elige si el **recall del vocabulario técnico** es claramente mejor
+(5 puntos o más) con un retraso parecido, y si firma el acuerdo de tratamiento de
+datos. Si quedan parejos, gana Transcribe, porque no suma proveedor.
+
+**Programa para startups:** pide estar en producción o cerca (1–2 meses), haber
+levantado menos de US$ 10 millones y que la voz sea central al producto. En
+Nutreitor la voz es una función, no el producto: puede pesar en contra. Postularse
+no compromete nada; los créditos son de uso, no dinero, y la aprobación no está
+garantizada.
+
+Google Speech-to-Text también tiene `es-AR`. Queda como tercer candidato si ninguno
+de los dos alcanza el criterio de revisión de abajo.
+
 ## Consecuencias
 
 - **A favor:** sin proveedor nuevo, el audio queda dentro de AWS y no se persiste en
@@ -195,7 +232,8 @@ abajo).
   Transcribe no alcanza la calidad.
 - **API externa de speech-to-text** (Deepgram, OpenAI y similares): buena calidad en
   español, pero el audio con datos de salud sale de AWS y suma un subencargado y otra
-  transferencia.
+  transferencia. Speechmatics se reabrió como candidato el 2026-11-21 (ver
+  *Comparación de proveedores*).
 - **Transcribir en lote al cerrar la consulta:** más simple y robusto, pero el
   profesional no ve nada hasta el final y el audio completo tiene que guardarse,
   aunque sea un rato. Se usa solo para archivos subidos.

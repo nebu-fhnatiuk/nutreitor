@@ -25,11 +25,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
-import statistics
 import struct
 import time
-import unicodedata
 import wave
 import zlib
 from pathlib import Path
@@ -40,6 +37,8 @@ import websockets
 from botocore.auth import SigV4QueryAuth
 from botocore.awsrequest import AWSRequest
 from botocore.eventstream import EventStreamBuffer
+
+from evaluacion import evaluar
 
 AQUI = Path(__file__).resolve().parent
 CHUNK_S = 0.1
@@ -125,23 +124,7 @@ async def transcribir(url: str, pcm: bytes, rate: int, n_canales: int, velocidad
     return finales, retrasos
 
 
-# ── Evaluación ──
-
-def normalizar(texto: str) -> list[str]:
-    t = unicodedata.normalize("NFKD", texto.lower())
-    t = "".join(c for c in t if not unicodedata.combining(c))
-    return re.sub(r"[^a-z0-9ñ ]+", " ", t).split()
-
-
-def wer(ref: list[str], hip: list[str]) -> float:
-    prev = list(range(len(hip) + 1))
-    for i, r in enumerate(ref, 1):
-        cur = [i] + [0] * len(hip)
-        for j, h in enumerate(hip, 1):
-            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (r != h))
-        prev = cur
-    return prev[-1] / max(len(ref), 1)
-
+# ── Evaluación (evaluacion.py, compartida con speechmatics.py) ──
 
 def etiqueta(r: dict) -> str:
     if "ChannelId" in r:
@@ -172,31 +155,17 @@ def main() -> None:
     finales.sort(key=lambda r: r["StartTime"])
 
     lineas = [f"{etiqueta(r)}: {r['Alternatives'][0]['Transcript']}" for r in finales]
-    print("\n".join(lineas))
-
-    guion = args.guion.read_text(encoding="utf-8")
-    ref = normalizar(re.sub(r"^[PD]:", "", guion, flags=re.M))
-    hip = normalizar(" ".join(r["Alternatives"][0]["Transcript"] for r in finales))
-    terminos = [t for t in normalizar((AQUI / "vocabulario.txt").read_text(encoding="utf-8")) if t in ref]
-    acertados = [t for t in terminos if t in hip]
-
-    resumen = {
-        "audio": args.audio.name,
-        "modo": "canales" if args.canales else "diarizacion",
-        "vocabulario": args.vocabulario,
-        "duracion_s": round(len(pcm) / 2 / n_canales / rate, 1),
-        "wer_aprox": round(wer(ref, hip), 3),
-        "recall_vocabulario": f"{len(acertados)}/{len(terminos)}",
-        "terminos_perdidos": sorted(set(terminos) - set(acertados)),
-        "retraso_final_mediana_s": round(statistics.median(retrasos), 2) if retrasos else None,
-        "retraso_final_p90_s": round(statistics.quantiles(retrasos, n=10)[-1], 2) if len(retrasos) > 1 else None,
-    }
-    print("\n" + json.dumps(resumen, ensure_ascii=False, indent=2))
-
-    salida = AQUI / "out" / f"{args.audio.stem}-{resumen['modo']}{'-vocab' if args.vocabulario else ''}.json"
-    salida.parent.mkdir(exist_ok=True)
-    salida.write_text(json.dumps({"resumen": resumen, "transcripcion": lineas}, ensure_ascii=False, indent=2), encoding="utf-8")
-
+    evaluar(
+        proveedor="transcribe",
+        audio=args.audio,
+        modo="canales" if args.canales else "diarizacion",
+        con_vocabulario=bool(args.vocabulario),
+        duracion_s=len(pcm) / 2 / n_canales / rate,
+        lineas=lineas,
+        texto=" ".join(r["Alternatives"][0]["Transcript"] for r in finales),
+        retrasos=retrasos,
+        guion=args.guion,
+    )
 
 if __name__ == "__main__":
     main()

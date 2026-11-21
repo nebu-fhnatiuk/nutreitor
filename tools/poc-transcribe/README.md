@@ -15,7 +15,9 @@ voces de macOS.
 | `consulta.txt` | Guion de una consulta deportiva: antropometría ISAK, Kerr, suplementación, sudoración y una interacción fármaco-nutriente |
 | `vocabulario.txt` | Términos para el vocabulario personalizado de Transcribe |
 | `generar_audio.py` | Genera `out/consulta-mono.wav` (presencial) y `out/consulta-estereo.wav` (online, un hablante por canal) |
-| `transcribir.py` | Firma la URL, hace streaming a ritmo real y mide WER, recall del vocabulario y retraso |
+| `transcribir.py` | Transcribe: firma la URL, hace streaming a ritmo real y mide |
+| `speechmatics.py` | Speechmatics: pide una clave temporal, hace streaming a ritmo real y mide igual |
+| `evaluacion.py` | Métricas compartidas: WER, recall del vocabulario y retraso |
 
 ## Cómo correrla
 
@@ -37,6 +39,22 @@ aws transcribe get-vocabulary --region us-east-1 --vocabulary-name nutreitor-poc
 .venv/bin/python transcribir.py out/consulta-estereo.wav --canales
 .venv/bin/python transcribir.py out/consulta-estereo.wav --canales --vocabulario nutreitor-poc
 ```
+
+### Speechmatics
+
+Requiere una cuenta del portal de Speechmatics, con **el entrenamiento de modelos
+desactivado**. Sus términos dicen que solo se usa si lo activás, pero no aclaran cómo
+viene por defecto: revisar el interruptor *Model Training* en el portal antes de
+mandar audio.
+
+```bash
+export SPEECHMATICS_API_KEY=...
+.venv/bin/python speechmatics.py out/consulta-mono.wav
+.venv/bin/python speechmatics.py out/consulta-mono.wav --vocabulario
+```
+
+Solo mono por ahora. El caso online (un canal por hablante) se prueba si Speechmatics
+pasa la comparación en presencial.
 
 Cada corrida dura lo mismo que el audio (unos 2 minutos) y cuesta centavos de dólar.
 El resultado queda en `out/*.json`; `out/` no se versiona.
@@ -66,9 +84,11 @@ Pendiente: la primera corrida falló porque las credenciales locales de AWS esta
 vencidas. Se verificó sin AWS que los frames de event-stream se decodifican bien y
 que la URL sale firmada.
 
-| Corrida | WER aprox. | Recall vocabulario | Retraso mediana / p90 |
-|---|---|---|---|
-| mono, diarización | | | |
-| mono, diarización + vocabulario | | | |
-| estéreo, canales | | | |
-| estéreo, canales + vocabulario | | | |
+| Proveedor | Corrida | WER aprox. | Recall vocabulario | Retraso mediana / p90 |
+|---|---|---|---|---|
+| Transcribe | mono, diarización | | | |
+| Transcribe | mono, diarización + vocabulario | | | |
+| Transcribe | estéreo, canales | | | |
+| Transcribe | estéreo, canales + vocabulario | | | |
+| Speechmatics | mono, diarización | | | |
+| Speechmatics | mono, diarización + vocabulario | | | |
