@@ -1,6 +1,6 @@
 # 0053 — Conexión con relojes: entrenamiento real del deportista
 
-- **Estado**: propuesta, a decidir (KAN-104)
+- **Estado**: aceptada (KAN-104), opción A. Falta implementar
 - **Fecha**: 2026-11-21
 - **Épica**: KAN-57 · Relacionados: [ADR 0032](0032-requerimiento-energetico-periodizado.md),
   [ADR 0051](0051-alertas-del-plan.md)
@@ -82,17 +82,23 @@ intermediarias. No sirve para Nutreitor.
 | Esfuerzo | 2–3 semanas | 4–6 semanas, más mantener la app | 1 semana |
 | Datos de salud | Solo Garmin | Pasan por el agregador | Solo Nutreitor |
 
-## Recomendación
+## Decisión
 
-**Opción A, en dos pasos**, y dejar la app de iOS para cuando el piloto muestre que
-la carga manual no alcanza:
+**Opción A, en dos pasos** (decidido por Florencia Hnatiuk el 2026-11-21):
 
 1. **Importar archivos .FIT, .GPX y .TCX.** Sirve para todas las marcas desde el día
    uno y define el modelo de datos.
-2. **Garmin directo**, nivel Startup. Los deportistas con Garmin quedan automáticos.
+2. **Garmin directo**, nivel Startup. La cuenta de desarrollador la da de alta
+   Florencia a nombre de Nutreitor.
 
-Con eso se mide cuántos deportistas con Apple Watch suben sus archivos. Si son
-muchos y no lo hacen, la app de iOS pasa a ser la siguiente decisión.
+**Es opcional y lo elige cada paciente.** Ningún flujo depende de que haya un reloj
+conectado: sin actividades, todo sigue funcionando con lo planificado. El paciente
+conecta su cuenta o sube archivos desde el portal, y puede desconectar cuando
+quiera.
+
+**Apple Watch:** muchos deportistas del piloto lo usan, así que la app de iOS
+(Capacitor con HealthKit) es el **paso siguiente** después de Garmin, sin esperar a
+medir la carga manual. Mientras tanto, suben archivos.
 
 ## Qué implica en el producto
 
@@ -103,16 +109,15 @@ muchos y no lo hacen, la app de iOS pasa a ser la siguiente decisión.
 - **Conexiones:** una tabla con los tokens OAuth de Garmin, cifrados con KMS.
   Desconectar borra los tokens y avisa a Garmin.
 - **Consentimiento:** es un flujo nuevo de datos de salud (Ley 25.326, datos
-  sensibles). El deportista lo autoriza desde el portal, y se suma al documento de
+  sensibles). Es opt-in: el paciente lo autoriza desde el portal, lo puede revocar, y se suma al documento de
   flujo de datos de KAN-6.
 - **Alertas (ADR 0051):** C2 y C3 (disponibilidad energética) pueden usar la duración
   real de la semana en vez de la planificada, mostrando cuál usaron.
 - **IA:** hasta leer los términos de Garmin, los datos de actividad no se mandan a
   NUTRI.
 
-## Preguntas para decidir
+## Pendientes
 
-1. ¿Vamos con la opción A?
-2. ¿Quién da de alta la cuenta de desarrollador de Garmin a nombre de Nutreitor?
-3. ¿Qué porcentaje del plantel usa Apple Watch? Si es la mayoría, la app de iOS sube
-   de prioridad.
+- Leer los términos oficiales de Garmin (uso para IA, terceros, retención) antes del
+  paso 2.
+- Abrir un ticket para la app de iOS en KAN-57.
