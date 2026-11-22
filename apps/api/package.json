@@ -9,7 +9,8 @@
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.typecheck.json"
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "seed:club": "node dist/scripts/seed-club.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
