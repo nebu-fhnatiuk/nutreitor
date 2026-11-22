@@ -4,7 +4,7 @@ import type { Capability } from "../auth/capabilities.js";
 import type { Region } from "../region.js";
 
 /** Roles dentro de una organización (espeja el enum de la DB). */
-export const membershipRoles = ["admin", "professional", "patient"] as const;
+export const membershipRoles = ["admin", "professional", "patient", "coach"] as const;
 export type MembershipRole = (typeof membershipRoles)[number];
 
 /** Ruta de destino post-login según rol (dentro del workspace del tenant). */
@@ -12,6 +12,7 @@ export const roleHome: Record<MembershipRole, string> = {
   admin: "/admin",
   professional: "/pro",
   patient: "/app",
+  coach: "/equipo",
 };
 
 /**

@@ -11,6 +11,7 @@ const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador/a",
   professional: "Profesional",
   patient: "Deportista",
+  coach: "Cuerpo técnico",
 };
 
 /**

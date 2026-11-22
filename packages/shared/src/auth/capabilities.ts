@@ -44,6 +44,8 @@ export const capabilities = [
   "org:update_public_profile",
   "professional:update_own_profile",
   "audit:read",
+  // Tablero del cuerpo técnico (KAN-109): sólo lectura, recortado por consentimiento.
+  "team:read",
 ] as const;
 
 export type Capability = (typeof capabilities)[number];
@@ -83,6 +85,9 @@ export const roleCapabilities: Record<MembershipRole, Capability[]> = {
   // El paciente opera SÓLO su portal (su propia entidad), nunca el panel de
   // gestión. El portal resuelve "mi paciente" por userId (además de RLS de tenant).
   patient: ["org:read", "portal:read", "portal:self_report", "portal:book", "portal:agent", "portal:message"],
+  // Cuerpo técnico (KAN-109, ADR 0054): ve el tablero de SUS planteles y nada más.
+  // Ninguna ruta clínica acepta `team:read`, así que no hay nada que "tapar".
+  coach: ["org:read", "team:read"],
 };
 
 /** Capacidades de un rol (defensivo ante un rol desconocido). */

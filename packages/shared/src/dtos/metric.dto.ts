@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { MembershipRole } from "./auth.dto.js";
+
 /** Métricas comunes (columnas wide). El resto va en `extra` (clave→número). */
 const weight = z.number().min(1).max(999.99);
 const pct = z.number().min(0).max(100);
@@ -71,7 +73,7 @@ export interface PatientMetricDto {
   recordedByMembershipId: string;
   recordedByName: string;
   /** Rol del autor: 'patient' ⇒ auto-reportado por el paciente desde su portal. */
-  recordedByRole: "admin" | "professional" | "patient";
+  recordedByRole: MembershipRole;
   createdAt: string;
   updatedAt: string;
 }
