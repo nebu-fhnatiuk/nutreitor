@@ -6,6 +6,7 @@ import { OrgJsonLd, ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
 import { PublicBooking } from "@/components/public/public-booking";
 import { PublicContact } from "@/components/public/public-contact";
+import { PublicTopBar } from "@/components/public/public-top-bar";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
 
 // ISR: estática con revalidación (TTL de red de seguridad; el resto on-demand en PR2).
@@ -49,6 +50,7 @@ export default async function OrgPublicPage({
     if (pro) {
       return (
         <main className="min-h-screen bg-stone-50 text-stone-900">
+          <PublicTopBar />
           <ProfessionalJsonLd
             name={pro.fullName}
             headline={pro.headline}
@@ -76,8 +78,9 @@ export default async function OrgPublicPage({
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <OrgJsonLd name={displayName} description={org.publicDescription} />
+      <PublicTopBar />
 
-      <section className="mx-auto max-w-4xl px-6 pt-16 pb-10 text-center sm:pt-24">
+      <section className="mx-auto max-w-4xl px-6 pt-8 pb-10 text-center sm:pt-14">
         {org.brandLogoUrl ? (
           <img
             src={org.brandLogoUrl}
@@ -116,7 +119,7 @@ export default async function OrgPublicPage({
             </h2>
             <ul className="grid gap-4 sm:grid-cols-2">
               {org.roster.map((m) => (
-                <li key={m.profileSlug}>
+                <li key={m.profileSlug} className="min-w-0">
                   <Link
                     href={`/${m.profileSlug}`}
                     className="group flex items-center gap-4 rounded-2xl border border-stone-200 bg-surface p-5 transition hover:border-brand/50 hover:shadow-sm"
@@ -125,10 +128,10 @@ export default async function OrgPublicPage({
                       <img
                         src={m.photoUrl}
                         alt={m.fullName}
-                        className="h-14 w-14 rounded-full object-cover"
+                        className="h-14 w-14 shrink-0 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="grid h-14 w-14 place-items-center rounded-full bg-brand/15 text-lg font-semibold text-brand">
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand/15 text-lg font-semibold text-brand">
                         {m.fullName.slice(0, 1).toUpperCase()}
                       </span>
                     )}
