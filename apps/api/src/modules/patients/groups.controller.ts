@@ -1,5 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
 import {
+  addGroupCoachSchema,
+  type AddGroupCoachDto,
+  type GroupCoachDto,
   addGroupMembersSchema,
   applyGroupPlanSchema,
   assignGroupProfessionalSchema,
@@ -113,6 +116,33 @@ export class GroupsController {
     @Body(new ZodValidationPipe(addGroupMembersSchema)) dto: AddGroupMembersDto,
   ): Promise<GroupDetailDto> {
     return this.groups.addMembers(id, dto);
+  }
+
+  /** Cuerpo técnico del plantel (KAN-109): sólo lo arma el admin. */
+  @Get(":id/coaches")
+  @RequireCapability("group:manage")
+  coaches(@Param("id", ParseUUIDPipe) id: string): Promise<GroupCoachDto[]> {
+    return this.groups.listCoaches(id);
+  }
+
+  @Post(":id/coaches")
+  @RequireCapability("group:manage")
+  async addCoach(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(addGroupCoachSchema)) dto: AddGroupCoachDto,
+  ): Promise<GroupCoachDto[]> {
+    await this.groups.addCoach(id, dto);
+    return this.groups.listCoaches(id);
+  }
+
+  @Delete(":id/coaches/:membershipId")
+  @RequireCapability("group:manage")
+  async removeCoach(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("membershipId", ParseUUIDPipe) membershipId: string,
+  ): Promise<{ ok: true }> {
+    await this.groups.removeCoach(id, membershipId);
+    return { ok: true };
   }
 
   @Delete(":id/members/:patientId")
