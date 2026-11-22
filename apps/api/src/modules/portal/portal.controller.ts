@@ -1,5 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
 import {
+  staffSharingSchema,
+  type StaffSharingDto,
+  type StaffSharingStatusDto,
   adherenceRangeSchema,
   checkinSchema,
   logMealSchema,
@@ -34,6 +37,7 @@ import { ZodValidationPipe } from "../../core/pipes/zod-validation.pipe.js";
 import { AdherenceService } from "../patients/adherence.service.js";
 import { ConversationsService } from "../patients/conversations.service.js";
 import { ReportsService } from "../patients/reports.service.js";
+import { StaffSharingService } from "../patients/staff-sharing.service.js";
 import { PortalService } from "./portal.service.js";
 
 /**
@@ -48,6 +52,7 @@ export class PortalController {
     private readonly adherence: AdherenceService,
     private readonly conversations: ConversationsService,
     private readonly reports: ReportsService,
+    private readonly staffSharing: StaffSharingService,
   ) {}
 
   @Get("me")
@@ -110,6 +115,19 @@ export class PortalController {
     @Body(new ZodValidationPipe(notificationPreferencesSchema)) dto: NotificationPreferencesDto,
   ): Promise<NotificationPreferencesDto> {
     return this.adherence.savePreferences(dto);
+  }
+
+  /** Compartir la composición corporal con el cuerpo técnico (KAN-109). */
+  @Get("me/staff-sharing")
+  @RequireCapability("portal:read")
+  staffSharingStatus(): Promise<StaffSharingStatusDto> {
+    return this.staffSharing.mine();
+  }
+
+  @Put("me/staff-sharing")
+  @RequireCapability("portal:self_report")
+  saveStaffSharing(@Body(new ZodValidationPipe(staffSharingSchema)) dto: StaffSharingDto): Promise<StaffSharingStatusDto> {
+    return this.staffSharing.setByAthlete(dto);
   }
 
   /** Sus conversaciones: una por profesional asignado (ADR 0024). */

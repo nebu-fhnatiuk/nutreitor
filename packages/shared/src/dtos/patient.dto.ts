@@ -7,6 +7,7 @@ import type { CareAssignmentDto } from "./care-assignment.dto.js";
 import type { GroupRefDto } from "./group.dto.js";
 import type { FieldSources, SportProfile } from "./intake-forms.dto.js";
 import type { PatientNoteDto } from "./patient-note.dto.js";
+import type { StaffSharingStatusDto } from "./team.dto.js";
 
 /** Catálogos acotados a nivel app (Zod), NO enums de DB: el catálogo evoluciona
  * sin migración (la columna es text). Habilitan dropdowns en la UI. */
@@ -180,6 +181,8 @@ export interface PatientDetailDto {
   /** Qué campos clínicos ve el paciente en el portal (para la UI de toggles del
    * profesional). Sólo presente si la sesión tiene patient:read_clinical. */
   clinicalVisibility: ClinicalVisibility | null;
+  /** Consentimiento para compartir la composición corporal con el cuerpo técnico (KAN-109). */
+  staffSharing: StaffSharingStatusDto;
   groups: GroupRefDto[];
   assignments: CareAssignmentDto[];
   notes: PatientNoteDto[];

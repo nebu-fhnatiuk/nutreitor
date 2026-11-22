@@ -16,6 +16,7 @@ import { coachHasGroup, GroupsService } from "../src/modules/patients/groups.ser
 import { HydrationService } from "../src/modules/patients/hydration.service.js";
 import { TeamService } from "../src/modules/team/team.service.js";
 import { resolvePatientAccess } from "../src/modules/patients/patient-access.js";
+import { StaffSharingService } from "../src/modules/patients/staff-sharing.service.js";
 
 /**
  * Cuerpo técnico (KAN-109, ADR 0054) contra Postgres real con el rol app: los
@@ -40,6 +41,9 @@ let tenantDb: TenantDbService;
 let groups: GroupsService;
 let anthro: AnthropometryService;
 let team: TeamService;
+let sharing: StaffSharingService;
+/** Cuenta del deportista P1 para el portal. */
+const ATHLETE_USER = "00000000-0000-0000-0000-00000000c0c1";
 const RUN = Math.random().toString(36).slice(2, 8);
 /** Deportistas propios del test (no se tocan los del seed que usan otros archivos). */
 const P1 = "00000000-0000-0000-0000-00000000c0b1";
@@ -82,10 +86,12 @@ beforeAll(async () => {
   groups = new GroupsService(tenantDb, audit);
   anthro = new AnthropometryService(tenantDb, audit);
   const hydration = new HydrationService(tenantDb, audit);
+  sharing = new StaffSharingService(tenantDb, audit);
   team = new TeamService(tenantDb, anthro, hydration, new GroupBoardService(tenantDb, anthro, hydration));
   await owner.delete(patients).where(inArray(patients.id, [P1, P2]));
+  await owner.insert(users).values({ id: ATHLETE_USER, email: "ana.uno@demo.test", fullName: "Ana Uno", hashedPassword: "x" }).onConflictDoNothing();
   await owner.insert(patients).values([
-    { id: P1, tenantId: T.id, region: T.region, fullName: "Ana Uno", sex: "female", birthDate: "2000-01-01" },
+    { id: P1, tenantId: T.id, region: T.region, fullName: "Ana Uno", sex: "female", birthDate: "2000-01-01", userId: ATHLETE_USER },
     { id: P2, tenantId: T.id, region: T.region, fullName: "Beto Dos", sex: "male", birthDate: "2000-01-01" },
   ]);
 });
@@ -214,5 +220,45 @@ describe("tablero del cuerpo técnico", () => {
     for (const cap of ["patient:read", "patient:read_clinical", "metric:read", "plan:read", "message:send", "patient:add_note", "report:write", "appointment:read", "agent:use"] as const) {
       expect(hasCapability("coach", cap)).toBe(false);
     }
+  });
+});
+
+describe("consentimiento para compartir la composición corporal", () => {
+  let plantel: string;
+  const lastAudit = async () =>
+    (await owner.select().from(auditLog).where(and(eq(auditLog.action, "patient.staff_sharing_changed"), eq(auditLog.targetId, P1))).orderBy(desc(auditLog.createdAt)).limit(2));
+  const asAthlete = <X>(fn: () => Promise<X>) => as(ATHLETE_USER, "patient", fn);
+  const anaBody = async () => (await asCoach(() => team.board(plantel))).rows.find((r) => r.patientId === P1)!.body;
+
+  beforeAll(async () => {
+    plantel = (await asAdmin(() => groups.create({ name: `Consentimiento ${RUN}`, description: null }))).id;
+    await asAdmin(() => groups.addMembers(plantel, { patientIds: [P1] }));
+    await asAdmin(() => groups.addCoach(plantel, { membershipId: COACH_MEMBERSHIP }));
+  });
+
+  it("el deportista lo activa y el coach ve su Σ6; lo revoca y deja de verlo", async () => {
+    expect(await anaBody()).toBeNull();
+    const on = await asAthlete(() => sharing.setByAthlete({ shareBody: true }));
+    expect(on).toMatchObject({ shareBody: true, by: "athlete" });
+    expect((await anaBody())?.sum6).toBe(54);
+    await asAthlete(() => sharing.setByAthlete({ shareBody: false }));
+    expect(await anaBody()).toBeNull();
+    const audits = await lastAudit();
+    expect(audits.map((a) => (a.metadata as { shareBody: boolean }).shareBody)).toEqual([false, true]);
+  });
+
+  it("el admin lo registra por el papel firmado", async () => {
+    const r = await asAdmin(() => sharing.setByAdmin(P1, { shareBody: true }));
+    expect(r).toMatchObject({ shareBody: true, by: "admin" });
+    const [row] = await owner.select().from(patients).where(eq(patients.id, P1));
+    expect(row!.shareBodyWithStaffBy).toBe("admin");
+    expect(row!.shareBodyWithStaffAt).toBeInstanceOf(Date);
+    expect(((await lastAudit())[0]!.metadata as { by: string }).by).toBe("admin");
+    await asAdmin(() => sharing.setByAdmin(P1, { shareBody: false }));
+  });
+
+  it("el coach no puede cambiarlo", () => {
+    expect(hasCapability("coach", "patient:update")).toBe(false);
+    expect(hasCapability("coach", "portal:self_report")).toBe(false);
   });
 });

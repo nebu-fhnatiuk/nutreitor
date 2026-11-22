@@ -15,6 +15,13 @@ export type StaffSharingDto = z.infer<typeof staffSharingSchema>;
 /** Quién registró el consentimiento: el deportista en el portal o el admin (papel firmado). */
 export type StaffSharingSource = "athlete" | "admin";
 
+/** Estado del consentimiento: si está activo, cuándo y quién lo registró. */
+export interface StaffSharingStatusDto {
+  shareBody: boolean;
+  at: string | null;
+  by: StaffSharingSource | null;
+}
+
 export const addGroupCoachSchema = z.object({ membershipId: z.string().uuid() }).strict();
 export type AddGroupCoachDto = z.infer<typeof addGroupCoachSchema>;
 
