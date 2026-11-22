@@ -462,6 +462,28 @@ Para volver a cargar la demo del plantel, seguí
 [`tools/demo-data/README.md`](tools/demo-data/README.md): crear los grupos, importar
 `plantel-demo.csv` y correr `seed-salud.mjs`.
 
+**Club de ejemplo para mostrar a clubes.** `apps/api/src/scripts/seed-club.ts` arma
+el *Club Atlético Norte Alto* (`norte-alto.localhost:3000`), un club inventado con
+una temporada completa:
+
+- coordinación y tres nutricionistas;
+- planteles de fútbol, hockey femenino y básquet, con 52 deportistas;
+- para cada deportista, ficha con casos clínicos, cuatro antropometrías ISAK, el
+  requerimiento por tipo de día y planes con alimentos del catálogo;
+- pruebas de sudoración, seis semanas de adherencia en el portal, notas, informes
+  de octubre, mensajes y turnos.
+
+Todo pasa por los servicios de la API, con las mismas validaciones y cálculos que la
+app.
+
+```bash
+docker compose exec -e SEED_CLUB_PASSWORD=<elegila> api pnpm --filter @nutreitor/api seed:club
+```
+
+Las cuentas son `@nortealto.test` y el script imprime las principales. Si el club ya
+existe no hace nada, porque la auditoría es append-only. Para rearmarlo, recreá la
+base con `db:reset-dev` y volvé a correrlo.
+
 **Útil en el día a día**
 
 ```bash
