@@ -12,6 +12,7 @@ import {
   type MealPlanBody,
   type PlanMeal,
   type PortalMeDto,
+  showStaffSharingCard,
   type StaffSharingStatusDto,
 } from "@nutreitor/shared";
 
@@ -363,7 +364,7 @@ function StaffSharingCard() {
       .then(setStatus)
       .catch(() => {});
   }, []);
-  if (!status?.hasCoaches) return null;
+  if (!status || !showStaffSharingCard(status)) return null;
 
   async function toggle() {
     setBusy(true);
@@ -394,8 +395,9 @@ function StaffSharingCard() {
         />
       </div>
       <p className="mt-2 text-sm text-stone-600">
-        Si lo activás, el cuerpo técnico de tus planteles ve tus pliegues (Σ6) y tu masa muscular. Nunca ve tu ficha, tu plan ni tus
-        mensajes. Lo podés desactivar cuando quieras.
+        El cuerpo técnico de tus planteles ve cómo venís: registro de comidas, energía y ánimo, peso, hidratación y si tenés control
+        pendiente. Si lo activás, también ve tus pliegues (Σ6) y tu masa muscular. Nunca ve tu ficha, tu plan ni tus mensajes. Lo
+        podés desactivar cuando quieras.
       </p>
     </Card>
   );

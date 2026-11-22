@@ -148,7 +148,7 @@ Fútbol · Primera                     18 de 20 registran · 19 con plan
 - Consentimiento en columnas de `patients` y su historia en la auditoría, en vez de una
   tabla de consentimientos aparte: hay un solo consentimiento y la auditoría ya es
   append-only.
-- No se auditan las lecturas del tablero, igual que la pizarra de hoy.
+- Las lecturas del tablero quedan en el registro de accesos (`group_board`), igual que la pizarra (corregido en la revisión final: la pizarra sí se registra).
 - El peso se muestra sin consentimiento (lo acordado: "tendencia de peso" va por
   defecto); Σ6 y masa muscular, no.
 - En el club de ejemplo se suma un DT por plantel y consentimiento en la mitad de los

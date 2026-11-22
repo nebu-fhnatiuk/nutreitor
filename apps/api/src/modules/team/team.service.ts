@@ -17,7 +17,8 @@ const CHECKIN_DAYS = 14;
  * Tablero del cuerpo técnico (KAN-109, ADR 0054). Reutiliza los resúmenes de la
  * pizarra del plantel (que ya aplican el scoping del coach) y los recorta con
  * `teamBoardRow`: sin ficha ni plan, y la composición corporal sólo con
- * consentimiento. Nada se guarda ni se audita: se calcula al leer.
+ * consentimiento. Nada se guarda: se calcula al leer. La lectura queda en el
+ * registro de accesos (`@LogsAccess` en el controller), igual que la pizarra.
  */
 @Injectable()
 export class TeamService {

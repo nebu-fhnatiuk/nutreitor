@@ -26,6 +26,7 @@ import { MetricsController } from "../src/modules/patients/metrics.controller.js
 import { PatientsController } from "../src/modules/patients/patients.controller.js";
 import { RecallsController } from "../src/modules/patients/recalls.controller.js";
 import { ReportsController } from "../src/modules/patients/reports.controller.js";
+import { TeamController } from "../src/modules/team/team.controller.js";
 
 /**
  * Registro de lecturas de datos de salud (KAN-23, ADR 0042), contra Postgres real:
@@ -132,6 +133,8 @@ describe("qué lecturas quedan marcadas", () => {
     [ConversationsController, "thread", "conversation"],
     [GroupsController, "board", "group_board"],
     [GroupsController, "anthropometry", "anthropometry"],
+    // Cuerpo técnico (KAN-109): un tercero no clínico leyendo datos de salud del plantel.
+    [TeamController, "board", "group_board"],
   ] as const)("%o.%s → %s", (ctrl, method, resource) => {
     expect(spec(ctrl.prototype, method)?.resource).toBe(resource);
   });

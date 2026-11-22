@@ -39,7 +39,9 @@ sequenceDiagram
 - El coach sólo tiene `org:read` y `team:read`: cualquier otra ruta le responde 403.
 - Un plantel que no le asignaron responde 404. Revocar su membresía corta el acceso en
   el acto, aunque la fila de `group_coaches` siga.
-- No se lo puede asignar como profesional de un deportista.
+- No se lo puede asignar como profesional de un deportista. Cambiarle el rol a un
+  miembro a `coach` cierra sus asignaciones y lo saca de la vidriera.
+- Cada lectura del tablero queda en el registro de accesos (`group_board`).
 - El consentimiento lo da el deportista en el portal (la tarjeta aparece sólo si alguno
-  de sus planteles tiene cuerpo técnico) o lo registra quien lo atiende en la ficha
+  de sus planteles tiene cuerpo técnico, o si ya lo dio: siempre lo puede revocar) o lo registra quien lo atiende en la ficha
   (papel firmado). Vale el último cambio; todos quedan en la auditoría.

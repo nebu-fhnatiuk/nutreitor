@@ -1,4 +1,4 @@
-import { hasCapability, roleCapabilities, roleHome, teamBoardRow, type TeamRowInput } from "@nutreitor/shared";
+import { hasCapability, roleCapabilities, roleHome, showStaffSharingCard, teamBoardRow, type TeamRowInput } from "@nutreitor/shared";
 import { describe, expect, it } from "vitest";
 
 /** Tablero del cuerpo técnico (KAN-109): el recorte por consentimiento es puro y vive en shared. */
@@ -44,5 +44,13 @@ describe("rol coach", () => {
     expect(hasCapability("coach", "patient:read")).toBe(false);
     expect(hasCapability("admin", "team:read")).toBe(true);
     expect(roleHome.coach).toBe("/equipo");
+  });
+});
+
+describe("tarjeta de consentimiento del portal", () => {
+  it("se muestra si hay cuerpo técnico o si el consentimiento está activo (siempre se puede revocar)", () => {
+    expect(showStaffSharingCard({ shareBody: false, at: null, by: null, hasCoaches: true })).toBe(true);
+    expect(showStaffSharingCard({ shareBody: true, at: null, by: "admin", hasCoaches: false })).toBe(true);
+    expect(showStaffSharingCard({ shareBody: false, at: null, by: null, hasCoaches: false })).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { groupCoaches, patientGroupMembers, patients, type TenantTx } from "@nutreitor/db";
+import { groupCoaches, memberships, patientGroupMembers, patients, type TenantTx } from "@nutreitor/db";
 import type { StaffSharingDto, StaffSharingSource, StaffSharingStatusDto } from "@nutreitor/shared";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
@@ -29,7 +29,8 @@ export class StaffSharingService {
         .select({ groupId: groupCoaches.groupId })
         .from(groupCoaches)
         .innerJoin(patientGroupMembers, eq(patientGroupMembers.groupId, groupCoaches.groupId))
-        .where(eq(patientGroupMembers.patientId, p.id))
+        .innerJoin(memberships, eq(memberships.id, groupCoaches.membershipId))
+        .where(and(eq(patientGroupMembers.patientId, p.id), isNull(memberships.revokedAt)))
         .limit(1);
       return { ...toStatus(p), hasCoaches: !!c };
     });

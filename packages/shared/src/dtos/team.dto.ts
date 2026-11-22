@@ -24,6 +24,14 @@ export interface StaffSharingStatusDto {
   hasCoaches?: boolean;
 }
 
+/**
+ * ¿Mostrar la tarjeta del portal? Si algún plantel tiene cuerpo técnico, o si el
+ * consentimiento está activo: quien lo dio siempre tiene que poder revocarlo.
+ */
+export function showStaffSharingCard(s: StaffSharingStatusDto): boolean {
+  return s.shareBody || s.hasCoaches === true;
+}
+
 export const addGroupCoachSchema = z.object({ membershipId: z.string().uuid() }).strict();
 export type AddGroupCoachDto = z.infer<typeof addGroupCoachSchema>;
 

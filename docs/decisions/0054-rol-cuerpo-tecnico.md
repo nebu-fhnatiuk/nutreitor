@@ -42,7 +42,9 @@ tiene que poder revocarlo.
   para el tablero recortado, exige membresía activa y no da acceso a la ficha. Un
   plantel ajeno responde 404.
 - **El coach no atiende**: no se lo puede asignar como profesional de un deportista
-  (si no, el deportista lo vería como "su profesional" en el portal).
+  (si no, el deportista lo vería como "su profesional" en el portal). Si a un miembro
+  se le cambia el rol a `coach`, o vuelve invitado como `coach`, se cierran sus
+  asignaciones vigentes y su perfil sale de la vidriera. No tiene perfil público.
 - **Tablero** (`GET /team/groups/:id/board`): semáforo y motivos, adherencia de 7 días y
   tendencia, último check-in de energía y ánimo, peso y su variación, % de pérdida en la
   sudoración, si tiene plan (sí/no) y la fecha del próximo turno. Reutiliza los cálculos
@@ -50,12 +52,16 @@ tiene que poder revocarlo.
 - **Composición corporal con consentimiento**: Σ6, su variación y masa muscular (Kerr)
   aparecen sólo si `patients.share_body_with_staff`. El deportista lo activa o revoca en
   el portal; el admin (o quien lo atiende) lo registra en la ficha si firmó el papel del
-  club. Default apagado, cada cambio auditado (`patient.staff_sharing_changed`), y rige en
+  club. La tarjeta del portal aparece si algún plantel tiene cuerpo técnico o si el
+  consentimiento está activo (siempre se puede revocar), y le cuenta al deportista qué
+  ve el cuerpo técnico sin consentimiento. Default apagado, cada cambio auditado (`patient.staff_sharing_changed`), y rige en
   la próxima lectura porque todo se calcula al leer. Sin consentimiento, el semáforo se
   calcula sin la variación de Σ6, para que no se filtre por el texto ("Σ6 subió 4 mm").
 - **El peso se muestra sin consentimiento**: es lo que el cuerpo técnico ya pesa en el
   vestuario y el dato que acordó la nutricionista para el semáforo por defecto.
-- Las lecturas del tablero no se auditan (igual que la pizarra). Se auditan las
+- Cada lectura del tablero queda en el registro de accesos (`data_access_log`,
+  recurso `group_board`, ADR 0042), igual que la pizarra: es un tercero no clínico
+  leyendo datos de salud. Se auditan además las
   asignaciones de plantel (`group.coach_added` / `group.coach_removed`) y el
   consentimiento.
 

@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { auditLog, createDb, groupCoaches, memberships, patientGroups, patients, users, withTenant, type Database } from "@nutreitor/db";
+import { auditLog, careAssignments, createDb, dataAccessLog, groupCoaches, memberships, patientGroups, patients, professionalProfiles, users, withTenant, type Database } from "@nutreitor/db";
 import { runMigrations } from "@nutreitor/db/migrate";
 import { runSeed, SEED } from "@nutreitor/db/seed";
 import { hasCapability, type AuthOrg, type MembershipRole } from "@nutreitor/shared";
@@ -7,6 +7,7 @@ import { and, desc, eq, inArray, like } from "drizzle-orm";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AccessLogService } from "../src/core/audit/access-log.service.js";
 import { AuditService } from "../src/core/audit/audit.service.js";
 import { TenantDbService } from "../src/core/database/tenant-db.service.js";
 import { tenantStorage } from "../src/core/tenant/tenant-context.store.js";
@@ -15,6 +16,7 @@ import { CareAssignmentsService } from "../src/modules/patients/care-assignments
 import { GroupBoardService } from "../src/modules/patients/group-board.service.js";
 import { coachHasGroup, GroupsService } from "../src/modules/patients/groups.service.js";
 import { HydrationService } from "../src/modules/patients/hydration.service.js";
+import { MembersService } from "../src/modules/members/members.service.js";
 import { TeamService } from "../src/modules/team/team.service.js";
 import { resolvePatientAccess } from "../src/modules/patients/patient-access.js";
 import { StaffSharingService } from "../src/modules/patients/staff-sharing.service.js";
@@ -269,5 +271,37 @@ describe("el coach no atiende", () => {
   it("no se lo puede asignar como profesional de un deportista", async () => {
     const assignments = new CareAssignmentsService(tenantDb, new AuditService());
     await expect(asAdmin(() => assignments.assign(P2, { membershipId: COACH_MEMBERSHIP }))).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe("revisión final", () => {
+  it("la lectura del tablero por el coach queda en el registro de accesos", async () => {
+    const log = new AccessLogService(tenantDb);
+    const g = (await asAdmin(() => groups.create({ name: `Log ${RUN}`, description: null }))).id;
+    await asCoach(() => log.recordRead({ resource: "group_board", targetParam: "id" }, { id: g }));
+    const rows = await owner.select().from(dataAccessLog).where(and(eq(dataAccessLog.targetId, g), eq(dataAccessLog.actorUserId, COACH_USER)));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.actorRole).toBe("coach");
+    await owner.delete(dataAccessLog).where(eq(dataAccessLog.targetId, g));
+  });
+
+  it("pasar a una nutricionista a cuerpo técnico termina sus asignaciones y la saca de la vidriera", async () => {
+    const U = "00000000-0000-0000-0000-00000000c0d1";
+    const M = "00000000-0000-0000-0000-00000000c0d2";
+    await owner.delete(memberships).where(eq(memberships.id, M));
+    await owner.insert(users).values({ id: U, email: "ex.nutri@demo.test", fullName: "Ex Nutri", hashedPassword: "x" }).onConflictDoNothing();
+    await owner.insert(memberships).values({ id: M, userId: U, organizationId: T.id, region: T.region, role: "professional" });
+    await owner.insert(professionalProfiles).values({ organizationId: T.id, region: T.region, membershipId: M, profileSlug: `ex-nutri-${RUN}`, isPubliclyListed: true });
+    const care = new CareAssignmentsService(tenantDb, new AuditService());
+    await asAdmin(() => care.assign(P2, { membershipId: M }));
+
+    await asAdmin(() => new MembersService(tenantDb, new AuditService()).changeRole(M, "coach"));
+
+    const active = await owner.select().from(careAssignments).where(and(eq(careAssignments.membershipId, M), eq(careAssignments.status, "active")));
+    expect(active).toHaveLength(0);
+    const [profile] = await owner.select().from(professionalProfiles).where(eq(professionalProfiles.membershipId, M));
+    expect(profile!.isPubliclyListed).toBe(false);
+    await owner.delete(careAssignments).where(eq(careAssignments.membershipId, M));
+    await owner.delete(professionalProfiles).where(eq(professionalProfiles.membershipId, M));
   });
 });
