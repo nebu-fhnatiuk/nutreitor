@@ -467,6 +467,9 @@ el *Club Atlético Norte Alto* (`norte-alto.localhost:3000`), un club inventado 
 una temporada completa:
 
 - coordinación y tres nutricionistas;
+- un DT por plantel con el rol "Cuerpo técnico" (`diego.arce`, `laura.mendez`,
+  `pablo.sosa`), que entra a `/equipo`; la mitad de cada plantel aceptó compartir su
+  composición corporal;
 - planteles de fútbol, hockey femenino y básquet, con 52 deportistas;
 - para cada deportista, ficha con casos clínicos, cuatro antropometrías ISAK, el
   requerimiento por tipo de día y planes con alimentos del catálogo;
