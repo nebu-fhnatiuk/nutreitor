@@ -178,7 +178,9 @@ funciona algo, se toca el módulo, y el cambio aplica a los dos entornos.**
   - **`*.nutreitor.com`** (cada organización): todo va al ALB sin caché, salvo
     `/_next/static/*`, que se cachea en el borde.
 - **Encabezados:** CloudFront reenvía el `Host` y las cookies, así la web sabe de qué
-  organización es cada pedido.
+  organización es cada pedido. Los estáticos también reenvían el `Host`, aunque no
+  entra en la clave de caché: sin él, CloudFront valida el certificado del ALB contra
+  su nombre DNS y responde 502.
 - **El ALB sólo acepta tráfico de CloudFront**, por la lista de IPs que publica AWS.
   Con eso:
   - nadie puede saltearse CloudFront;
