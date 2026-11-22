@@ -329,15 +329,18 @@ resource "aws_cloudfront_distribution" "app" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
   }
 
-  # Estáticos con hash de Next: se cachean en el borde (el Host no cambia el archivo).
+  # Estáticos con hash de Next: se cachean en el borde (el Host no cambia el archivo,
+  # por eso no entra en la clave de caché). Igual hay que reenviar el Host al origen:
+  # sin él, CloudFront valida el certificado del ALB contra su nombre DNS y responde 502.
   ordered_cache_behavior {
-    path_pattern           = "/_next/static/*"
-    target_origin_id       = local.alb_origin_id
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
-    cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
+    path_pattern             = "/_next/static/*"
+    target_origin_id         = local.alb_origin_id
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["GET", "HEAD"]
+    cached_methods           = ["GET", "HEAD"]
+    compress                 = true
+    cache_policy_id          = data.aws_cloudfront_cache_policy.optimized.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
   }
 
   restrictions {
