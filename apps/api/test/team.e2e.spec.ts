@@ -11,6 +11,7 @@ import { AuditService } from "../src/core/audit/audit.service.js";
 import { TenantDbService } from "../src/core/database/tenant-db.service.js";
 import { tenantStorage } from "../src/core/tenant/tenant-context.store.js";
 import { AnthropometryService } from "../src/modules/patients/anthropometry.service.js";
+import { CareAssignmentsService } from "../src/modules/patients/care-assignments.service.js";
 import { GroupBoardService } from "../src/modules/patients/group-board.service.js";
 import { coachHasGroup, GroupsService } from "../src/modules/patients/groups.service.js";
 import { HydrationService } from "../src/modules/patients/hydration.service.js";
@@ -260,5 +261,12 @@ describe("consentimiento para compartir la composición corporal", () => {
   it("el coach no puede cambiarlo", () => {
     expect(hasCapability("coach", "patient:update")).toBe(false);
     expect(hasCapability("coach", "portal:self_report")).toBe(false);
+  });
+});
+
+describe("el coach no atiende", () => {
+  it("no se lo puede asignar como profesional de un deportista", async () => {
+    const assignments = new CareAssignmentsService(tenantDb, new AuditService());
+    await expect(asAdmin(() => assignments.assign(P2, { membershipId: COACH_MEMBERSHIP }))).rejects.toBeInstanceOf(BadRequestException);
   });
 });
