@@ -20,6 +20,8 @@ export interface StaffSharingStatusDto {
   shareBody: boolean;
   at: string | null;
   by: StaffSharingSource | null;
+  /** Sólo en el portal: ¿alguno de sus planteles tiene cuerpo técnico? */
+  hasCoaches?: boolean;
 }
 
 export const addGroupCoachSchema = z.object({ membershipId: z.string().uuid() }).strict();

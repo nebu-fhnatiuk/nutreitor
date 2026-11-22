@@ -11,6 +11,7 @@ import { Alert, Button, Card, EmptyState, Input, Loading, Modal, PageHeader, Sec
 import { api, errorMessage } from "@/lib/api";
 
 import { ApplyGroupPlan, AssignGroupProfessional } from "./group-actions";
+import { GroupCoaches } from "./group-coaches";
 import { GroupForm } from "./groups-view";
 import { SquadBoard } from "./squad-board";
 import { SquadSomatochart } from "./squad-somatochart";
@@ -165,6 +166,12 @@ export function GroupDetail({
         onClose={() => setApplying(false)}
         onDone={load}
       />
+
+      {canManage && (
+        <div className="mb-5">
+          <GroupCoaches groupId={id} />
+        </div>
+      )}
 
       {board && group.members.length > 0 && (
         <div role="group" aria-label="Vista" className="mb-5 inline-flex rounded-xl border border-stone-200 bg-surface p-1">

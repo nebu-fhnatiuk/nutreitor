@@ -239,6 +239,7 @@ describe("consentimiento para compartir la composición corporal", () => {
 
   it("el deportista lo activa y el coach ve su Σ6; lo revoca y deja de verlo", async () => {
     expect(await anaBody()).toBeNull();
+    expect(await asAthlete(() => sharing.mine())).toMatchObject({ shareBody: false, hasCoaches: true });
     const on = await asAthlete(() => sharing.setByAthlete({ shareBody: true }));
     expect(on).toMatchObject({ shareBody: true, by: "athlete" });
     expect((await anaBody())?.sum6).toBe(54);

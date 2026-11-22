@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { patients, type TenantTx } from "@nutreitor/db";
+import { groupCoaches, patientGroupMembers, patients, type TenantTx } from "@nutreitor/db";
 import type { StaffSharingDto, StaffSharingSource, StaffSharingStatusDto } from "@nutreitor/shared";
 import { eq } from "drizzle-orm";
 
@@ -23,7 +23,16 @@ export class StaffSharingService {
 
   /** Estado del propio deportista (portal). */
   mine(): Promise<StaffSharingStatusDto> {
-    return this.tenantDb.run(async (tx) => toStatus(await this.myPatient(tx)));
+    return this.tenantDb.run(async (tx) => {
+      const p = await this.myPatient(tx);
+      const [c] = await tx
+        .select({ groupId: groupCoaches.groupId })
+        .from(groupCoaches)
+        .innerJoin(patientGroupMembers, eq(patientGroupMembers.groupId, groupCoaches.groupId))
+        .where(eq(patientGroupMembers.patientId, p.id))
+        .limit(1);
+      return { ...toStatus(p), hasCoaches: !!c };
+    });
   }
 
   setByAthlete(dto: StaffSharingDto): Promise<StaffSharingStatusDto> {
