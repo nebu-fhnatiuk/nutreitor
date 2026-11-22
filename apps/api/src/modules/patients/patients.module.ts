@@ -82,6 +82,6 @@ import { PatientImportService } from "./patient-import.service.js";
     HydrationService,
     GroupBoardService,
   ],
-  exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService],
+  exports: [AdherenceService, ConversationsService, ReportsService, CareAssignmentsService, AnthropometryService, HydrationService, GroupBoardService],
 })
 export class PatientsModule {}
