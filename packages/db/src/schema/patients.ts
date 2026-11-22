@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   pgTable,
   uuid,
   text,
@@ -89,6 +90,10 @@ export const patients = pgTable(
       .$type<ClinicalVisibility>()
       .notNull()
       .default(sql`'{}'::jsonb`),
+    // Consentimiento para compartir Σ6 y masa muscular con el cuerpo técnico (KAN-109, 0056).
+    shareBodyWithStaff: boolean("share_body_with_staff").notNull().default(false),
+    shareBodyWithStaffAt: timestamp("share_body_with_staff_at", { withTimezone: true }),
+    shareBodyWithStaffBy: text("share_body_with_staff_by").$type<"athlete" | "admin">(),
     // Sede (referencia; sin UI en este sprint) + cuenta + baja lógica
     locationId: uuid("location_id"),
     userId: uuid("user_id"),

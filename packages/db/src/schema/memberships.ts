@@ -11,6 +11,8 @@ export const membershipRole = pgEnum("membership_role", [
   "admin",
   "professional",
   "patient",
+  // Cuerpo técnico: sólo lectura de sus planteles (KAN-109, migración 0056).
+  "coach",
 ]);
 
 export type MembershipRole = (typeof membershipRole.enumValues)[number];
