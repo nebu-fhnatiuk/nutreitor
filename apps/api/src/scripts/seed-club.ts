@@ -184,6 +184,38 @@ const MENUS: Record<MenuKey, MenuMeal[]> = {
     { name: "Cena", time: "21:00", items: [["arroz-integral-cocido", 150], ["huevo-entero", 100], ["zapallito-cocido", 180], ["tomate-crudo", 123], ["aceite-de-oliva", 13.5]] },
   ],
 };
+/**
+ * Colaciones que se suman, en este orden, cuando el requerimiento del día no entra en
+ * el menú base sin agrandar las porciones más allá de lo que se come de una vez (lo
+ * que hace la nutricionista con un deportista grande: más comidas, no platos dobles).
+ */
+const EXTRAS: Record<MenuKey, MenuMeal[]> = {
+  partido: [
+    { name: "Media mañana", time: "10:00", items: [["yogur-descremado-natural", 190], ["copos-de-maiz", 30], ["banana", 118], ["almendras", 15]] },
+    { name: "Colación nocturna", time: "23:00", items: [["pan-blanco", 60], ["palta", 40], ["pasta-de-mani", 16], ["jugo-de-naranja", 200]] },
+  ],
+  entreno: [
+    { name: "Media mañana", time: "10:00", items: [["leche-descremada", 300], ["copos-de-maiz", 40], ["banana", 118], ["nueces", 15]] },
+    { name: "Posentreno", time: "19:00", items: [["pan-blanco", 60], ["jamon-cocido", 40], ["palta", 40], ["jugo-de-naranja", 200]] },
+    { name: "Preentreno", time: "15:00", items: [["galletas-de-arroz", 27], ["pasta-de-mani", 16], ["mermelada", 20]] },
+  ],
+  suave: [
+    { name: "Media mañana", time: "11:00", items: [["manzana", 182], ["galletas-de-arroz", 27], ["nueces", 15]] },
+    { name: "Colación nocturna", time: "23:00", items: [["banana", 118], ["pasta-de-mani", 16], ["miel", 14]] },
+  ],
+};
+
+/** Lo máximo de cada alimento en una comida (g): de ahí para arriba ya no es una porción creíble. */
+const CAPS: Record<string, number> = {
+  "leche-descremada": 400, "yogur-descremado-natural": 250, "bebida-de-almendras": 400, "copos-de-maiz": 80, "avena-arrollada": 80,
+  "galletas-de-arroz": 60, "pan-blanco": 120, "pan-integral": 112, "arroz-blanco-cocido": 400, "arroz-integral-cocido": 350,
+  "fideos-cocidos": 400, "papa-hervida": 400, "batata-hervida": 400, "quinoa-cocida": 300, "pechuga-pollo-cocida": 220,
+  "lomo-vacuno-cocido": 220, "merluza-cocida": 250, "huevo-entero": 150, "jamon-cocido": 60, "queso-untable-descremado": 60,
+  banana: 240, kiwi: 200, manzana: 200, uvas: 250, frutillas: 300, "jugo-de-naranja": 400, miel: 40, mermelada: 40,
+  "pasas-de-uva": 50, "cacao-amargo": 15, almendras: 30, nueces: 30, "semillas-de-chia": 20, "semillas-de-girasol": 30,
+  "pasta-de-mani": 32, palta: 80, "aceite-de-oliva": 25,
+};
+
 /** "ensalada-mixta" no está en el catálogo: se reemplaza por sus componentes. */
 const EXPAND: Record<string, MenuItem[]> = {
   "ensalada-mixta": [["lechuga", 50], ["tomate-crudo", 123], ["zanahoria-cruda", 61]],
@@ -210,7 +242,7 @@ const SWAPS: Record<string, Record<string, string>> = {
 
 const ALL_SLUGS = [
   ...new Set(
-    [...Object.values(MENUS).flatMap((m) => m.flatMap((meal) => meal.items.map(([s]) => s))), ...Object.values(EXPAND).flatMap((x) => x.map(([s]) => s)), ...Object.values(SWAPS).flatMap((m) => Object.values(m))].filter((s) => !EXPAND[s]),
+    [...[...Object.values(MENUS), ...Object.values(EXTRAS)].flatMap((m) => m.flatMap((meal) => meal.items.map(([s]) => s))), ...Object.values(EXPAND).flatMap((x) => x.map(([s]) => s)), ...Object.values(SWAPS).flatMap((m) => Object.values(m))].filter((s) => !EXPAND[s]),
   ),
 ];
 
@@ -245,55 +277,107 @@ function sourceOf(f: FoodDto): 0 | 1 | 2 {
   return 0;
 }
 
+/** Resuelve A·x = b (Gauss con pivoteo); null si el sistema es singular. */
+function solve(A: number[][], b: number[]): number[] | null {
+  const n = b.length;
+  const M = A.map((row, i) => [...row, b[i]!]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r]![c]!) > Math.abs(M[p]![c]!)) p = r;
+    if (Math.abs(M[p]![c]!) < 1e-9) return null;
+    [M[c], M[p]] = [M[p]!, M[c]!];
+    for (let r = 0; r < n; r++) {
+      if (r === c) continue;
+      const k = M[r]![c]! / M[c]![c]!;
+      for (let j = c; j <= n; j++) M[r]![j]! -= k * M[c]![j]!;
+    }
+  }
+  return M.map((row, i) => row[n]! / row[i]!);
+}
+
 /**
- * Menú del tipo de día, con reemplazos por restricción, ajustado a los gramos de
- * hidratos, proteína y grasa del requerimiento: un factor por fuente (lo que haría
- * la nutricionista al mover porciones), resuelto como un sistema de 3×3.
+ * Gramos de cada alimento para acercarse a los gramos de hidratos, proteína y grasa
+ * del día: un factor por fuente (lo que haría la nutricionista al mover porciones),
+ * resuelto como un sistema de 3×3. Lo que pasaría su tope queda en el tope y el resto
+ * se vuelve a ajustar; si una fuente queda sin alimentos, se resuelven las demás.
+ */
+function fitMeals(meals: MenuMeal[], target: DayTarget, foods: Map<string, FoodDto>): number[][] {
+  const items = meals.flatMap((m, i) => m.items.map(([slug, g], j) => ({ i, j, slug, g, f: foods.get(slug)! })));
+  const capped = new Map<(typeof items)[number], number>();
+  let x = [1, 1, 1];
+  for (let round = 0; round < 8; round++) {
+    const A = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
+    const t = [target.choG, target.proG, target.fatG];
+    for (const it of items) {
+      const { carbsG, proteinG, fatG } = it.f.per100g;
+      const v = [carbsG, proteinG, fatG];
+      const fixed = FIXED.has(it.slug) ? it.g : capped.get(it);
+      if (fixed !== undefined) v.forEach((m, k) => (t[k]! -= (m * fixed) / 100));
+      else v.forEach((m, k) => (A[k]![sourceOf(it.f)]! += (m * it.g) / 100));
+    }
+    const active = [0, 1, 2].filter((k) => A.some((row) => row[k]! > 1e-6));
+    const sol = solve(
+      active.map((r) => active.map((c) => A[r]![c]!)),
+      active.map((r) => t[r]!),
+    );
+    x = [1, 1, 1];
+    active.forEach((k, n) => (x[k] = Math.min(2.5, Math.max(0.4, sol && Number.isFinite(sol[n]) ? sol[n]! : 1))));
+    let more = false;
+    for (const it of items) {
+      if (FIXED.has(it.slug) || capped.has(it)) continue;
+      const cap = CAPS[it.slug];
+      if (cap !== undefined && it.g * x[sourceOf(it.f)]! > cap) {
+        capped.set(it, cap);
+        more = true;
+      }
+    }
+    if (!more) break;
+  }
+  const grams = meals.map((m) => m.items.map(() => 0));
+  for (const it of items) grams[it.i]![it.j] = FIXED.has(it.slug) ? it.g : (capped.get(it) ?? it.g * x[sourceOf(it.f)]!);
+  return grams;
+}
+
+/**
+ * Menú del tipo de día, con reemplazos por restricción, ajustado al requerimiento.
+ * Si las kcal no entran con porciones creíbles, se suman colaciones (EXTRAS).
  */
 function buildDay(menu: MenuKey, target: DayTarget, restrictions: string[], foods: Map<string, FoodDto>): DayPlan {
   const swap = (slug: string) => restrictions.reduce((s, r) => SWAPS[r]?.[s] ?? s, slug);
-  const meals = MENUS[menu].map((m) => ({
-    ...m,
-    items: m.items.flatMap(([slug, g]) => EXPAND[slug] ?? [[slug, g] as MenuItem]).map(([slug, g]) => [swap(slug), g] as MenuItem),
-  }));
-  const macro = (f: FoodDto, g: number) => [(f.per100g.carbsG * g) / 100, (f.per100g.proteinG * g) / 100, (f.per100g.fatG * g) / 100];
-
-  // A[macro][fuente] con las cantidades del menú; lo fijo se descuenta del objetivo.
-  const A = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  const t = [target.choG, target.proG, target.fatG];
-  for (const m of meals)
-    for (const [slug, g] of m.items) {
-      const f = foods.get(slug)!;
-      const v = macro(f, g);
-      if (FIXED.has(slug)) v.forEach((x, i) => (t[i]! -= x));
-      else v.forEach((x, i) => (A[i]![sourceOf(f)]! += x));
-    }
-  const det = (M: number[][]) =>
-    M[0]![0]! * (M[1]![1]! * M[2]![2]! - M[1]![2]! * M[2]![1]!) -
-    M[0]![1]! * (M[1]![0]! * M[2]![2]! - M[1]![2]! * M[2]![0]!) +
-    M[0]![2]! * (M[1]![0]! * M[2]![1]! - M[1]![1]! * M[2]![0]!);
-  const D = det(A);
-  const factors = [0, 1, 2].map((j) => {
-    const Mj = A.map((row, i) => row.map((x, k) => (k === j ? t[i]! : x)));
-    const f = D ? det(Mj) / D : 1;
-    return Math.min(4, Math.max(0.25, Number.isFinite(f) ? f : 1));
-  });
+  const prep = (ms: MenuMeal[]): MenuMeal[] =>
+    ms.map((m) => ({
+      ...m,
+      items: m.items.flatMap(([slug, g]) => EXPAND[slug] ?? [[slug, g] as MenuItem]).map(([slug, g]) => [swap(slug), g] as MenuItem),
+    }));
+  const meals = prep(MENUS[menu]);
+  const extras = prep(EXTRAS[menu]);
+  // Se apunta un 3 % arriba: llevar a medidas caseras redondea casi siempre para abajo.
+  target = { choG: target.choG * 1.03, proG: target.proG * 1.03, fatG: target.fatG * 1.03 };
+  const kcalOf = (slug: string, g: number) => (foods.get(slug)!.per100g.energyKcal * g) / 100;
+  const goal = 4 * target.choG + 4 * target.proG + 9 * target.fatG;
+  const baseKcal = () => meals.reduce((s, m) => s + m.items.reduce((t, [slug, g]) => t + kcalOf(slug, g), 0), 0);
+  while (extras.length && baseKcal() * 1.6 < goal) meals.push(extras.shift()!);
+  let grams = fitMeals(meals, target, foods);
+  const total = () => meals.reduce((s, m, i) => s + m.items.reduce((t, [slug], j) => t + kcalOf(slug, grams[i]![j]!), 0), 0);
+  while (extras.length && total() < 0.95 * goal) {
+    meals.push(extras.shift()!);
+    grams = fitMeals(meals, target, foods);
+  }
 
   return {
-    meals: meals.map(
-      (m): PlanMeal => ({
-        name: m.name,
-        time: m.time,
-        items: m.items.map(([slug, g]) => {
-          const f = foods.get(slug)!;
-          return itemFor(f, FIXED.has(slug) ? g : g * factors[sourceOf(f)]!);
+    meals: meals
+      .map(
+        (m, i): PlanMeal => ({
+          name: m.name,
+          time: m.time,
+          items: m.items.map(([slug], j) => itemFor(foods.get(slug)!, grams[i]![j]!)),
         }),
-      }),
-    ),
+      )
+      .sort((p, q) => (p.time ?? "").localeCompare(q.time ?? "")),
   };
 }
 
@@ -323,6 +407,8 @@ interface Athlete {
   build: number;
   trajectory: Trajectory;
   restrictions: string[];
+  /** Comidas del plan por día (cambian con las colaciones que sume cada uno). */
+  planMeals?: Partial<Record<Weekday, string[]>>;
 }
 
 /** Factores de pliegues y masa por sesión de la temporada, según la trayectoria. */
@@ -506,6 +592,8 @@ async function main() {
     // ── Deportistas (cuenta de portal para cada uno) ──
     const usedNames = new Set<string>();
     const athletes: Athlete[] = [];
+    /** El deportista de cada plantel que se lista al final para mostrar el portal. */
+    const sampleOf = (squad: SquadSeed) => athletes.find((a) => a.squad === squad && a.trajectory === "improving")!;
     for (const squad of SQUADS) {
       for (let i = 0; i < squad.count; i++) {
         let fullName: string;
@@ -735,6 +823,7 @@ async function main() {
               return [d, buildDay(t.menu, target.get(t.id)!, a.restrictions, foods)];
             }),
           );
+          a.planMeals = Object.fromEntries(Object.entries(days).map(([d, day]) => [d, day.meals.map((m) => m.name)]));
           await asPro(() =>
             svc.plans.save(
               a.id!,
@@ -826,13 +915,12 @@ async function main() {
           const late = a.trajectory === "dropping" && d >= addDays(TODAY, -12);
           const p = late ? 0.45 : base;
           if (!chance(late ? 0.6 : logs)) continue;
-          const menu = a.squad.dayTypes.find((t) => t.id === a.squad.week[weekdayOf(d)])!.menu;
-          for (const meal of MENUS[menu]) {
+          for (const mealName of a.planMeals?.[weekdayOf(d)] ?? []) {
             const r = rand();
             const status = r < p ? "done" : r < p + (1 - p) * 0.55 ? "partial" : "skipped";
             const log = logMealSchema.parse({
               date: d,
-              mealName: meal.name,
+              mealName,
               status,
               note: status === "skipped" && chance(0.3) ? pick(["Me quedé dormido.", "Comí en la facultad.", "No tenía hambre después del entrenamiento.", "Viaje con el equipo."]) : null,
             });
@@ -871,7 +959,12 @@ async function main() {
       }
 
       // ── Mensajes entre deportistas y nutricionistas ──
-      const threadAthletes = SQUADS.flatMap((s) => athletes.filter((a) => a.squad === s).slice(1, 3));
+      // Los deportistas que se listan al final para entrar al portal tienen conversación, y uno más por plantel.
+      const threadAthletes = SQUADS.flatMap((s) => {
+        const squad = athletes.filter((a) => a.squad === s);
+        const shown = sampleOf(s);
+        return [shown, squad.find((a) => a !== shown && a.index > 0)!];
+      });
       for (const [k, a] of threadAthletes.entries()) {
         const pro = staff.get(a.squad.sport)!;
         const { conversationId } = await as(org, pro.userId, "professional", () => svc.conversations.openWithPatient(a.id!));
@@ -933,7 +1026,7 @@ async function main() {
     console.log(`\nClub "${CLUB.name}" listo: ${athletes.length} deportistas en ${SQUADS.length} planteles.`);
     console.log(`Subdominio: ${CLUB.slug}   Contraseña de todas las cuentas: la de SEED_CLUB_PASSWORD\n`);
     for (const s of STAFF) console.log(`  ${s.role === "admin" ? "Coordinación " : "Nutricionista"}  ${email(s.email)}`);
-    const sample = SQUADS.map((s) => athletes.find((a) => a.squad === s && a.trajectory === "improving")!);
+    const sample = SQUADS.map(sampleOf);
     for (const a of sample) console.log(`  Deportista    ${a.email}  (${a.squad.group})`);
   } finally {
     await pool.end();
