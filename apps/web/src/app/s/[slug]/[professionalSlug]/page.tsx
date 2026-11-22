@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProfessionalJsonLd } from "@/components/public/json-ld";
 import { ProfessionalView } from "@/components/public/professional-view";
+import { PublicTopBar } from "@/components/public/public-top-bar";
 import { PublicBooking } from "@/components/public/public-booking";
 import { PublicContact } from "@/components/public/public-contact";
 import { fetchPublicOrg, fetchPublicProfessional } from "@/lib/server/public-api";
@@ -46,6 +47,7 @@ export default async function ProfessionalPublicPage({
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
+      <PublicTopBar />
       <ProfessionalJsonLd
         name={pro.fullName}
         headline={pro.headline}
