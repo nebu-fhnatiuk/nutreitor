@@ -14,7 +14,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * El slug sale del hostname; la API lo valida por lookup (no es un tenant_id de confianza).
  */
-const PROTECTED = ["/admin", "/pro", "/app"];
+const PROTECTED = ["/admin", "/pro", "/app", "/equipo"];
 const NO_REWRITE = ["/sitemap.xml", "/robots.txt", "/manifest.webmanifest", "/sw.js"];
 // Íconos de la PWA (por tenant, los resuelve el app root leyendo el header).
 const NO_REWRITE_PREFIX = ["/pwa-icon/"];

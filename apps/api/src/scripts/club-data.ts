@@ -31,6 +31,13 @@ export interface StaffSeed {
   license: string | null;
 }
 
+/** Cuerpo técnico de cada plantel (KAN-109): rol `coach`, sin perfil público. */
+export const COACHES: { sport: SquadSeed["sport"]; fullName: string; email: string }[] = [
+  { sport: "futbol", fullName: "Diego Arce", email: "diego.arce" },
+  { sport: "hockey", fullName: "Laura Méndez", email: "laura.mendez" },
+  { sport: "basquet", fullName: "Pablo Sosa", email: "pablo.sosa" },
+];
+
 export const STAFF: StaffSeed[] = [
   {
     key: "admin",

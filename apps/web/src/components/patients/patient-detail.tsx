@@ -18,6 +18,7 @@ import {
   type FieldSource,
   type IntakeRequestDto,
   type PatientDetailDto,
+  type StaffSharingStatusDto,
 } from "@nutreitor/shared";
 
 import { api, errorMessage } from "@/lib/api";
@@ -390,6 +391,7 @@ export function PatientDetail({
               onError={setError}
             />
           )}
+          {!editing && canEditVisibility && <StaffSharingPanel patientId={p.id} status={p.staffSharing} onChange={load} onError={setError} />}
           {!editing && <Assignments patient={p} canAssign={canAssign} onChange={load} onError={setError} />}
           {!editing && canSeeAccessLog && <AccessLogPanel patientId={p.id} />}
         </div>
@@ -775,6 +777,62 @@ function ClinicalVisibilityPanel({
           );
         })}
       </ul>
+    </Card>
+  );
+}
+
+/**
+ * Consentimiento para compartir la composición corporal con el cuerpo técnico
+ * (KAN-109): acá se registra el papel firmado en el club. El deportista también lo
+ * puede activar o revocar desde su portal; vale el último cambio.
+ */
+function StaffSharingPanel({
+  patientId,
+  status,
+  onChange,
+  onError,
+}: {
+  patientId: string;
+  status: StaffSharingStatusDto;
+  onChange: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function toggle() {
+    setBusy(true);
+    try {
+      await api(`patients/${patientId}/staff-sharing`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shareBody: !status.shareBody }),
+      });
+      onChange();
+    } catch (e) {
+      onError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const since = status.at ? new Date(status.at).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" }) : null;
+  return (
+    <Card>
+      <SectionHeading>Cuerpo técnico</SectionHeading>
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <p className="text-sm text-stone-700">Comparte su composición corporal con el cuerpo técnico (consentimiento firmado)</p>
+        <Toggle
+          on={status.shareBody}
+          busy={busy}
+          label={status.shareBody ? "Dejar de compartir la composición corporal" : "Registrar el consentimiento firmado"}
+          onChange={() => void toggle()}
+        />
+      </div>
+      <p className="mt-2 text-xs text-stone-500">
+        El cuerpo técnico ve el semáforo, la adherencia, el peso y la hidratación de sus planteles. Con el consentimiento, también
+        Σ6 y masa muscular. Nunca la ficha, el plan ni los mensajes.
+        {since && ` Último cambio: ${since}, ${status.by === "athlete" ? "desde el portal" : "registrado en la ficha"}.`}
+      </p>
     </Card>
   );
 }

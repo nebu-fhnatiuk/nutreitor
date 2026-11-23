@@ -462,6 +462,11 @@ function toDetailDto(
       : null,
     // Visibilidad hacia el paciente: sólo se expone (y edita) con read_clinical.
     clinicalVisibility: canClinical ? row.clinicalVisibility : null,
+    staffSharing: {
+      shareBody: row.shareBodyWithStaff,
+      at: row.shareBodyWithStaffAt ? row.shareBodyWithStaffAt.toISOString() : null,
+      by: row.shareBodyWithStaffBy ?? null,
+    },
     sportProfile: (row.sportProfile as SportProfile | null) ?? null,
     // Sin read_clinical tampoco se dice de dónde vino un dato clínico.
     fieldSources: Object.fromEntries(

@@ -17,6 +17,8 @@ const POLL_MS = 60_000;
 export function useUnreadMessages(role: MembershipRole): number {
   const [count, setCount] = useState(0);
   const refresh = useCallback(async (force = false) => {
+    // El cuerpo técnico no tiene mensajes (KAN-109).
+    if (role === "coach") return;
     if (!force && document.visibilityState !== "visible") return;
     try {
       if (role === "patient") {

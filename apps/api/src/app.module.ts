@@ -10,6 +10,7 @@ import { RateLimitModule } from "./core/rate-limit/rate-limit.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { OrganizationsModule } from "./modules/organizations/organizations.module.js";
 import { PatientsModule } from "./modules/patients/patients.module.js";
+import { TeamModule } from "./modules/team/team.module.js";
 import { InvitationsModule } from "./modules/invitations/invitations.module.js";
 import { MembersModule } from "./modules/members/members.module.js";
 import { PublicModule } from "./modules/public/public.module.js";
@@ -45,6 +46,7 @@ import { ContactModule } from "./modules/contact/contact.module.js";
     HealthModule,
     OrganizationsModule,
     PatientsModule,
+    TeamModule,
     InvitationsModule,
     MembersModule,
     PublicModule,

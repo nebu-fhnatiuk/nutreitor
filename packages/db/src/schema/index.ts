@@ -29,6 +29,7 @@ export * from "./contact-requests.js";
 export * from "./password-resets.js";
 export * from "./anthropometry.js";
 export * from "./patient-groups.js";
+export * from "./group-coaches.js";
 export * from "./energy-requirements.js";
 export * from "./dietary-recalls.js";
 export * from "./food-frequency.js";
@@ -66,6 +67,7 @@ import { contactRequests } from "./contact-requests.js";
 import { passwordResets } from "./password-resets.js";
 import { anthropometrySessions } from "./anthropometry.js";
 import { patientGroups, patientGroupMembers } from "./patient-groups.js";
+import { groupCoaches } from "./group-coaches.js";
 import { energyRequirements } from "./energy-requirements.js";
 import { dietaryRecalls } from "./dietary-recalls.js";
 import { foodFrequencySurveys } from "./food-frequency.js";
@@ -115,6 +117,7 @@ export const schema = {
   anthropometrySessions,
   patientGroups,
   patientGroupMembers,
+  groupCoaches,
   energyRequirements,
   dietaryRecalls,
   foodFrequencySurveys,

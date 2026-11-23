@@ -21,6 +21,7 @@ import { and, asc, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { AuditService } from "../../core/audit/audit.service.js";
 import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { hasPublicRosterContent } from "../public/public-serializer.js";
+import { stopCaring } from "./coach-transition.js";
 
 @Injectable()
 export class MembersService {
@@ -76,11 +77,12 @@ export class MembersService {
         .update(memberships)
         .set({ role: newRole })
         .where(eq(memberships.id, membershipId));
+      const endedAssignments = newRole === "coach" ? await stopCaring(tx, membershipId) : 0;
       await this.audit.recordForSession(tx, {
         action: "member.role_changed",
         targetType: "membership",
         targetId: membershipId,
-        metadata: { fromRole: m.role, toRole: newRole },
+        metadata: { fromRole: m.role, toRole: newRole, ...(endedAssignments ? { endedAssignments } : {}) },
       });
     });
   }

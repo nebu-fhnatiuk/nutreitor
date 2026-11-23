@@ -18,6 +18,7 @@ const WINDOW_MS = ACCESS_LOG_WINDOW_MIN * 60_000;
 const ROLE_LABEL: Partial<Record<MembershipRole, string>> = {
   admin: "Administración",
   professional: "Profesional",
+  coach: "Cuerpo técnico",
 };
 
 /** Una visita = misma persona en la misma ventana de 15 min: se listan qué miró. */

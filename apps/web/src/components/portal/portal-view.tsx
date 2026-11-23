@@ -12,9 +12,11 @@ import {
   type MealPlanBody,
   type PlanMeal,
   type PortalMeDto,
+  showStaffSharingCard,
+  type StaffSharingStatusDto,
 } from "@nutreitor/shared";
 
-import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, buttonClass } from "@/components/ui";
+import { Alert, Button, Card, EmptyState, Input, Loading, SectionHeading, Toggle, buttonClass, useFeedback } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { LineChart } from "@/components/patients/line-chart";
 import { DailyReminder, DayCheckin, MealCheck, useDayAdherence } from "./portal-adherence";
@@ -121,6 +123,8 @@ export function PortalView() {
       </Card>
 
       <PortalAnthropometry />
+
+      <StaffSharingCard />
 
       {me.profile.clinical && <ClinicalCard clinical={me.profile.clinical} goal={me.profile.goal} />}
 
@@ -342,5 +346,59 @@ function SelfReport({
         Cancelar
       </Button>
     </form>
+  );
+}
+
+/**
+ * Compartir la composición corporal con el cuerpo técnico (KAN-109). Sólo aparece si
+ * alguno de sus planteles tiene cuerpo técnico. Apagado por defecto; se revoca
+ * cuando quiera y rige en el momento.
+ */
+function StaffSharingCard() {
+  const [status, setStatus] = useState<StaffSharingStatusDto | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { toast } = useFeedback();
+
+  useEffect(() => {
+    api<StaffSharingStatusDto>("portal/me/staff-sharing")
+      .then(setStatus)
+      .catch(() => {});
+  }, []);
+  if (!status || !showStaffSharingCard(status)) return null;
+
+  async function toggle() {
+    setBusy(true);
+    try {
+      const next = await api<StaffSharingStatusDto>("portal/me/staff-sharing", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shareBody: !status!.shareBody }),
+      });
+      setStatus({ ...next, hasCoaches: true });
+      toast(next.shareBody ? "Listo: el cuerpo técnico ve tu composición corporal" : "Dejaste de compartirla");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-4">
+        <SectionHeading>Compartir mi composición corporal con el cuerpo técnico</SectionHeading>
+        <Toggle
+          on={status.shareBody}
+          busy={busy}
+          label="Compartir mi composición corporal con el cuerpo técnico"
+          onChange={() => void toggle()}
+        />
+      </div>
+      <p className="mt-2 text-sm text-stone-600">
+        El cuerpo técnico de tus planteles ve cómo venís: registro de comidas, energía y ánimo, peso, hidratación y si tenés control
+        pendiente. Si lo activás, también ve tus pliegues (Σ6) y tu masa muscular. Nunca ve tu ficha, tu plan ni tus mensajes. Lo
+        podés desactivar cuando quieras.
+      </p>
+    </Card>
   );
 }

@@ -28,7 +28,8 @@ export function MemberSelect({
     api<MemberDto[]>("members")
       .then((m) => {
         if (alive) {
-          setMembers(m.filter((x) => x.status === "active" && x.role !== "patient"));
+          // El cuerpo técnico no atiende (KAN-109): se le asignan planteles, no deportistas.
+          setMembers(m.filter((x) => x.status === "active" && x.role !== "patient" && x.role !== "coach"));
         }
       })
       .catch(() => {});

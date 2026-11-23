@@ -7,6 +7,8 @@ import {
 } from "@nutreitor/db";
 import { and, eq, isNull } from "drizzle-orm";
 
+import type { MembershipRole } from "@nutreitor/shared";
+
 import { getAuth } from "../../core/tenant/tenant-context.store.js";
 
 /**
@@ -20,6 +22,8 @@ import { getAuth } from "../../core/tenant/tenant-context.store.js";
  */
 export interface PatientAccess {
   isAdmin: boolean;
+  /** Rol de la sesión: el `coach` ve sus planteles completos, sin asignaciones (KAN-109). */
+  role: MembershipRole;
   /** Membership de la sesión en este tenant (null si no se resolvió). */
   membershipId: string | null;
 }
@@ -32,7 +36,7 @@ export async function resolvePatientAccess(tx: TenantTx): Promise<PatientAccess>
     .from(memberships)
     .where(and(eq(memberships.userId, user.id), isNull(memberships.revokedAt)))
     .limit(1);
-  return { isAdmin: user.role === "admin", membershipId: m?.id ?? null };
+  return { isAdmin: user.role === "admin", role: user.role, membershipId: m?.id ?? null };
 }
 
 /**

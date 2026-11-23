@@ -39,6 +39,7 @@ import {
   users,
 } from "@nutreitor/db";
 import {
+  addGroupCoachSchema,
   addGroupMembersSchema,
   bookAppointmentSchema,
   checkinSchema,
@@ -55,6 +56,7 @@ import {
   savePlanSchema,
   savePlanTemplateSchema,
   setAvailabilitySchema,
+  staffSharingSchema,
   weekdays,
   type AnthroSiteKey,
   type DayPlan,
@@ -84,10 +86,12 @@ import { PatientNotesService } from "../modules/patients/patient-notes.service.j
 import { PatientsService } from "../modules/patients/patients.service.js";
 import { PlanTemplatesService } from "../modules/patients/plan-templates.service.js";
 import { ReportsService } from "../modules/patients/reports.service.js";
+import { StaffSharingService } from "../modules/patients/staff-sharing.service.js";
 import { SchedulingService } from "../modules/scheduling/scheduling.service.js";
 import {
   CLINICAL_CASES,
   CLUB,
+  COACHES,
   FIRST_NAMES,
   LAST_NAMES,
   SQUADS,
@@ -586,6 +590,13 @@ async function main() {
       });
       staff.set(s.key, { userId: u!.id, membershipId: m!.id, seed: s });
     }
+    // Cuerpo técnico: una cuenta `coach` por plantel (los planteles se asignan con el servicio).
+    const coaches = new Map<string, string>();
+    for (const c of COACHES) {
+      const [u] = await owner.insert(users).values({ email: email(c.email), fullName: c.fullName, hashedPassword }).returning({ id: users.id });
+      const [m] = await owner.insert(memberships).values({ userId: u!.id, organizationId: org.id, role: "coach", region: org.region }).returning({ id: memberships.id });
+      coaches.set(c.sport, m!.id);
+    }
     const admin = staff.get("admin")!;
     const asAdmin = <X>(fn: () => Promise<X>) => as(org, admin.userId, "admin", fn);
 
@@ -651,6 +662,7 @@ async function main() {
     const svc = {
       patients: app.get(PatientsService),
       groups: app.get(GroupsService),
+      staffSharing: app.get(StaffSharingService),
       groupActions: app.get(GroupActionsService),
       anthropometry: app.get(AnthropometryService),
       energy: app.get(EnergyService),
@@ -714,6 +726,11 @@ async function main() {
         const group = await asAdmin(() => svc.groups.create(saveGroupSchema.parse({ name: squad.group, description: squad.description })));
         await asAdmin(() => svc.groups.addMembers(group.id, addGroupMembersSchema.parse({ patientIds: members.map((a) => a.id!) })));
         await asAdmin(() => svc.groupActions.assignProfessional(group.id, { membershipId: pro.membershipId }));
+        await asAdmin(() => svc.groups.addCoach(group.id, addGroupCoachSchema.parse({ membershipId: coaches.get(squad.sport)! })));
+        // La mitad del plantel aceptó compartir su composición corporal desde el portal.
+        for (const a of members.filter((x) => x.index % 2 === 0)) {
+          await as(org, a.userId, "patient", () => svc.staffSharing.setByAthlete(staffSharingSchema.parse({ shareBody: true })));
+        }
         const asPro = <X>(fn: () => Promise<X>) => as(org, pro.userId, "professional", fn);
 
         // Plantilla del plantel (biblioteca de planes).
@@ -1026,6 +1043,7 @@ async function main() {
     console.log(`\nClub "${CLUB.name}" listo: ${athletes.length} deportistas en ${SQUADS.length} planteles.`);
     console.log(`Subdominio: ${CLUB.slug}   Contraseña de todas las cuentas: la de SEED_CLUB_PASSWORD\n`);
     for (const s of STAFF) console.log(`  ${s.role === "admin" ? "Coordinación " : "Nutricionista"}  ${email(s.email)}`);
+    for (const c of COACHES) console.log(`  Cuerpo técnico ${email(c.email)}`);
     const sample = SQUADS.map(sampleOf);
     for (const a of sample) console.log(`  Deportista    ${a.email}  (${a.squad.group})`);
   } finally {

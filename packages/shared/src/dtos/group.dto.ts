@@ -122,6 +122,10 @@ export interface GroupAnthropometryRowDto {
   } | null;
   /** Variación de Σ6 contra la sesión anterior (mm), si ambas lo tienen. */
   sum6Delta: number | null;
+  /** Variación del peso contra la sesión anterior (kg), si ambas lo tienen (KAN-109). */
+  bodyMassDelta: number | null;
+  /** Variación de la masa muscular (Kerr) contra la sesión anterior (kg), si ambas la tienen. */
+  muscleKgDelta: number | null;
 }
 
 export interface GroupAnthropometrySummaryDto {

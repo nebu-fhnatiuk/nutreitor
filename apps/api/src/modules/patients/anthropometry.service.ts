@@ -187,19 +187,27 @@ export class AnthropometryService {
       }
       const rows: GroupAnthropometryRowDto[] = members.map((m) => {
         const [last, prev] = byPatient.get(m.patientId) ?? [];
-        if (!last) return { patientId: m.patientId, fullName: m.fullName, last: null, sum6Delta: null };
+        if (!last) return { patientId: m.patientId, fullName: m.fullName, last: null, sum6Delta: null, bodyMassDelta: null, muscleKgDelta: null };
         const subject = { sex: m.sex, birthDate: m.birthDate };
         const results = toDto(last, null, subject).results;
-        const prevSum6 = prev ? toDto(prev, null, subject).results.sum6 : null;
+        const prevResults = prev ? toDto(prev, null, subject).results : null;
+        const prevSum6 = prevResults?.sum6 ?? null;
+        const mass = finalValue((last.takes as AnthroTakes).bodyMass);
+        const prevMass = prev ? finalValue((prev.takes as AnthroTakes).bodyMass) : null;
+        const muscle = results.kerr.ok ? results.kerr.value.muscleKg : null;
+        const prevMuscle = prevResults?.kerr.ok ? prevResults.kerr.value.muscleKg : null;
+        const delta = (a: number | null, b: number | null) => (a !== null && b !== null ? Math.round((a - b) * 100) / 100 : null);
         return {
           patientId: m.patientId,
           fullName: m.fullName,
           last: {
             sessionId: last.id,
             measuredAt: last.measuredAt,
-            bodyMass: finalValue((last.takes as AnthroTakes).bodyMass),
+            bodyMass: mass,
             results,
           },
+          bodyMassDelta: delta(mass, prevMass),
+          muscleKgDelta: delta(muscle, prevMuscle),
           sum6Delta:
             results.sum6.ok && prevSum6?.ok ? Math.round((results.sum6.value - prevSum6.value) * 10) / 10 : null,
         };

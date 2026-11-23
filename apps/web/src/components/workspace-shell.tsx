@@ -32,6 +32,7 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Administración",
   professional: "Profesional",
   patient: "Paciente",
+  coach: "Cuerpo técnico",
 };
 
 /** `unread`: el ítem muestra el contador de mensajes sin leer. */
@@ -67,6 +68,8 @@ const NAV: Record<MembershipRole, NavItem[]> = {
     { href: "/app/compras", label: "Compras", icon: ShoppingCart },
     { href: "/app/mensajes", label: "Mensajes", icon: MessageSquare, badge: "messages" },
   ],
+  // Cuerpo técnico (KAN-109): sólo el tablero de sus planteles.
+  coach: [{ href: "/equipo", label: "Equipo", icon: Layers }],
 };
 
 /**

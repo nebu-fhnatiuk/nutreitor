@@ -33,7 +33,7 @@ export class GroupBoardService {
     // Cada resumen ya valida el grupo y aplica el scoping de miembros.
     const anthro = await this.anthro.groupSummary(groupId);
     const sweat = await this.hydration.groupSummary(groupId);
-    const { perPatient: adherence, plans, adherence30, logging30 } = await this.adherence(groupId, today);
+    const { perPatient: adherence, plans, adherence30, logging30 } = await this.adherenceSummary(groupId, today);
     const sweatBy = new Map(sweat.map((r) => [r.patientId, r.last]));
 
     const rows: GroupBoardRowDto[] = anthro.rows.map((r) => {
@@ -81,7 +81,7 @@ export class GroupBoardService {
    * Adherencia de los últimos 7 días y de los 7 anteriores por deportista visible,
    * la de 30 días del grupo y el plan vigente de cada uno.
    */
-  private adherence(groupId: string, today: string) {
+  adherenceSummary(groupId: string, today: string) {
     return this.tenantDb.run(async (tx) => {
       await loadGroup(tx, groupId);
       const ids = (await visibleMembers(tx, groupId, await resolvePatientAccess(tx))).map((m) => m.patientId);

@@ -77,6 +77,10 @@ export class CareAssignmentsService {
     if (target.role === "patient") {
       throw new BadRequestException("No se puede asignar a un paciente como profesional.");
     }
+    // El cuerpo técnico no atiende: ve su plantel desde /equipo, sin ficha (KAN-109).
+    if (target.role === "coach") {
+      throw new BadRequestException("El cuerpo técnico no se asigna a deportistas: se le asignan planteles.");
+    }
 
     await assertLocationInTenant(tx, dto.locationId);
 

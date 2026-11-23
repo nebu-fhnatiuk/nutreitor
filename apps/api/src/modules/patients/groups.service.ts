@@ -1,8 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { careAssignments, patientGroupMembers, patientGroups, patients, type TenantTx } from "@nutreitor/db";
+import { careAssignments, groupCoaches, memberships, patientGroupMembers, patientGroups, patients, users, type TenantTx } from "@nutreitor/db";
 import type {
+  AddGroupCoachDto,
   AddGroupMembersDto,
   GroupDetailDto,
+  GroupCoachDto,
   GroupDto,
   GroupMemberDto,
   GroupRefDto,
@@ -124,6 +126,54 @@ export class GroupsService {
     });
   }
 
+  /** Cuerpo técnico del plantel (KAN-109). */
+  listCoaches(id: string): Promise<GroupCoachDto[]> {
+    return this.tenantDb.run(async (tx) => {
+      await loadGroup(tx, id);
+      return tx
+        .select({ membershipId: groupCoaches.membershipId, fullName: users.fullName, email: users.email })
+        .from(groupCoaches)
+        .innerJoin(memberships, eq(memberships.id, groupCoaches.membershipId))
+        .innerJoin(users, eq(users.id, memberships.userId))
+        .where(and(eq(groupCoaches.groupId, id), isNull(memberships.revokedAt)))
+        .orderBy(asc(users.fullName));
+    });
+  }
+
+  addCoach(id: string, dto: AddGroupCoachDto): Promise<void> {
+    return this.tenantDb.run(async (tx) => {
+      await loadGroup(tx, id);
+      // Bajo RLS: una membresía de otro tenant no existe.
+      const [m] = await tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(and(eq(memberships.id, dto.membershipId), eq(memberships.role, "coach"), isNull(memberships.revokedAt)))
+        .limit(1);
+      if (!m) throw new BadRequestException("La persona no es del cuerpo técnico o ya no está en la organización.");
+      const ctx = this.tenantDb.context;
+      const added = await tx
+        .insert(groupCoaches)
+        .values({ tenantId: ctx.tenantId, region: ctx.region, groupId: id, membershipId: m.id })
+        .onConflictDoNothing()
+        .returning({ membershipId: groupCoaches.membershipId });
+      if (added.length > 0) {
+        await this.audit.recordForSession(tx, { action: "group.coach_added", targetType: "group", targetId: id, metadata: { membershipId: m.id } });
+      }
+    });
+  }
+
+  removeCoach(id: string, membershipId: string): Promise<void> {
+    return this.tenantDb.run(async (tx) => {
+      await loadGroup(tx, id);
+      const gone = await tx
+        .delete(groupCoaches)
+        .where(and(eq(groupCoaches.groupId, id), eq(groupCoaches.membershipId, membershipId)))
+        .returning({ membershipId: groupCoaches.membershipId });
+      if (gone.length === 0) throw new NotFoundException();
+      await this.audit.recordForSession(tx, { action: "group.coach_removed", targetType: "group", targetId: id, metadata: { membershipId } });
+    });
+  }
+
   removeMember(id: string, patientId: string): Promise<void> {
     return this.tenantDb.run(async (tx) => {
       await loadGroup(tx, id);
@@ -140,6 +190,20 @@ export class GroupsService {
       });
     });
   }
+}
+
+/**
+ * ¿El coach de la sesión tiene asignado el plantel? Exige membresía activa: revocarla
+ * corta el acceso aunque la fila de `group_coaches` siga ahí (KAN-109).
+ */
+export async function coachHasGroup(tx: TenantTx, groupId: string, access: PatientAccess): Promise<boolean> {
+  if (access.role !== "coach" || !access.membershipId) return false;
+  const [row] = await tx
+    .select({ groupId: groupCoaches.groupId })
+    .from(groupCoaches)
+    .where(and(eq(groupCoaches.groupId, groupId), eq(groupCoaches.membershipId, access.membershipId)))
+    .limit(1);
+  return !!row;
 }
 
 /** Mapa patientId → grupos (por nombre), para el listado y la ficha. */
@@ -170,11 +234,14 @@ export async function loadGroup(tx: TenantTx, id: string): Promise<GroupRow> {
 /** Miembros activos que la sesión puede ver (profesional: sólo asignados), por nombre. */
 export async function visibleMembers(tx: TenantTx, groupId: string, access: PatientAccess): Promise<GroupMemberDto[]> {
   if (!access.isAdmin && !access.membershipId) return [];
+  // Cuerpo técnico: el plantel ES la unidad de acceso (sólo lectura, recortada en el módulo team).
+  const whole = access.isAdmin || (access.role === "coach" && (await coachHasGroup(tx, groupId, access)));
+  if (access.role === "coach" && !whole) return [];
   const q = tx
     .selectDistinct({ patientId: patients.id, fullName: patients.fullName, sex: patients.sex, birthDate: patients.birthDate })
     .from(patientGroupMembers)
     .innerJoin(patients, eq(patients.id, patientGroupMembers.patientId));
-  const scoped = access.isAdmin ? q : q.innerJoin(careAssignments, assignedTo(access));
+  const scoped = whole ? q : q.innerJoin(careAssignments, assignedTo(access));
   return scoped
     .where(and(eq(patientGroupMembers.groupId, groupId), isNull(patients.archivedAt)))
     .orderBy(asc(patients.fullName));

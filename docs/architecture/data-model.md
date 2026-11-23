@@ -23,10 +23,10 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `org_signups` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Solicitudes de alta pendientes de verificar el email (token hasheado, vencen en 48 h, un solo uso). **Sin grants al rol app**: la opera sólo la conexión owner. |
 | `sales_leads` | **Global (control plane)** | — (sin `tenant_id`, sin RLS) | Consultas comerciales de "Hablemos para tu club" (landing, KAN-80, ADR 0041): contacto y datos de la organización, estado `new`/`contacted`/`closed` y quién la marcó. Nunca datos de salud. **Sin grants al rol app**: la opera la conexión owner y la leen sólo operadores de plataforma. |
 | `organizations` | Tenant-scoped (RLS) | `id` (es la raíz del tenant) | En runtime una org sólo se ve a sí misma. El alta corre con el rol `nutreitor_control` (policy `control_plane`, ADR 0049). `status` (`pending_review`/`active`/`rejected`/`suspended`) y `kind` (`team`/`individual`), ADR 0025. **El rol app sólo puede actualizar branding, textos públicos y `kind`** (GRANT por columna; `kind` lo cambia la admin, ADR 0026): el estado lo decide la plataforma. |
-| `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol. |
+| `memberships` | Tenant-scoped (RLS) | `organization_id` | Vínculo user↔org con rol: `admin`, `professional`, `patient` o `coach` (cuerpo técnico, sólo lectura de sus planteles; KAN-109, ADR 0054). |
 | `refresh_tokens` | Tenant-scoped (RLS) | `organization_id` | Sesiones persistidas, con cadena de rotación. |
 | `invitations` | Tenant-scoped (RLS) | `organization_id` | `queued_at` (0050): invitación al portal del import en lote que manda el worker, no la API (ADR 0043). El worker lee y sólo puede actualizar `token_hash` y `expires_at`. |
-| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). `allergy_flags` (text[]): casillas de alergias e intolerancias (KAN-105, ADR 0052), con `CHECK` sobre las claves válidas; son dato clínico y viajan al portal con la visibilidad de `allergies`. |
+| `patients` | Tenant-scoped (RLS) | `tenant_id` | Entidad clínica; cuenta de portal opcional vía `user_id`. `clinical_visibility` (jsonb) define qué campos clínicos ve el paciente en el portal (default `{}` = ninguno). `allergy_flags` (text[]): casillas de alergias e intolerancias (KAN-105, ADR 0052), con `CHECK` sobre las claves válidas; son dato clínico y viajan al portal con la visibilidad de `allergies`. `share_body_with_staff` (+ `_at`, `_by` = `athlete`/`admin`): consentimiento para que el cuerpo técnico vea Σ6 y masa muscular (ADR 0054); default `false`, cada cambio auditado. |
 | `locations` | Tenant-scoped (RLS) | `tenant_id` | Sede esquelética (referencia). |
 | `care_assignments` | Tenant-scoped (RLS) | `tenant_id` | Paciente↔profesional M:N versionado. |
 | `patient_notes` | Tenant-scoped (RLS) | `tenant_id` | Append-only (sólo `SELECT`+`INSERT`). |
@@ -41,6 +41,7 @@ superuser, no es owner de las tablas) y resuelve el tenant del request en el GUC
 | `plan_alert_reviews` | Tenant-scoped (RLS) | `tenant_id` | Alertas clínico-nutricionales con las que se guardó cada versión del plan (KAN-97, ADR 0051). La API las **recalcula** al guardar (motor de `packages/shared`) y guarda una fila por alerta con la decisión: `kept` (con `reason`, obligatorio si `level = 'important'`, forzado por CHECK) o `unreviewed`. Una por (`meal_plan_id`, `rule`, `day`). Guarda el `energy_requirement_id` usado. Append-only (sólo `SELECT`+`INSERT`). Nunca llega al portal. |
 | `patient_groups` | Tenant-scoped (RLS) | `tenant_id` | Grupo de deportistas: plantel, división o turno (ADR 0031). Nombre único por tenant (`lower(btrim(name))`). Lo arma el admin (`group:manage`). |
 | `patient_group_members` | Tenant-scoped (RLS) | `tenant_id` | Pertenencia paciente↔grupo (M:N, PK `group_id, patient_id`). Sin UPDATE (GRANT). Borrar el grupo o el paciente la borra; un grupo **no** abre acceso a sus miembros. |
+| `group_coaches` | Tenant-scoped (RLS) | `tenant_id` | Planteles del cuerpo técnico (ADR 0054): membresía `coach` ↔ grupo (PK `group_id, membership_id`). Sin UPDATE (GRANT). Lo arma el admin (`group:manage`). Para el coach, **el plantel sí es la unidad de acceso**, pero sólo al tablero recortado (`/team`); exige membresía activa. Borrar el grupo o la membresía la borra. |
 | `contact_requests` | Tenant-scoped (RLS) | `tenant_id` | Consultas desde la vidriera (ADR 0027). La ve sólo el destinatario (`membership_id`, o las admins si es NULL); estado `new`/`accepted`/`declined`, `patient_id` al aceptar. Sin DELETE (GRANT). |
 | `professional_profiles` | Tenant-scoped (RLS) | `organization_id` | Vidriera pública por membership. Matrícula (`license_number`, `license_jurisdiction`, `license_status`, `license_note`): sólo `reviewed` es pública. El rol app no puede escribir `license_status`/`license_note` (GRANT por columna); el trigger `professional_profiles_license_reset` la devuelve a `declared` si cambia la matrícula. |
 | `audit_log` | Tenant-scoped (RLS) | `organization_id` | Append-only; `organization_id` con `ON DELETE RESTRICT`. |
@@ -148,6 +149,8 @@ erDiagram
   patient_groups |o--o{ sweat_tests           : "batch"
   patient_groups ||--o{ patient_group_members : "contains"
   patients      ||--o{ patient_group_members  : "belongs to"
+  patient_groups ||--o{ group_coaches         : "followed by"
+  memberships   ||--o{ group_coaches          : "coach of"
   memberships   |o--o{ contact_requests       : "addressed to"
   patients      |o--o| contact_requests       : "created from"
   organizations ||--o{ refresh_tokens         : "scopes"
@@ -350,6 +353,13 @@ erDiagram
     uuid tenant_id FK
   }
 
+  group_coaches {
+    uuid group_id PK
+    uuid membership_id PK "rol coach"
+    uuid tenant_id FK
+    timestamptz created_at
+  }
+
   anthropometry_sessions {
     uuid id PK
     uuid tenant_id FK
@@ -408,7 +418,7 @@ erDiagram
     uuid id PK
     uuid user_id FK
     uuid organization_id FK
-    membership_role role "admin|professional|patient"
+    membership_role role "admin|professional|patient|coach"
     region region
     timestamptz revoked_at "soft delete"
     timestamptz created_at
@@ -455,6 +465,9 @@ erDiagram
     jsonb sport_profile "deporte, entrenamiento, suplementos, sueño (ADR 0045)"
     jsonb field_sources "campo → origen autorreportado; {} = todo del profesional"
     text_array allergy_flags "casillas de alergias (KAN-105); CHECK claves válidas"
+    boolean share_body_with_staff "consiente Σ6 y masa muscular al cuerpo técnico (ADR 0054)"
+    timestamptz share_body_with_staff_at
+    text share_body_with_staff_by "athlete|admin"
     timestamptz archived_at "soft delete"
     timestamptz updated_at
     timestamptz created_at

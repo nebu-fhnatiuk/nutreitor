@@ -10,11 +10,11 @@ export const CONTACT_CHANGED_EVENT = "contact:changed";
 
 const POLL_MS = 60_000;
 
-/** Solicitudes nuevas para el badge de "Solicitudes" (no aplica al paciente). */
+/** Solicitudes nuevas para el badge de "Solicitudes" (no aplica al paciente ni al cuerpo técnico). */
 export function useNewRequests(role: MembershipRole): number {
   const [count, setCount] = useState(0);
   const refresh = useCallback(async (force = false) => {
-    if (role === "patient") return;
+    if (role === "patient" || role === "coach") return;
     if (!force && document.visibilityState !== "visible") return;
     try {
       setCount((await api<{ new: number }>("contact-requests/count")).new);

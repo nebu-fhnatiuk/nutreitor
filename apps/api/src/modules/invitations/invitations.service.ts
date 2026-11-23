@@ -32,6 +32,7 @@ import { TenantDbService } from "../../core/database/tenant-db.service.js";
 import { MAIL_SENDER, type MailSender } from "../../core/mail/mail-sender.js";
 import { getAuth, getTenantContext } from "../../core/tenant/tenant-context.store.js";
 import { ensureProfessionalProfile } from "../professionals/profile-provisioning.js";
+import { stopCaring } from "../members/coach-transition.js";
 
 type InvitationRow = typeof invitations.$inferSelect;
 
@@ -312,6 +313,8 @@ export class InvitationsService {
             .set({ revokedAt: null, role: inv.role })
             .where(eq(memberships.id, existing.id));
           membershipId = existing.id;
+          // Vuelve como cuerpo técnico: las asignaciones de antes no reviven (KAN-109).
+          if (inv.role === "coach") await stopCaring(tx, membershipId);
         } else {
           // Ya es miembro activo: no auto-login con un link viejo.
           throw new ConflictException(
@@ -332,8 +335,8 @@ export class InvitationsService {
       }
 
       // Vidriera pública: admin/professional arrancan con un perfil (privado por
-      // default). El paciente no tiene perfil público.
-      if (inv.role !== "patient") {
+      // default). El paciente y el cuerpo técnico no tienen perfil público.
+      if (inv.role === "admin" || inv.role === "professional") {
         await ensureProfessionalProfile(tx, {
           membershipId,
           organizationId: inv.organizationId,

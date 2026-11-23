@@ -16,6 +16,7 @@ const ROLE_LABEL: Record<MembershipRole, string> = {
   admin: "Admin",
   professional: "Profesional",
   patient: "Paciente",
+  coach: "Cuerpo técnico",
 };
 
 async function api(path: string, init?: RequestInit) {
