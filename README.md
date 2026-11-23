@@ -11,15 +11,19 @@ Un mismo deploy sirve a muchas organizaciones (nutricionistas independientes,
 consultorios, clubes, gimnasios) con **aislamiento de datos fuerte en la base de
 datos** (Postgres RLS), porque lo que se guarda son **datos de salud**.
 
-> **Estado (octubre 2026)**: Fases 1–2 cerradas, Fase 4 (eficiencia del profesional)
-> construida en lo que no depende de terceros. Todo en `main`, con CI en verde.
-> **Todavía no está desplegado**: la arquitectura AWS de abajo es el **objetivo** y
-> hay una lista corta de deuda que resolver [antes de producción](#próximos-pasos).
+> **Estado (noviembre 2026)**:
+> - **Fases 1–2 cerradas.** Lo de la Fase 4 que no depende de terceros está construido.
+> - **Fase 3, en marcha:** ya está el registro de lecturas de datos de salud.
+> - **Nutrición deportiva:** antropometría ISAK, planteles, hidratación, alertas del
+>   plan, alérgenos y el rol de cuerpo técnico.
+> - **AWS:** **staging** desplegado en us-east-1 con Terraform. **Producción** todavía
+>   no tiene cuenta, y hay una lista corta de deuda que resolver
+>   [antes de abrirla](#próximos-pasos).
 
 **Índice** —
 [Qué hace](#qué-hace-la-plataforma) ·
 [Arquitectura](#arquitectura) ·
-[AWS](#arquitectura-en-aws-objetivo) ·
+[AWS](#arquitectura-en-aws) ·
 [Decisiones](#decisiones-de-diseño-y-arquitectura) ·
 [Datos de salud](#seguridad-y-privacidad-de-datos-de-salud) ·
 [Repo](#estructura-del-repo) ·
@@ -34,7 +38,9 @@ datos** (Postgres RLS), porque lo que se guarda son **datos de salud**.
 ## Qué hace la plataforma
 
 Cada organización vive en su subdominio (`{slug}.nutreitor.com`) con su nombre,
-color y logo. Hay tres roles dentro de una organización, más la cara pública.
+color y logo; en los clubes, el **tema Estadio** con los colores del club (contraste
+AA). Hay cuatro roles dentro de una organización (admin, profesional, deportista y
+cuerpo técnico), más la cara pública.
 
 ### Público (sin login)
 
@@ -53,20 +59,25 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
   profesional o al consultorio (con consentimiento). Le llega **sólo al destinatario**,
   que la acepta (se crea la ficha y se lo invita al portal) o la rechaza con un mail
   amable.
+- **"Hablemos para tu club"**: un formulario de la landing (sin JavaScript) para que
+  los clubes y gimnasios dejen una consulta comercial.
 
 ### Profesional (`/pro`)
 
 | Área | Qué tiene |
 |---|---|
 | **Hoy** | turnos del día, pacientes a cargo y **sus métricas de eficiencia** |
-| **Pacientes** | ficha clínica, notas append-only, asignaciones versionadas |
+| **Pacientes** | ficha clínica con **alérgenos estructurados**, notas append-only, asignaciones versionadas; **import de deportistas desde un CSV** con invitación en lote |
+| **Anamnesis** | **formulario previo a la consulta** que el deportista completa desde el portal y el profesional revisa antes de pasarlo a la ficha |
 | **Plan alimentario** | editor día-tipo o semanal, versionado; cada item se vincula a la **base de alimentos** y los macros se calculan solos; total del día contra el objetivo; **intercambios** por equivalencia calculada; **plantillas** del consultorio; **lista de compras** semanal; **borrador con NUTRI** |
+| **Alertas del plan** | reglas determinísticas (sin LLM) que revisan el plan contra las alergias de la ficha y contra el requerimiento (energía y macros); se ven en el editor y quedan registradas al guardar cada versión |
 | **Requerimiento** | gasto en reposo con 4 fórmulas (Cunningham con la masa libre de grasa de la antropometría), sesiones por MET y **objetivos por tipo de día** (entrenamiento, partido, descanso) en g/kg; la semana tipo pasa al plan como objetivo de cada día |
 | **Ingesta** | **recordatorio de 24 h** guiado por pasadas, con la base de alimentos; kcal, macros en g/kg y por comida, comparado contra el requerimiento del tipo de día y promedio de los días habituales; **frecuencia de consumo** por grupos contra las GAPA |
 | **Recetas** | biblioteca global + recetas propias; nutrientes calculados desde los ingredientes |
 | **Evolución** | mediciones con gráficos + **adherencia** del paciente (grilla de 2 semanas, %, sensaciones) |
 | **Antropometría ISAK** | perfil restringido + bloque Kerr, 2 tomas con 3ª obligatoria; Σ6/Σ8, % graso (Durnin-Womersley, Yuhasz, Faulkner), somatotipo Heath-Carter y Kerr 5 componentes, con evolución. El deportista ve en su portal lo que el profesional marque visible |
-| **Grupos** | planteles, divisiones o turnos; **medir a todo el plantel** en una planilla por pasadas (ISAK) y ver la última antropometría de cada uno |
+| **Grupos** | planteles, divisiones o turnos; **pizarra del plantel** con semáforo; **medir a todo el plantel** en una planilla por pasadas (ISAK); acciones por grupo (asignar profesional, aplicar un plan a todos); asignar el **cuerpo técnico** |
+| **Modo cancha** | carga en el campo a pantalla completa, con teclado grande, **dictado por voz** y modo sol, desde las planillas de antropometría e hidratación |
 | **Hidratación** | prueba de sudoración (individual o de todo el plantel en una planilla): L/h, % de pérdida con aviso sobre el 2 % y plan de líquidos antes, durante y después |
 | **Reportes** | **reporte mensual** que se arma solo, se comenta y se publica al paciente |
 | **Agenda** | disponibilidad semanal (huso IANA), turnos, sin solapamientos |
@@ -79,8 +90,12 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
   en parte / no) y "¿cómo te sentiste?" (hambre, energía, ánimo).
 - **Su plan** imprimible, **lista de compras**, **turnos** (reserva y cancelación),
   **evolución** y auto-reporte de peso.
-- **Mensajes** con su profesional, **reportes mensuales** publicados,
-  **recordatorio diario** opcional por email.
+- **Mensajes** con su profesional, **reportes mensuales** publicados (con **"Tu mes
+  en números"**, una historia para compartir que muestra sólo hábitos, nunca el
+  cuerpo), **recordatorio diario** opcional por email.
+- **Anamnesis** antes de la primera consulta, cuando el profesional la pide.
+- **Compartir su composición corporal** con el cuerpo técnico del club: lo activa y
+  lo revoca él.
 - **CHEF** (recetas de su plan, respetando alergias) y **PSICO** (acompañamiento,
   supervisado y con guardrail de crisis), si el consultorio instaló el complemento.
 
@@ -92,7 +107,8 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
 - **Página pública**, **branding**, **complementos** (instalar agentes de IA).
 - **Mensajes** con cada profesional. La admin **no** ve las conversaciones con
   pacientes.
-- **Audit log** append-only.
+- **Audit log** append-only y **registro de lecturas**: quién vio qué dato de salud
+  de cada deportista.
 - **Primeros pasos**: checklist derivada de los datos (perfil, matrícula, marca,
   horarios, equipo) y aviso de "en revisión" hasta que aprueben el alta.
 
@@ -102,6 +118,21 @@ color y logo. Hay tres roles dentro de una organización, más la cara pública.
   tiene el menú del profesional más Página pública y Configuración, sus pacientes
   quedan asignados a ella y chatea con ellos. Si suma colegas, pasa la cuenta a
   **equipo** desde Configuración, sin migrar nada.
+
+### Cuerpo técnico (`/equipo`)
+
+- El DT y el preparador físico ven **cómo vienen los jugadores de sus planteles**, en
+  sólo lectura y desde el celular:
+  - semáforo;
+  - adherencia de 7 días;
+  - energía y peso;
+  - sudoración;
+  - si tienen plan y cuándo es el próximo control.
+- **Composición corporal** (Σ6 y masa muscular), sólo de quien dio su
+  consentimiento.
+- **Nunca** ven la ficha, la medicación, las notas, el plan ni los mensajes. El recorte
+  se hace en el servidor y cada lectura queda en el registro de accesos
+  ([ADR 0054](docs/decisions/0054-rol-cuerpo-tecnico.md)).
 
 ### Operación de la plataforma (`nutreitor.com/plataforma`)
 
@@ -175,22 +206,29 @@ Más detalle: [`docs/architecture/overview.md`](docs/architecture/overview.md) y
 
 ---
 
-## Arquitectura en AWS (objetivo)
+## Arquitectura en AWS
 
-> No hay infraestructura como código todavía: esto es la **topología objetivo** que
-> guió las decisiones (stateless, transaction pooling, secretos fuera del repo,
-> todo dentro del perímetro AWS para el BAA). Ver [ADR 0012](docs/decisions/0012-modular-monolith-evolucion-a-servicios.md).
+> Está en **Terraform**, en [`infra/terraform/`](infra/terraform/README.md), en la
+> región us-east-1 ([ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md),
+> [ADR 0048](docs/decisions/0048-region-us-east-1.md)).
+> - **Staging** está desplegado: es chico, con Spot y una sola AZ.
+> - **Producción** usa los mismos módulos con Multi-AZ y autoscaling, pero todavía no
+>   tiene cuenta.
+>
+> El detalle de cada módulo está en
+> [`docs/architecture/infraestructura-aws.md`](docs/architecture/infraestructura-aws.md).
 
 ```mermaid
 flowchart TB
   user["Usuarios<br/>nutreitor.com · *.nutreitor.com"]
-  dns["Route 53<br/>wildcard + ACM"]
+  dns["Route 53<br/>+ ACM wildcard"]
   cf["CloudFront<br/>nutreitor.com"]
+  cfw["CloudFront<br/>*.nutreitor.com"]
   s3[("S3<br/>landing estática (apps/site)")]
 
-  subgraph vpc["VPC"]
+  subgraph vpc["VPC (2 AZ)"]
     subgraph pub["Subnets públicas"]
-      alb["ALB (HTTPS)"]
+      alb["ALB (HTTPS)<br/>sólo acepta CloudFront"]
     end
     subgraph priv["Subnets privadas — ECS Fargate"]
       web["web (Next.js)"]
@@ -200,8 +238,7 @@ flowchart TB
       migrate["migraciones<br/>(tarea one-off)"]
     end
     subgraph data["Subnets de datos"]
-      pooler["pgBouncer<br/>(transaction pooling)"]
-      rds[("RDS PostgreSQL 17<br/>Multi-AZ, cifrado KMS")]
+      rds[("RDS PostgreSQL 17<br/>cifrado KMS")]
       cache[("ElastiCache Redis 7")]
     end
   end
@@ -215,13 +252,13 @@ flowchart TB
   dns -->|"nutreitor.com"| cf
   cf -->|"/, /clubes, /gimnasios…"| s3
   cf -->|"/registro, /plataforma, /api"| alb
-  dns -->|"*.nutreitor.com"| alb
+  dns -->|"*.nutreitor.com"| cfw --> alb
   alb --> web
   web -->|"red privada + secreto de borde"| api
   api --> agents
-  api --> pooler --> rds
-  agents --> pooler
-  worker --> pooler
+  api --> rds
+  agents --> rds
+  worker --> rds
   migrate --> rds
   api --> cache
   worker --> cache
@@ -234,13 +271,14 @@ flowchart TB
 | Pieza | Servicio AWS | Por qué |
 |---|---|---|
 | Web, API, agentes, worker | **ECS Fargate**, una tarea por servicio, subnets privadas | contenedores stateless que ya existen (Dockerfiles multi-stage); escalan por separado |
-| Entrada | **ALB** + **Route 53** con certificado wildcard (ACM) | un subdominio por consultorio; la API **no** queda expuesta: sólo la alcanza la web |
+| Entrada | **CloudFront** (raíz y `*.nutreitor.com`) → **ALB** que sólo acepta CloudFront, **Route 53** y certificado wildcard (ACM) | un subdominio por consultorio; la API **no** queda expuesta: sólo la alcanza la web |
 | Landing | **S3 + CloudFront** en `nutreitor.com` | sitio estático (Astro); CloudFront manda `/registro`, `/plataforma` y `/api` al ALB y el resto a S3 ([ADR 0028](docs/decisions/0028-landing-separada-astro-s3-cloudfront.md)) |
-| Base de datos | **RDS PostgreSQL 17** (Multi-AZ, KMS) + **pgBouncer** | RLS con `SET LOCAL` por transacción → compatible con transaction pooling ([ADR 0002](docs/decisions/0002-als-vs-request-scoped-di.md)). RDS Proxy queda a validar (fija la conexión ante algunos `SET`) |
+| Base de datos | **RDS PostgreSQL 17** (KMS; Multi-AZ en prod) | RLS con `SET LOCAL` por transacción → compatible con transaction pooling ([ADR 0002](docs/decisions/0002-als-vs-request-scoped-di.md)). pgBouncer queda afuera hasta que la cantidad de conexiones lo pida ([ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md)) |
 | Rate limit y colas | **ElastiCache Redis 7** | contadores por ventana ([ADR 0017](docs/decisions/0017-rate-limiting-redis.md)) y cola BullMQ del worker ([ADR 0023](docs/decisions/0023-worker-de-notificaciones.md)) |
 | Email | **SES** | misma cuenta e IAM; avisos sin datos clínicos |
 | IA | **Bedrock** (Converse API, prompt caching) | el dato de salud no sale del perímetro AWS; cubierto por el BAA de AWS ([ADR 0014](docs/decisions/0014-inferencia-bedrock-y-controles-de-costo.md)) |
-| Secretos | **Secrets Manager / SSM** inyectados al task definition | nada de `.env` fuera de dev; rotación dual del secreto de agentes ya soportada |
+| Secretos | **Secrets Manager**, inyectados al task definition | Terraform los genera sin guardarlos en el state; nada de `.env` fuera de dev; rotación dual del secreto de agentes ya soportada |
+| Deploy | rol de deploy por **OIDC** desde GitHub; bucket del state por cuenta | sin llaves de AWS de larga vida en el CI |
 | Migraciones | **tarea ECS one-off** con el rol owner | en dev la API migra al arrancar; en prod no |
 | Residencia | columna `region` en toda tabla de negocio | un tenant se puede promover a una base propia (SILO) o a otra región sin cambiar el modelo ([ADR 0004](docs/decisions/0004-region-enum-denormalizado.md)) |
 
@@ -305,7 +343,7 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 (con datos de salud, la credencial vive en nuestra base y es reemplazable por OIDC).
 
 <details>
-<summary><b>Los 24 ADRs</b></summary>
+<summary><b>Todos los ADRs</b></summary>
 
 | # | Decisión |
 |---|---|
@@ -344,10 +382,23 @@ datos bajo RLS ([0011](docs/decisions/0011-agendamiento-motor-propio.md)). Auth 
 | [0033](docs/decisions/0033-recordatorio-de-24-horas.md) | Recordatorio de 24 horas |
 | [0034](docs/decisions/0034-frecuencia-de-consumo.md) | Frecuencia de consumo por grupos (vs. GAPA) |
 | [0036](docs/decisions/0036-hidratacion-y-prueba-de-sudoracion.md) | Hidratación: prueba de sudoración y plan de líquidos |
+| [0037](docs/decisions/0037-tema-estadio.md) | Tema Estadio: tokens, modo oscuro y colores por zona |
+| [0038](docs/decisions/0038-colores-del-club.md) | Colores del club: paleta generada con contraste AA |
+| [0039](docs/decisions/0039-modo-cancha.md) | Modo cancha: carga en el campo con dictado por voz |
+| [0040](docs/decisions/0040-tu-mes-en-numeros.md) | "Tu mes en números": el reporte mensual como historia para compartir |
+| [0041](docs/decisions/0041-consultas-comerciales-desde-la-landing.md) | Consultas comerciales desde la landing |
+| [0042](docs/decisions/0042-registro-de-lecturas-de-datos-de-salud.md) | Registro de lecturas de datos de salud |
+| [0043](docs/decisions/0043-import-de-deportistas-desde-csv.md) | Import de deportistas desde un CSV |
+| [0044](docs/decisions/0044-acciones-por-grupo.md) | Acciones por grupo: asignar profesional, aplicar plan |
+| [0045](docs/decisions/0045-formularios-previos-a-la-consulta.md) | Formularios previos a la consulta (anamnesis) |
 | [0046](docs/decisions/0046-region-de-produccion.md) | Región de producción: sa-east-1, Bedrock en us-east-1 |
 | [0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md) | Infraestructura como código con Terraform |
 | [0048](docs/decisions/0048-region-us-east-1.md) | Región de producción: us-east-1 (reemplaza a la 0046) |
 | [0049](docs/decisions/0049-plano-de-control-sin-superusuario.md) | Plano de control sin superusuario: rol `nutreitor_control` |
+| [0051](docs/decisions/0051-alertas-del-plan.md) | Alertas clínico-nutricionales del plan: motor determinístico |
+| [0052](docs/decisions/0052-alergenos-estructurados.md) | Alérgenos estructurados en la ficha y en los alimentos |
+| [0053](docs/decisions/0053-conexion-con-relojes.md) | Conexión con relojes (aceptada, falta implementar) |
+| [0054](docs/decisions/0054-rol-cuerpo-tecnico.md) | Rol de cuerpo técnico y consentimiento para la composición corporal |
 
 </details>
 
@@ -369,9 +420,15 @@ Lo que ya está resuelto en el código:
   sólo los campos de su allow-list.
 - **IA con gates**: complemento apagado por default, consentimiento del paciente para
   sus asistentes, tope de costo por tenant, provider real detrás de un flag.
+- **Registro de lecturas**: cada GET del staff que devuelve datos de un deportista
+  queda en `data_access_log` (append-only por GRANT), y la admin lo consulta
+  ([0042](docs/decisions/0042-registro-de-lecturas-de-datos-de-salud.md)).
+- **Lo justo para cada rol**: el cuerpo técnico recibe una pizarra recortada en el
+  servidor, y la composición corporal sólo con consentimiento revocable y auditado
+  ([0054](docs/decisions/0054-rol-cuerpo-tecnico.md)).
 
-Lo que falta está en [Próximos pasos](#próximos-pasos) (Fase 3: registro de
-**lecturas** de datos de salud, export y retención, dossier de compliance).
+Lo que falta está en [Próximos pasos](#próximos-pasos) (Fase 3: export y retención,
+dossier de compliance).
 
 ---
 
@@ -379,27 +436,36 @@ Lo que falta está en [Próximos pasos](#próximos-pasos) (Fase 3: registro de
 
 ```
 apps/
-  api/       NestJS — core (tenant ALS, auth, capacidades, RLS, rate limit, audit)
-             y módulos: organizations, members, invitations, patients (ficha, planes,
-             métricas, adherencia, conversaciones, reportes, eficiencia, plantillas),
-             foods (catálogo, propios, recetas, intercambios), scheduling, portal,
-             public, agents (gateway)
+  api/       NestJS — core (tenant ALS, auth, capacidades, RLS, rate limit, audit,
+             registro de lecturas) y módulos: organizations, onboarding, members,
+             invitations, professionals, patients (ficha, planes, alertas, métricas,
+             antropometría, grupos, hidratación, adherencia, conversaciones, reportes,
+             eficiencia, anamnesis, import), foods (catálogo, propios, recetas,
+             intercambios), scheduling, portal, public, contact, team (cuerpo técnico),
+             agents (gateway)
   site/      Astro 5 estático — landing de producto (/, /clubes, /gimnasios, /ingresar),
              publicada en S3 + CloudFront
   web/       Next.js 15 App Router + Tailwind — alta (/registro), consola (/plataforma),
-             vidrieras, /admin, /pro, /app (PWA), proxy /api/*, manifest e íconos por tenant
+             vidrieras, /admin, /pro, /app (PWA), /equipo, proxy /api/*, manifest e
+             íconos por tenant
   worker/    Node + BullMQ — escaneo por consultorio y entrega de avisos (SES)
   agents/    Python/FastAPI — NUTRI, CHEF, PSICO (stub | Bedrock)
 packages/
-  db/        schema Drizzle, migraciones SQL numeradas (0001–0042), runner, seed,
+  db/        schema Drizzle, migraciones SQL numeradas (0001–0056), runner, seed,
              catálogo de alimentos y recetario (curación + generadores)
   shared/    DTOs y schemas Zod, capacidades, lógica pura (macros, lista de compras,
-             intercambios, adherencia, borrador de plan)
+             intercambios, adherencia, borrador de plan, alertas del plan,
+             antropometría, pizarra del cuerpo técnico)
   config/    tsconfig / eslint compartidos
+infra/
+  terraform/     bootstrap, módulos (network, data, edge, ecs, stack) y entornos
+                 (staging, prod)
 docs/
-  architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS)
-  decisions/     ADRs 0001–0036
-  flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos…)
+  architecture/  overview, multi-tenancy, data-model (erDiagram + notas de RLS),
+                 infraestructura-aws
+  decisions/     ADRs 0001–0054
+  flows/         un .md por flujo de negocio (auth, pacientes, agenda, alimentos,
+                 cuerpo técnico…)
 tools/
   screenshots/   capturas por rol con Playwright (revisión de UX)
 ```
@@ -509,7 +575,7 @@ docker compose restart api                                         # tras cambio
 ## Tests y CI
 
 ```bash
-docker compose exec api pnpm --filter @nutreitor/api test      # API (435 tests)
+docker compose exec api pnpm --filter @nutreitor/api test      # API (más de 500 tests, 67 archivos)
 docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 tests)
 ```
 
@@ -518,7 +584,8 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
   GRANTs y constraints.
 - Cubren:
   - Aislamiento entre tenants y el test de RLS por catálogo.
-  - Autorización por rol y alcance (asignados, admin, paciente).
+  - Autorización por rol y alcance (asignados, admin, paciente, cuerpo técnico) y
+    registro de lecturas en cada ruta que lo necesita.
   - Append-only por GRANT y privacidad de conversaciones.
   - Cálculo nutricional, intercambios, adherencia, métricas con datos conocidos y
     reportes con foto fija.
@@ -526,7 +593,8 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
 - **CI** (GitHub Actions, en cada push y PR):
   1. lint + typecheck + build de todo el monorepo;
   2. tests de API y worker contra un Postgres de servicio;
-  3. build de las imágenes de producción (api, web, worker).
+  3. build de las imágenes de producción (api, web, worker, agents);
+  4. `terraform fmt` y `validate` de todos los módulos y entornos.
 
 ---
 
@@ -570,16 +638,16 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
   `TRUSTED_PROXY_HOPS` según lo que haya delante de la web (con CloudFront y ALB: 2, ADR 0047).
 - [x] ~~Infraestructura como código~~: Terraform en [`infra/terraform/`](infra/terraform/README.md),
   región us-east-1 ([ADR 0048](docs/decisions/0048-region-us-east-1.md),
-  [ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md)). Falta el
-  primer `apply` y el pipeline de deploy.
+  [ADR 0047](docs/decisions/0047-infraestructura-como-codigo-terraform.md)). Staging
+  ya está aplicado; falta la cuenta de prod y el pipeline de deploy.
 - [ ] SES: verificar el dominio y salir del sandbox. Pasar el email de confirmación
   de turno (hoy por consola) al mismo canal.
 - [ ] Imágenes de runtime más livianas (`pnpm deploy`).
 
 ### 2. Fase 3 — Defendible (datos de salud)
 
-- [ ] **Registro de lecturas** de datos de salud: quién vio qué ficha, conversación o
-  reporte (hoy se auditan los cambios, no las lecturas).
+- [x] ~~Registro de lecturas de datos de salud~~: quién vio qué dato de cada
+  deportista ([ADR 0042](docs/decisions/0042-registro-de-lecturas-de-datos-de-salud.md)).
 - [ ] **Export de datos del paciente** (portabilidad) y **política de retención y
   borrado**.
 - [ ] Documento del flujo de datos de salud: dónde viven, quién accede y qué sale de
@@ -595,7 +663,10 @@ docker compose exec api pnpm --filter @nutreitor/worker test   # worker (12 test
 - [ ] Con Bedrock activo:
   - foto de carta, heladera o plato → sugerencias de CHEF según el plan;
   - NUTRI redacta el comentario del reporte mensual.
-- [ ] Wearables (Apple Health, Health Connect) si aparecen clientes deportivos.
+- [ ] **Conexión con relojes**: el entrenamiento real del deportista, con opt-in suyo
+  ([ADR 0053](docs/decisions/0053-conexion-con-relojes.md), aceptada; falta implementar).
+- [ ] **Alertas del plan**: las secciones del catálogo que todavía no están (hoy
+  están A, alergias, y C, energía y macros).
 - [ ] Canal de WhatsApp para los avisos.
 
 ### Dependen de afuera
@@ -623,10 +694,12 @@ Google/Outlook Calendar.
 | [`docs/architecture/overview.md`](docs/architecture/overview.md) | componentes, bordes de red y de tenant, despliegue |
 | [`docs/architecture/multi-tenancy.md`](docs/architecture/multi-tenancy.md) | cómo viaja el tenant del subdominio a la policy RLS |
 | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) | modelo de datos (erDiagram), RLS y GRANTs por tabla |
-| [`docs/decisions/`](docs/decisions/) | los 24 ADRs |
+| [`docs/architecture/infraestructura-aws.md`](docs/architecture/infraestructura-aws.md) · [`infra/terraform/`](infra/terraform/README.md) | AWS en Terraform: módulos, seguridad, secretos, tamaños y cómo desplegar |
+| [`docs/decisions/`](docs/decisions/) | los ADRs |
 | [`docs/flows/auth.md`](docs/flows/auth.md) · [`invitations.md`](docs/flows/invitations.md) | login, sesión, invitaciones |
 | [`docs/flows/onboarding.md`](docs/flows/onboarding.md) | alta de organizaciones, matrícula, consola de plataforma |
 | [`docs/flows/patients.md`](docs/flows/patients.md) | ficha, planes, adherencia, mensajes, portal |
+| [`docs/flows/team.md`](docs/flows/team.md) | cuerpo técnico: planteles, pizarra recortada y consentimiento |
 | [`docs/flows/foods.md`](docs/flows/foods.md) | base de alimentos, recetas, intercambios |
 | [`docs/flows/scheduling.md`](docs/flows/scheduling.md) | agenda y reserva pública |
 | [`docs/flows/agents.md`](docs/flows/agents.md) | NUTRI, CHEF, PSICO, borrador de plan |
